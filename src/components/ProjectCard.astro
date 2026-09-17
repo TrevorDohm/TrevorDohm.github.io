@@ -1,0 +1,66 @@
+---
+import type { Project } from '../data/projects'
+
+interface Props {
+  project: Project
+}
+
+const { project } = Astro.props
+const { featured } = project
+---
+
+<article
+  class:list={[
+    'rounded-xl border border-line bg-white/50 transition-colors hover:border-muted/40',
+    featured ? 'p-8' : 'p-6',
+  ]}
+>
+  <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-3">
+    <h3 class:list={[featured ? 'text-2xl' : 'text-xl', 'font-semibold tracking-tight']}>
+      {project.title}
+    </h3>
+    {project.closedSource && (
+      <span class="text-xs text-muted border border-line rounded-full px-2 py-0.5">
+        internal
+      </span>
+    )}
+  </div>
+
+  <p class="text-sm text-muted mb-4">
+    {project.context} · {project.period}
+  </p>
+
+  <p class="leading-relaxed mb-5">{project.blurb}</p>
+
+  {featured && (
+    <ul class="space-y-2 mb-5 text-muted">
+      {project.points.map((point) => (
+        <li class="flex gap-3">
+          <span aria-hidden="true" class="select-none">—</span>
+          <span>{point}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <div class="flex flex-wrap gap-2 mb-5">
+    {project.tags.map((tag) => (
+      <span class="px-2 py-1 text-xs rounded-md bg-subtle text-accent">{tag}</span>
+    ))}
+  </div>
+
+  {project.links.length > 0 && (
+    <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      {project.links.map((link) => (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link-underline font-medium hover:text-accent"
+        >
+          {link.label} ↗
+        </a>
+      ))}
+    </div>
+  )}
+</article>

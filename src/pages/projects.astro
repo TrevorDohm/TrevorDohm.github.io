@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import ProjectCard from '../components/ProjectCard.astro'
+import { projects } from '../data/projects'
+
+const featured = projects.filter((p) => p.featured)
+const rest = projects.filter((p) => !p.featured)
+---
+
+<BaseLayout
+  title="Projects"
+  description="Research and engineering work by Trevor Dohm: linear attention, agentic AI systems, and the ML infrastructure underneath."
+>
+  <div class="section-container pt-32 pb-12">
+    <h1 class="heading-xl mb-6">Projects</h1>
+    <p class="body-lg max-w-2xl">
+      Published research on attention mechanisms, agentic systems running in
+      air-gapped environments, and the GPU infrastructure underneath both.
+    </p>
+  </div>
+
+  <div class="section-container pb-12 space-y-6">
+    {featured.map((project) => <ProjectCard project={project} />)}
+  </div>
+
+  <div class="section-container pb-24">
+    <h2 class="heading-lg mb-6">More</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {rest.map((project) => <ProjectCard project={project} />)}
+    </div>
+  </div>
+</BaseLayout>

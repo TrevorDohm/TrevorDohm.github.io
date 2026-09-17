@@ -1,0 +1,50 @@
+---
+import { site } from '../data/site'
+
+const year = new Date().getFullYear()
+const { privacy, links } = site
+---
+
+<footer class="border-t border-line mt-24">
+  <div class="section-container py-10 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+    <p class="text-sm text-muted">
+      © {year} {site.name}
+    </p>
+    <div class="flex gap-6 text-sm">
+      <a
+        href={links.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link-underline text-muted hover:text-foreground transition-colors"
+      >
+        LinkedIn
+      </a>
+      {links.github && (
+        <a
+          href={links.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link-underline text-muted hover:text-foreground transition-colors"
+        >
+          GitHub
+        </a>
+      )}
+      <a
+        href={links.huggingface}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="link-underline text-muted hover:text-foreground transition-colors"
+      >
+        Hugging Face
+      </a>
+      {privacy.showEmail && (
+        <a
+          href={`mailto:${links.email}`}
+          class="link-underline text-muted hover:text-foreground transition-colors"
+        >
+          Email
+        </a>
+      )}
+    </div>
+  </div>
+</footer>

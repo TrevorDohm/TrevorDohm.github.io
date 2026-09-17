@@ -1,50 +1,51 @@
-# React + TypeScript + Vite
+# trevordohm.github.io
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Personal site: [trevordohm.github.io](https://trevordohm.github.io)
 
-Currently, two official plugins are available:
+Built with [Astro](https://astro.build) and [Tailwind CSS](https://tailwindcss.com).
+Static output, **zero client-side JavaScript**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Development
 
-## Expanding the ESLint configuration
+Node version is pinned in `.node-version` (22). With [fnm](https://github.com/Schniz/fnm)
+installed, `cd` into the repo and it switches automatically.
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
+npm run dev      # http://localhost:4321
+npm run build    # type-check + build to dist/
+npm run preview  # serve the production build locally
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Deployment
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+Pushing to `master` triggers [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml),
+which builds and publishes to GitHub Pages. The repo's Pages source must be set to
+**GitHub Actions** (Settings → Pages), not a branch.
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## Structure
+
 ```
+src/
+  data/          content. Edit these, not the markup.
+    site.ts        name, links, privacy toggles
+    projects.ts    project entries
+    experience.ts  roles, education, skills
+  layouts/       BaseLayout.astro: <head>, metadata, chrome
+  components/    Nav, Footer, ProjectCard
+  pages/         index, projects, experience (file-based routing)
+  styles/        global.css: Tailwind v4 theme tokens
+```
+
+Content lives in `src/data/`. Adding a project means appending to `projects.ts`;
+no markup changes needed.
+
+`src/data/site.ts` holds privacy toggles (`showPhone`, `showEmail`, `showClearance`)
+that control what appears in the contact section.
+
+## Notes
+
+- Tailwind v4 is configured CSS-first via `@theme` in `src/styles/global.css`.
+  There is no `tailwind.config.ts`.
+- The previous Vite + React SPA is preserved under `legacy/` during the migration
+  and should be deleted once this version is live.

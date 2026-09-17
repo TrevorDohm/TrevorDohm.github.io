@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first: the old tailwind.config.ts is replaced by @theme.
+   Palette ported verbatim from legacy/tailwind.config.ts to keep the live look. */
+@theme {
+  --color-background: #FAFAFA;
+  --color-foreground: #171717;
+  --color-muted: #737373;
+  --color-subtle: #F5F5F5;
+  --color-accent: #404040;
+  --color-accent-dark: #262626;
+  --color-line: #E5E5E5;
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-fade-in-up: fade-in-up 0.7s ease-out forwards;
+}
+
+@keyframes fade-in {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in-up {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  body {
+    @apply antialiased;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-foreground) 10%, transparent);
+  }
+
+  /* Respect users who ask for less motion — the legacy app did not. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility section-container {
+  @apply max-w-5xl mx-auto px-6 sm:px-8;
+}
+
+@utility heading-xl {
+  @apply text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight;
+}
+
+@utility heading-lg {
+  @apply text-2xl sm:text-3xl font-bold tracking-tight;
+}
+
+@utility body-lg {
+  @apply text-lg text-muted leading-relaxed;
+}
+
+/* Animated underline, ported from legacy/src/index.css */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  display: block;
+  margin-top: 2px;
+  right: 0;
+  background: currentColor;
+  transition: width 0.3s ease;
+}
+.link-underline:hover::after {
+  width: 100%;
+  left: 0;
+  right: auto;
+}
