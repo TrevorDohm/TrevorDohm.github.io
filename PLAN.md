@@ -166,8 +166,9 @@ just the site prettier. The rules:
 1. **One job per file.** A page composes sections, a section composes UI pieces, and
    a UI piece renders one thing. Target under ~150 lines per file.
 2. **Pages don't hold markup.** `index.astro` becomes a list of section components.
-3. **Data flows down through props.** Only pages import from `src/data/`.
-   Components receive what they render as props, so each can be reused or moved.
+3. **Data flows down through props.** Only pages and layouts import from
+   `src/data/`. Components receive what they render as props, so each can be
+   reused or moved.
 4. **Logic separate from the DOM.** Math and formatting live in pure TypeScript
    modules with no `document` or `window` access. DOM wiring lives in thin modules
    that call them.
