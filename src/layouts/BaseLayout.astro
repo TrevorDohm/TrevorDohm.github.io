@@ -1,8 +1,8 @@
 ---
 import { Font } from 'astro:assets'
-import { site } from '../data/site'
-import Nav from '../components/Nav.astro'
-import Footer from '../components/Footer.astro'
+import { site, nav } from '../data/site'
+import Nav from '../components/layout/Nav.astro'
+import Footer from '../components/layout/Footer.astro'
 import '../styles/global.css'
 
 interface Props {
@@ -12,9 +12,19 @@ interface Props {
 
 const { title, description = site.description } = Astro.props
 
-const pageTitle = title ? `${title} — ${site.name}` : `${site.name}`
+const pageTitle = title ? `${title} — ${site.name}` : site.name
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImage = new URL('/pfp.jpg', Astro.site).href
+
+const { links, privacy } = site
+const footerLinks = [
+  { label: 'LinkedIn', href: links.linkedin, external: true },
+  { label: 'GitHub', href: links.github, external: true },
+  { label: 'Hugging Face', href: links.huggingface, external: true },
+  ...(privacy.showEmail
+    ? [{ label: 'Email', href: `mailto:${links.email}`, external: false }]
+    : []),
+]
 ---
 
 <!doctype html>
@@ -44,11 +54,11 @@ const ogImage = new URL('/pfp.jpg', Astro.site).href
     <link rel="sitemap" href="/sitemap-index.xml" />
   </head>
 
-  <body class="bg-background text-foreground min-h-screen flex flex-col">
-    <Nav />
+  <body class="flex min-h-screen flex-col bg-background text-foreground">
+    <Nav siteName={site.name} items={nav} pathname={Astro.url.pathname} />
     <main class="flex-1">
       <slot />
     </main>
-    <Footer />
+    <Footer name={site.name} links={footerLinks} />
   </body>
 </html>
