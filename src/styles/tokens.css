@@ -1,0 +1,20 @@
+/* Design tokens. Tailwind v4 turns each --color-* into utilities such as
+   bg-surface and text-muted. Contrast ratios are in PLAN.md. */
+@theme {
+  --color-background: #07070b;
+  --color-surface: #0f0f16;
+  --color-line: #1e1e2a;
+  --color-foreground: #ededf3;
+  --color-muted: #9494a8;
+  --color-accent: #7c9cff;
+  --color-accent-2: #b18cff;
+
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-fade-in-up: fade-in-up 0.7s ease-out forwards;
+}
+
+/* `inline` so utilities reference the variables Astro's <Font /> defines. */
+@theme inline {
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
+}

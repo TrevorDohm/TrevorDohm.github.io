@@ -1,0 +1,41 @@
+@utility section-container {
+  @apply mx-auto max-w-5xl px-6 sm:px-8;
+}
+
+@utility heading-xl {
+  @apply text-4xl font-semibold tracking-tight sm:text-5xl lg:text-7xl;
+}
+
+@utility heading-lg {
+  @apply text-2xl font-semibold tracking-tight sm:text-3xl;
+}
+
+@utility body-lg {
+  @apply text-lg leading-relaxed text-muted;
+}
+
+/* Small mono label above headings. */
+@utility eyebrow {
+  @apply font-mono text-xs uppercase tracking-[0.2em] text-accent;
+}
+
+/* Underline that grows from left to right on hover. */
+.link-underline {
+  position: relative;
+}
+.link-underline::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1px;
+  display: block;
+  margin-top: 2px;
+  right: 0;
+  background: currentColor;
+  transition: width 0.3s ease;
+}
+.link-underline:hover::after {
+  width: 100%;
+  left: 0;
+  right: auto;
+}
