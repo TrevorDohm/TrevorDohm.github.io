@@ -1,0 +1,16 @@
+---
+interface Props {
+  title: string
+  eyebrow?: string
+  level?: 'h1' | 'h2'
+}
+
+const { title, eyebrow, level = 'h2' } = Astro.props
+const Heading = level
+---
+
+<div class="mb-8">
+  {eyebrow && <p class="eyebrow mb-3">{eyebrow}</p>}
+  <Heading class={level === 'h1' ? 'heading-xl' : 'heading-lg'}>{title}</Heading>
+  <slot />
+</div>

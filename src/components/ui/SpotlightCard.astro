@@ -1,0 +1,19 @@
+---
+interface Props {
+  as?: 'article' | 'div'
+  featured?: boolean
+}
+
+const { as: Element = 'article', featured = false } = Astro.props
+---
+
+<!-- data-spotlight is the hook for the cursor glow added in phase 3. -->
+<Element
+  data-spotlight
+  class:list={[
+    'relative rounded-xl border border-line bg-surface transition-colors hover:border-accent/40',
+    featured ? 'p-8' : 'p-6',
+  ]}
+>
+  <slot />
+</Element>
