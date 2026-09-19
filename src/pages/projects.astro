@@ -21,9 +21,12 @@ const rest = projects.filter((p) => !p.featured)
     </SectionHeading>
   </div>
 
-  <div class="section-container space-y-6 pb-12">
-    {featured.map((project) => <ProjectCard project={project} />)}
-  </div>
+  <section class="section-container pb-12">
+    <SectionHeading title="Featured" />
+    <div class="space-y-6">
+      {featured.map((project) => <ProjectCard project={project} />)}
+    </div>
+  </section>
 
   <section class="section-container pb-24">
     <SectionHeading title="More" />

@@ -244,11 +244,11 @@ reading, and none is needed to reach the goal.
 Each phase leaves the site shippable.
 
 1. **Dark foundation.** Move to the Code structure layout and add Vitest. New
-   tokens, self-hosted fonts, grain. Restyle nav, footer, cards, and pages. Nav
-   glass state per page. Optimized photo.
+   tokens, self-hosted fonts, grain. Restyle nav, footer, cards, and pages.
+   Glass nav on every page. Optimized photo.
 2. **Attention matrix.** Build the canvas hero with its fallbacks.
 3. **Motion system.** Scroll reveals, spotlight cards, stats strip, timeline, and
-   nav states.
+   nav states (transparent over the home hero, glass after scrolling past it).
 4. **Transitions and extras.** Native view transitions, shared site name, small
    touches, 404 page, OG image.
 5. **Verify and ship.** See the checklist below. Also update each GitHub Action in
