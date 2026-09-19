@@ -1,0 +1,23 @@
+---
+import type { Project } from '../../data/projects'
+import SectionHeading from '../ui/SectionHeading.astro'
+import ProjectCard from '../projects/ProjectCard.astro'
+
+interface Props {
+  projects: Project[]
+}
+
+const { projects } = Astro.props
+---
+
+<section class="section-container py-24">
+  <div class="flex flex-wrap items-end justify-between gap-x-4">
+    <SectionHeading eyebrow="Work" title="Selected projects" />
+    <a href="/projects" class="link-underline mb-8 text-sm text-muted hover:text-foreground">
+      All projects →
+    </a>
+  </div>
+  <div class="space-y-6">
+    {projects.map((project) => <ProjectCard project={project} />)}
+  </div>
+</section>

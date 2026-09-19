@@ -1,120 +1,28 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import Hero from '../components/home/Hero.astro'
+import SelectedWork from '../components/home/SelectedWork.astro'
+import Contact from '../components/home/Contact.astro'
 import { site } from '../data/site'
-import ProjectCard from '../components/ProjectCard.astro'
 import { projects } from '../data/projects'
 
-const { privacy, links } = site
-const featured = projects.filter((p) => p.featured)
+const { links, privacy } = site
 ---
 
 <BaseLayout>
-  <!-- Hero: layout and proportions preserved from the live site
-       (legacy/src/components/Hero.tsx), with current facts. -->
-  <section class="min-h-screen flex items-center justify-center">
-    <div class="section-container text-center max-w-4xl">
-      <img
-        src="/pfp.jpg"
-        alt={site.name}
-        width="128"
-        height="128"
-        class="w-32 h-32 mx-auto mb-8 rounded-full object-cover opacity-0 animate-fade-in"
-        style="object-position: center 20%;"
-      />
-
-      <h1 class="heading-xl mb-4 opacity-0 animate-fade-in-up" style="animation-delay: 0.1s;">
-        {site.name}
-      </h1>
-
-      <p class="body-lg mb-6 opacity-0 animate-fade-in-up" style="animation-delay: 0.25s;">
-        {site.tagline}
-      </p>
-
-      <p class="text-muted mb-2 opacity-0 animate-fade-in-up" style="animation-delay: 0.4s;">
-        Software Engineer II at RTX · MBA Candidate at Wharton
-      </p>
-      <p class="text-muted mb-8 opacity-0 animate-fade-in-up" style="animation-delay: 0.5s;">
-        {site.location}
-      </p>
-
-      <div
-        class="flex flex-wrap gap-4 justify-center opacity-0 animate-fade-in-up"
-        style="animation-delay: 0.65s;"
-      >
-        <!-- Anchors a real #contact section below; the legacy button
-             scrolled to an element that never existed. -->
-        <a
-          href="#contact"
-          class="px-6 py-3 rounded-lg bg-foreground text-background font-medium hover:bg-accent-dark transition-colors"
-        >
-          Get in touch
-        </a>
-        <a
-          href={links.linkedin}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="px-6 py-3 rounded-lg bg-subtle text-foreground font-medium hover:bg-line transition-colors"
-        >
-          View LinkedIn
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-container pb-24">
-    <div class="flex flex-wrap items-baseline justify-between gap-4 mb-8">
-      <h2 class="heading-lg">Selected work</h2>
-      <a href="/projects" class="link-underline text-muted hover:text-foreground">
-        All projects →
-      </a>
-    </div>
-    <div class="space-y-6">
-      {featured.map((project) => <ProjectCard project={project} />)}
-    </div>
-  </section>
-
-  <section id="contact" class="section-container py-24 scroll-mt-20">
-    <h2 class="heading-lg mb-6">Get in touch</h2>
-    <p class="body-lg max-w-2xl mb-8">
-      Happy to talk about ML infrastructure, attention mechanisms, or agentic systems.
-    </p>
-
-    <dl class="space-y-4">
-      {privacy.showEmail && (
-        <div class="flex gap-3">
-          <dt class="text-muted w-24 shrink-0">Email</dt>
-          <dd>
-            <a href={`mailto:${links.email}`} class="link-underline hover:text-accent">
-              {links.email}
-            </a>
-          </dd>
-        </div>
-      )}
-      <div class="flex gap-3">
-        <dt class="text-muted w-24 shrink-0">LinkedIn</dt>
-        <dd>
-          <a
-            href={links.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="link-underline hover:text-accent"
-          >
-            /in/trevordohm
-          </a>
-        </dd>
-      </div>
-      {privacy.showPhone && (
-        <div class="flex gap-3">
-          <dt class="text-muted w-24 shrink-0">Phone</dt>
-          <dd>{site.phone}</dd>
-        </div>
-      )}
-      {privacy.showClearance && (
-        <div class="flex gap-3">
-          <dt class="text-muted w-24 shrink-0">Clearance</dt>
-          <dd>{site.clearance}</dd>
-        </div>
-      )}
-    </dl>
-  </section>
+  <Hero
+    name={site.name}
+    tagline={site.tagline}
+    role={site.role}
+    location={site.location}
+    linkedin={links.linkedin}
+  />
+  <SelectedWork projects={projects.filter((p) => p.featured)} />
+  <Contact
+    name={site.name}
+    linkedin={links.linkedin}
+    email={privacy.showEmail ? links.email : undefined}
+    phone={privacy.showPhone ? site.phone : undefined}
+    clearance={privacy.showClearance ? site.clearance : undefined}
+  />
 </BaseLayout>

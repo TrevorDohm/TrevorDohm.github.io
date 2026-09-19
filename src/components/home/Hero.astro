@@ -1,0 +1,46 @@
+---
+import Button from '../ui/Button.astro'
+
+interface Props {
+  name: string
+  tagline: string
+  role: string
+  location: string
+  linkedin: string
+}
+
+const { name, tagline, role, location, linkedin } = Astro.props
+---
+
+<section class="relative isolate flex min-h-svh items-center overflow-hidden">
+  <!-- Phase 2 mounts the attention matrix here. The gradient below stays as
+       the fallback when JavaScript is off. -->
+  <div data-hero-canvas aria-hidden="true" class="hero-backdrop absolute inset-0 -z-10"></div>
+
+  <div class="section-container relative w-full pt-16">
+    <p class="eyebrow mb-6 opacity-0 animate-fade-in">{location}</p>
+    <!-- The h1 is the LCP element, so it is visible from the first paint. -->
+    <h1 class="heading-xl max-w-3xl">{name}</h1>
+    <p class="body-lg mt-6 max-w-2xl opacity-0 animate-fade-in-up" style="animation-delay: 0.15s">
+      {tagline}
+    </p>
+    <p class="mt-3 font-mono text-sm text-muted opacity-0 animate-fade-in-up" style="animation-delay: 0.25s">
+      {role}
+    </p>
+    <div class="mt-10 flex flex-wrap gap-4 opacity-0 animate-fade-in-up" style="animation-delay: 0.35s">
+      <Button href="#contact">Get in touch</Button>
+      <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero-backdrop {
+    background:
+      radial-gradient(ellipse 55% 50% at 70% 40%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 70%),
+      radial-gradient(ellipse 40% 40% at 85% 70%, color-mix(in srgb, var(--color-accent-2) 14%, transparent), transparent 70%),
+      linear-gradient(var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px,
+      linear-gradient(90deg, var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 50%, black, transparent);
+  }
+</style>

@@ -1,0 +1,61 @@
+---
+import type { Project } from '../../data/projects'
+import SpotlightCard from '../ui/SpotlightCard.astro'
+import Tag from '../ui/Tag.astro'
+
+interface Props {
+  project: Project
+}
+
+const { project } = Astro.props
+const { featured = false } = project
+---
+
+<SpotlightCard featured={featured}>
+  <div class="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <h3 class:list={[featured ? 'text-2xl' : 'text-xl', 'font-semibold tracking-tight']}>
+      {project.title}
+    </h3>
+    {project.closedSource && (
+      <span class="rounded-full border border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+        internal
+      </span>
+    )}
+  </div>
+
+  <p class="mb-4 font-mono text-xs text-muted">
+    {project.context} · {project.period}
+  </p>
+
+  <p class="mb-5 leading-relaxed">{project.blurb}</p>
+
+  {featured && (
+    <ul class="mb-5 space-y-2 text-muted">
+      {project.points.map((point) => (
+        <li class="flex gap-3">
+          <span aria-hidden="true" class="select-none text-accent">▹</span>
+          <span>{point}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <div class="mb-5 flex flex-wrap gap-2">
+    {project.tags.map((tag) => <Tag label={tag} />)}
+  </div>
+
+  {project.links.length > 0 && (
+    <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      {project.links.map((link) => (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="link-underline font-medium text-accent hover:text-foreground"
+        >
+          {link.label} ↗
+        </a>
+      ))}
+    </div>
+  )}
+</SpotlightCard>

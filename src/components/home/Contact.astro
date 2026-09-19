@@ -1,0 +1,69 @@
+---
+import { Image } from 'astro:assets'
+import SectionHeading from '../ui/SectionHeading.astro'
+import pfp from '../../assets/pfp.jpg'
+
+interface Props {
+  name: string
+  linkedin: string
+  email?: string
+  phone?: string
+  clearance?: string
+}
+
+const { name, linkedin, email, phone, clearance } = Astro.props
+
+type Row = { label: string; value: string; href?: string; external?: boolean }
+const rows: Row[] = []
+if (email) rows.push({ label: 'Email', value: email, href: `mailto:${email}` })
+rows.push({
+  label: 'LinkedIn',
+  value: linkedin.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''),
+  href: linkedin,
+  external: true,
+})
+if (phone) rows.push({ label: 'Phone', value: phone })
+if (clearance) rows.push({ label: 'Clearance', value: clearance })
+---
+
+<section id="contact" class="section-container scroll-mt-20 py-24">
+  <div class="grid gap-10 md:grid-cols-[auto_1fr] md:items-start">
+    <Image
+      src={pfp}
+      alt={name}
+      width={256}
+      class="h-32 w-32 rounded-full object-cover ring-1 ring-line"
+      style="object-position: center 20%;"
+    />
+    <div>
+      <SectionHeading eyebrow="Contact" title="Get in touch">
+        <p class="body-lg mt-4 max-w-2xl">
+          Happy to talk about ML infrastructure, attention mechanisms, or agentic systems.
+        </p>
+      </SectionHeading>
+      <dl class="space-y-4">
+        {rows.map((row) => (
+          <div class="flex gap-3">
+            <dt class="w-24 shrink-0 font-mono text-xs uppercase tracking-wider text-muted leading-6">
+              {row.label}
+            </dt>
+            <dd>
+              {row.href ? (
+                <a
+                  href={row.href}
+                  target={row.external ? '_blank' : undefined}
+                  rel={row.external ? 'noopener noreferrer' : undefined}
+                  class="link-underline hover:text-accent"
+                >
+                  {row.value}
+                </a>
+              ) : (
+                row.value
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </div>
+</section>
