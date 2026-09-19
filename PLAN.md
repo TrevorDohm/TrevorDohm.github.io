@@ -5,7 +5,7 @@
 | Phase | Status |
 |---|---|
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
-| Design overhaul | **Approved 2026-09-18.** Implementation starting |
+| Design overhaul | **In progress.** Phase 1 (dark foundation) done on branch `design-overhaul` |
 
 ---
 
