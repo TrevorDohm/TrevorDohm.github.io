@@ -1,0 +1,33 @@
+---
+interface Props {
+  title: string
+  subtitle: string
+  meta: string
+  note?: string
+  points: string[]
+}
+
+const { title, subtitle, meta, note, points } = Astro.props
+---
+
+<li class="relative border-l border-line pl-8">
+  <span
+    data-timeline-dot
+    aria-hidden="true"
+    class="absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full border border-accent bg-background"
+  ></span>
+  <h3 class="text-lg font-semibold tracking-tight">{title}</h3>
+  <p class="text-muted">{subtitle}</p>
+  <p class="mt-1 font-mono text-xs text-muted">{meta}</p>
+  {note && <p class="mt-3 text-sm italic text-muted">{note}</p>}
+  {points.length > 0 && (
+    <ul class="mt-4 space-y-2 text-muted">
+      {points.map((point) => (
+        <li class="flex gap-3">
+          <span aria-hidden="true" class="select-none text-accent">▹</span>
+          <span>{point}</span>
+        </li>
+      ))}
+    </ul>
+  )}
+</li>

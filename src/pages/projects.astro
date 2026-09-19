@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import SectionHeading from '../components/ui/SectionHeading.astro'
 import ProjectCard from '../components/projects/ProjectCard.astro'
 import { projects } from '../data/projects'
 
@@ -11,22 +12,23 @@ const rest = projects.filter((p) => !p.featured)
   title="Projects"
   description="Research and engineering work by Trevor Dohm: linear attention, agentic AI systems, and the ML infrastructure underneath."
 >
-  <div class="section-container pt-32 pb-12">
-    <h1 class="heading-xl mb-6">Projects</h1>
-    <p class="body-lg max-w-2xl">
-      Published research on attention mechanisms, agentic systems running in
-      air-gapped environments, and the GPU infrastructure underneath both.
-    </p>
+  <div class="section-container pb-12 pt-32">
+    <SectionHeading level="h1" eyebrow="Work" title="Projects">
+      <p class="body-lg mt-6 max-w-2xl">
+        Published research on attention mechanisms, agentic systems running in
+        air-gapped environments, and the GPU infrastructure underneath both.
+      </p>
+    </SectionHeading>
   </div>
 
-  <div class="section-container pb-12 space-y-6">
+  <div class="section-container space-y-6 pb-12">
     {featured.map((project) => <ProjectCard project={project} />)}
   </div>
 
-  <div class="section-container pb-24">
-    <h2 class="heading-lg mb-6">More</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <section class="section-container pb-24">
+    <SectionHeading title="More" />
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
       {rest.map((project) => <ProjectCard project={project} />)}
     </div>
-  </div>
+  </section>
 </BaseLayout>

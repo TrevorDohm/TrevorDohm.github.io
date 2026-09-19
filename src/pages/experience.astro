@@ -1,5 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
+import SectionHeading from '../components/ui/SectionHeading.astro'
+import TimelineItem from '../components/experience/TimelineItem.astro'
+import Tag from '../components/ui/Tag.astro'
 import { experience, education, skills } from '../data/experience'
 ---
 
@@ -7,75 +10,46 @@ import { experience, education, skills } from '../data/experience'
   title="Experience"
   description="Trevor Dohm's professional experience at RTX, SMU, and Croquet, plus education and technical skills."
 >
-  <div class="section-container pt-32 pb-12">
-    <h1 class="heading-xl mb-6">Experience</h1>
-  </div>
-
-  <div class="section-container pb-16">
+  <div class="section-container pb-24 pt-32">
+    <SectionHeading level="h1" eyebrow="Career" title="Experience" />
     <ol class="space-y-12">
       {experience.map((role) => (
-        <li class="border-l border-line pl-6 sm:pl-8">
-          <div class="flex flex-wrap items-baseline gap-x-3 mb-1">
-            <h2 class="text-xl font-semibold tracking-tight">{role.role}</h2>
-            <span class="text-muted">· {role.org}</span>
+        <TimelineItem
+          title={role.role}
+          subtitle={role.org}
+          meta={`${role.location} · ${role.period}`}
+          note={role.note}
+          points={role.points}
+        />
+      ))}
+    </ol>
+
+    <section class="mt-24">
+      <SectionHeading title="Education" />
+      <ol class="space-y-10">
+        {education.map((ed) => (
+          <TimelineItem
+            title={ed.school}
+            subtitle={ed.degree}
+            meta={`${ed.location} · ${ed.period}`}
+            points={ed.points}
+          />
+        ))}
+      </ol>
+    </section>
+
+    <section class="mt-24">
+      <SectionHeading title="Skills" />
+      <dl class="space-y-6">
+        {skills.map((group) => (
+          <div>
+            <dt class="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-muted">{group.group}</dt>
+            <dd class="flex flex-wrap gap-2">
+              {group.items.map((item) => <Tag label={item} />)}
+            </dd>
           </div>
-          <p class="text-sm text-muted mb-3">
-            {role.location} · {role.period}
-          </p>
-          {role.note && (
-            <p class="text-sm italic text-muted mb-3">{role.note}</p>
-          )}
-          <ul class="space-y-2 text-muted">
-            {role.points.map((point) => (
-              <li class="flex gap-3">
-                <span aria-hidden="true" class="select-none">—</span>
-                <span>{point}</span>
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ol>
-  </div>
-
-  <div class="section-container pb-16">
-    <h2 class="heading-lg mb-6">Education</h2>
-    <ol class="space-y-8">
-      {education.map((ed) => (
-        <li class="border-l border-line pl-6 sm:pl-8">
-          <h3 class="text-lg font-semibold tracking-tight">{ed.school}</h3>
-          <p class="mb-1">{ed.degree}</p>
-          <p class="text-sm text-muted mb-3">{ed.location} · {ed.period}</p>
-          {ed.points.length > 0 && (
-            <ul class="space-y-2 text-muted">
-              {ed.points.map((point) => (
-                <li class="flex gap-3">
-                  <span aria-hidden="true" class="select-none">—</span>
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </li>
-      ))}
-    </ol>
-  </div>
-
-  <div class="section-container pb-24">
-    <h2 class="heading-lg mb-6">Skills</h2>
-    <dl class="space-y-6">
-      {skills.map((s) => (
-        <div>
-          <dt class="text-sm text-muted mb-2">{s.group}</dt>
-          <dd class="flex flex-wrap gap-2">
-            {s.items.map((item) => (
-              <span class="px-2 py-1 text-xs rounded-md bg-subtle text-accent">
-                {item}
-              </span>
-            ))}
-          </dd>
-        </div>
-      ))}
-    </dl>
+        ))}
+      </dl>
+    </section>
   </div>
 </BaseLayout>
