@@ -5,7 +5,7 @@
 | Phase | Status |
 |---|---|
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
-| Design overhaul | **In progress.** Phase 1 (dark foundation) done on branch `design-overhaul` |
+| Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) done on branch `design-overhaul` |
 
 ---
 
