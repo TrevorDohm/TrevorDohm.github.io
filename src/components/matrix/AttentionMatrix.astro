@@ -1,0 +1,16 @@
+---
+// Decorative canvas for the hero. The parent element must carry
+// data-matrix-root; pointer events are read from that parent.
+---
+
+<canvas
+  data-matrix-canvas
+  aria-hidden="true"
+  class="pointer-events-none absolute inset-0 h-full w-full"
+></canvas>
+
+<script>
+  import { init } from '../../lib/matrix'
+
+  document.querySelectorAll<HTMLElement>('[data-matrix-root]').forEach((root) => init(root))
+</script>

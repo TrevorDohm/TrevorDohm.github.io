@@ -1,5 +1,6 @@
 ---
 import Button from '../ui/Button.astro'
+import AttentionMatrix from '../matrix/AttentionMatrix.astro'
 
 interface Props {
   name: string
@@ -12,10 +13,16 @@ interface Props {
 const { name, tagline, role, location, linkedin } = Astro.props
 ---
 
-<section class="relative isolate flex min-h-svh items-center overflow-hidden">
-  <!-- Phase 2 mounts the attention matrix here. The gradient below stays as
-       the fallback when JavaScript is off. -->
-  <div data-hero-canvas aria-hidden="true" class="hero-backdrop absolute inset-0 -z-10"></div>
+<section
+  data-matrix-root
+  class="relative isolate flex min-h-svh touch-pan-y items-center overflow-hidden"
+>
+  <!-- The CSS backdrop shows without JavaScript and dims once the matrix
+       has drawn its first frame. -->
+  <div aria-hidden="true" class="absolute inset-0 -z-10">
+    <div class="hero-backdrop absolute inset-0"></div>
+    <AttentionMatrix />
+  </div>
 
   <div class="section-container relative w-full pt-16">
     <p class="eyebrow mb-6 animate-rise">{location}</p>
@@ -42,5 +49,10 @@ const { name, tagline, role, location, linkedin } = Astro.props
       linear-gradient(var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px,
       linear-gradient(90deg, var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px;
     mask-image: radial-gradient(ellipse 80% 70% at 60% 50%, black, transparent);
+    transition: opacity 0.8s ease;
+  }
+
+  [data-matrix-ready] .hero-backdrop {
+    opacity: 0.35;
   }
 </style>
