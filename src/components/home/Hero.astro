@@ -19,12 +19,12 @@ const { name, tagline, role, location, linkedin } = Astro.props
 >
   <!-- The CSS backdrop shows without JavaScript and dims once the matrix
        has drawn its first frame. -->
-  <div aria-hidden="true" class="absolute inset-0 -z-10">
+  <div aria-hidden="true" class="matrix-layer absolute inset-0 -z-10">
     <div class="hero-backdrop absolute inset-0"></div>
     <AttentionMatrix />
   </div>
 
-  <div class="section-container relative w-full pt-16">
+  <div class="hero-copy section-container relative w-full pt-16">
     <p class="eyebrow mb-6 animate-rise">{location}</p>
     <!-- The h1 is the LCP element, so it is visible from the first paint. -->
     <h1 class="heading-xl max-w-3xl">{name}</h1>
@@ -54,5 +54,23 @@ const { name, tagline, role, location, linkedin } = Astro.props
 
   [data-matrix-ready] .hero-backdrop {
     opacity: 0.35;
+  }
+
+  /* The canvas is rendered by AttentionMatrix, so reach it with :global. */
+  .matrix-layer :global(canvas) {
+    opacity: 0.55;
+  }
+  @media (min-width: 768px) {
+    .matrix-layer :global(canvas) {
+      opacity: 1;
+      /* The grid emerges from behind the text column instead of sitting under it. */
+      mask-image: linear-gradient(to right, transparent 35%, black 70%);
+    }
+  }
+  /* A halo in the page color keeps the text readable over bright cells. */
+  .hero-copy {
+    text-shadow:
+      0 0 18px var(--color-background),
+      0 0 36px var(--color-background);
   }
 </style>
