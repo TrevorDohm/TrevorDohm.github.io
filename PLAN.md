@@ -115,39 +115,55 @@ decorative.
 
 ### Motion across the site
 
-1. **Hero intro.** Name letters rise and un-blur in a stagger, then the tagline and
-   buttons follow. The `<h1>` is the page's LCP element, so letters start from a
-   small offset and blur, never from `opacity: 0`, and the whole reveal finishes in
-   about 500 ms. The `<h1>` carries `aria-label` with the full name and the letter
-   spans are `aria-hidden`, so screen readers say the name once. **(review)**
-2. **Scroll reveals.** Elements marked `data-reveal` fade and rise as they enter the
+1. **Entrance (phase 3).** A staged ~1.2 s arrival, modeled on how raycast.com
+   brightens its headline instead of fading it in. Nothing is ever invisible.
+   - **0 ms:** all hero text is painted in `muted`, slightly blurred and offset;
+     the grid sits near black.
+   - **150 ms:** a light sweeps diagonally across the grid, waking cells as it
+     passes. This is the existing intro wave, brighter and faster.
+   - **400 ms:** the query point flies in from off-canvas and settles, trailing
+     the comet smear.
+   - **550 ms onward:** each hero line brightens from `muted` to `foreground` and
+     sharpens from blur, staggered, while the nav settles in.
+   The `<h1>` is the LCP element: it is painted from the first frame, and only
+   its color and blur animate, never its opacity. With reduced motion the
+   finished state renders immediately. The `<h1>` carries `aria-label` with the
+   full name and any per-letter spans are `aria-hidden`, so screen readers say
+   the name once. **(review)**
+2. **Matrix fades on scroll (phase 3).** Cells dissolve bottom-row-up as the hero
+   scrolls away, an `outroAlpha` mirror of the intro wave, so the grid erodes
+   instead of being clipped by the hero's edge. Browsers without scroll-driven
+   animations, and anyone with reduced motion, get a plain opacity and blur fade
+   on the whole layer instead. The nav melts from transparent to glass on the
+   same timeline, so the two read as one movement.
+3. **Scroll reveals.** Elements marked `data-reveal` fade and rise as they enter the
    viewport, with children staggered. One small IntersectionObserver script. The
    hiding CSS only applies once the script sets `data-js` on `<body>`, so if the
    script fails, content stays visible. **(review:** originally a class on `<html>`)
-3. **Spotlight cards.** On project cards, a radial glow follows the cursor across
+4. **Spotlight cards.** On project cards, a radial glow follows the cursor across
    the border and surface, driven by CSS variables set on `pointermove`. Cards lift
    slightly on hover.
-4. **Stats strip.** A row under the hero, in mono type, with numbers that count up
+5. **Stats strip.** A row under the hero, in mono type, with numbers that count up
    when scrolled into view: ~10x throughput, ~6,600 dataset downloads, 100+ agent
    tools, Best Paper. Every figure is already on the site or the resumes. The final
    values are in the HTML, digits use `tabular-nums`, and each number has a reserved
    width, so counting never shifts the layout. **(review)**
-5. **Experience timeline.** The vertical line draws itself as you scroll, and each
+6. **Experience timeline.** The vertical line draws itself as you scroll, and each
    role's dot lights when the line reaches it. Uses CSS scroll-driven animations
    inside `@supports (animation-timeline: view())` and
    `@media (prefers-reduced-motion: no-preference)`, with a static line otherwise.
    `animation-timeline` is declared after the `animation` shorthand, because the
    shorthand resets it. **(review)** Supported in Chromium 115+ and Safari 26;
    check Firefox's current status on caniuse before relying on it.
-6. **Nav.** On the home page, transparent over the hero, turning to blurred glass
+7. **Nav.** On the home page, transparent over the hero, turning to blurred glass
    once you scroll past it. On every other page, glass from the start, since there
    is no hero behind it. **(review)** The active page gets a highlighted pill.
-7. **Page transitions.** `@view-transition { navigation: auto; }` in CSS cross-fades
+8. **Page transitions.** `@view-transition { navigation: auto; }` in CSS cross-fades
    between pages, and `view-transition-name` on the site name carries it across as
    a shared element. Works in Chromium and Safari 18.2+. Other browsers load the
    page normally. **(review)** Tradeoff: the active-link pill can't slide from one
    page's nav to the next.
-8. **Small touches.** Link arrows nudge on hover, tag chips glow, and the primary
+9. **Small touches.** Link arrows nudge on hover, tag chips glow, and the primary
    button gets a gradient border that sweeps on hover.
 
 ### Also in scope **(review)**
@@ -249,11 +265,23 @@ Each phase leaves the site shippable.
    tokens, self-hosted fonts, grain. Restyle nav, footer, cards, and pages.
    Glass nav on every page. Optimized photo.
 2. **Attention matrix.** Build the canvas hero with its fallbacks.
-3. **Motion system.** Scroll reveals, spotlight cards, stats strip, timeline, and
-   nav states (transparent over the home hero, glass after scrolling past it).
-4. **Transitions and extras.** Native view transitions, shared site name, small
-   touches, 404 page, OG image.
-5. **Verify and ship.** See the checklist below. Also update each GitHub Action in
+3. **Motion system.** The entrance; the matrix fading on scroll; scroll reveals;
+   spotlight cards driven by the hero's own falloff math; stats strip; timeline;
+   nav states (transparent over the home hero, glass after scrolling past it);
+   an ambient texture threading across section boundaries; matrix polish (comet
+   trail on fast cursor movement, several idle wanderers instead of one).
+4. **Transitions, 404, and craft.** Native view transitions, shared site name,
+   the 404 page whose cells resolve out of noise into "404", matrix-style OG
+   image and favicon, gradient-sweep borders that catch light, a wider type
+   scale, consistent focus and external-link treatments, tags that brighten
+   their matches on hover.
+5. **Content presentation (added 2026-09-22).** Abstract generated SVG diagrams
+   for the internal RTX projects, which can have no screenshots; a `/research`
+   page for Cottention with a figure, citation header, and copyable BibTeX; one
+   metric chip per project; and collapsible details so non-featured projects
+   stop hiding their bullets entirely (a real content bug today: `ProjectCard`
+   renders `points` only when `featured` is set).
+6. **Verify and ship.** See the checklist below. Also update each GitHub Action in
    `deploy.yml` to its own latest major version, checked one by one, since
    `upload-pages-artifact` and `deploy-pages` are versioned separately from
    `checkout` and `setup-node`. **(review)**
