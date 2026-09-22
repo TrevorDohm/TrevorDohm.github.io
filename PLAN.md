@@ -72,8 +72,10 @@ behind the hero. Both are static CSS or SVG, no JS.
 ### The attention matrix (hero)
 
 A grid of rounded cells drawn on a full-width `<canvas>` behind the name and tagline.
-The hero is `100svh` tall, and the canvas ignores small height-only resizes so the
-mobile address bar showing and hiding doesn't trigger redraws. **(review)**
+The hero is `100svh` tall, which doesn't change when the mobile address bar shows
+or hides, so the canvas re-lays out on every real resize. *(An earlier revision
+ignored small height-only resizes; the phase 2 final review found that stretched
+the canvas on desktop and guarded nothing on phones, so it was removed.)*
 
 - **Size.** About 24×24 cells on desktop, 14×14 on phones.
 - **Cursor as query.** Each cell's weight is a softmax over its negative distance

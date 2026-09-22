@@ -14,8 +14,6 @@ const EASE_RATE = 7
 /** Brightness added to the hovered cell's row and column. */
 const AXIS_BOOST = 0.12
 const INTRO_SECONDS = 1.2
-/** Height-only resizes smaller than this are the mobile address bar; ignore them. */
-const RESIZE_HEIGHT_TOLERANCE = 120
 
 function readPalette(el: Element): Palette {
   const style = getComputedStyle(el)
@@ -60,14 +58,17 @@ export function init(root: HTMLElement): () => void {
     attentionWeights(grid.centers, grid.pitch, state.query.x, state.query.y, TEMPERATURE, target)
   }
 
-  const draw = () => renderer.draw({ weights, boost, intro })
+  const draw = () => {
+    renderer.draw({ weights, boost, intro })
+    // Dim the CSS backdrop only once cells are actually visible.
+    if (intro > 0) root.dataset.matrixReady = ''
+  }
 
   const resize = () => {
     const rect = canvas.getBoundingClientRect()
     if (rect.width === 0 || rect.height === 0) return // not laid out yet, or hidden
-    const widthChanged = Math.abs(rect.width - width) > 1
-    const heightChanged = Math.abs(rect.height - height) > RESIZE_HEIGHT_TOLERANCE
-    if (grid && !widthChanged && !heightChanged) return
+    const unchanged = Math.abs(rect.width - width) <= 1 && Math.abs(rect.height - height) <= 1
+    if (grid && unchanged) return
     width = rect.width
     height = rect.height
     grid = layoutGrid(width, height)
@@ -79,7 +80,6 @@ export function init(root: HTMLElement): () => void {
     updateTarget(performance.now())
     weights.set(target)
     draw()
-    root.dataset.matrixReady = ''
   }
 
   const tick = (dt: number, now: number) => {
