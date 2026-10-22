@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attention gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --background:#07070B; --surface:#0F0F16; --line:#1E1E2A; --foreground:#EDEDF3; --muted:#9494A8; --accent:#7C9CFF; --accent-2:#B18CFF; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--background); color:var(--foreground); font-family:Geist, system-ui, sans-serif; }
+  .wrap { max-width:1200px; margin:0 auto; padding:32px 16px 80px; }
+  .top h1 { font-size:22px; font-weight:500; margin:0 0 4px; }
+  .top p { color:var(--muted); margin:0; font-size:14px; max-width:780px; }
+  .section { margin-top:56px; border:1px solid var(--line); border-radius:16px; padding:40px 0 32px; }
+  .head { display:flex; justify-content:space-between; align-items:end; padding:0 32px 28px; gap:16px; }
+  .eyebrow { font:500 12px 'Geist Mono', monospace; letter-spacing:.12em; color:var(--muted); text-transform:uppercase; }
+  .head h2 { font-size:32px; letter-spacing:-.02em; font-weight:600; margin:6px 0 0; }
+  .pause { font:500 12px 'Geist Mono', monospace; color:var(--muted); background:transparent; border:1px solid var(--line); border-radius:999px; padding:6px 12px; cursor:pointer; }
+  .marquee { overflow:hidden; display:flex; -webkit-mask-image:linear-gradient(90deg,transparent,#0003 32px,#000 96px,#000 calc(100% - 96px),#0003 calc(100% - 32px),transparent); mask-image:linear-gradient(90deg,transparent,#0003 32px,#000 96px,#000 calc(100% - 96px),#0003 calc(100% - 32px),transparent); padding:8px 0; }
+  .track { display:flex; flex-shrink:0; gap:20px; padding-right:20px; animation:scroll var(--dur,120s) linear infinite; }
+  @keyframes scroll { from { transform:translateX(0) } to { transform:translateX(-100%) } }
+  .card { width:240px; flex-shrink:0; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px; transition:transform .4s cubic-bezier(.2,.7,.2,1), border-color .4s; position:relative; }
+  .card:hover { transform:translateY(-4px); border-color:#2c2c40; }
+  .card canvas { width:212px; height:212px; display:block; border-radius:8px; }
+  .meta { display:flex; justify-content:space-between; align-items:baseline; margin-top:12px; }
+  .name { font-weight:500; font-size:15px; }
+  .kind { font:500 11px 'Geist Mono', monospace; color:var(--muted); letter-spacing:.06em; }
+  .cap { color:var(--muted); font-size:13px; line-height:1.45; margin:6px 0 0; min-height:38px; }
+  .card.star { border-color:#2b3150; }
+  .card.star .name::after { content:' ↗'; color:var(--accent); }
+  .note { padding:20px 32px 0; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>The attention-pattern gallery</h1>
+    <p>A slow strip of cards, each a live 12×12 attention map drawn by the hero's code. A highlighted query row sweeps down each map, showing which tokens it attends to. Hovering a card makes your cursor the query, as in the hero. Cottention gets its own card, which links to the paper.</p>
+  </header>
+
+  <section class="section">
+    <div class="head">
+      <div><div class="eyebrow">03 · How models look at text</div><h2>Ways to pay attention</h2></div>
+      <button class="pause" type="button">Pause</button>
+    </div>
+    <div class="marquee"><div class="track" id="t"></div></div>
+    <p class="note">Speed 18 px/s, slower than the ribbon because the cards hold detail. Hover lifts the card and slows the strip, and the pause button and reduced-motion handling match the ribbon's. Captions are one plain line each, with no claims about your work beyond what's already on the site.</p>
+  </section>
+</div>
+
+<script>
+  const N = 12
+  const P = [
+    { name:'Full attention', kind:'softmax', cap:'Every token looks at every other. Quadratic, and the reason long context is expensive.',
+      w:(i,j)=> Math.exp(-Math.abs(i-j)/2.2) + 0.25*hash(i,j) },
+    { name:'Causal', kind:'decoder', cap:'Each token sees only what came before it. This is how GPT-style models write.',
+      w:(i,j)=> j<=i ? Math.exp(-(i-j)/3) + 0.2*hash(i,j) : 0 },
+    { name:'Sliding window', kind:'local', cap:'Attend only to nearby tokens. Cheap, and often good enough.',
+      w:(i,j)=> Math.abs(i-j)<=2 ? 1 - Math.abs(i-j)*0.25 : 0 },
+    { name:'Block-sparse', kind:'global + local', cap:'A few global tokens, a local window, and random links between them.',
+      w:(i,j)=> (j===0||i===0) ? 0.9 : Math.abs(i-j)<=1 ? 0.8 : hash(i,j)>0.86 ? 0.6 : 0 },
+    { name:'Cottention', kind:'cosine', star:true, cap:'Cosine similarity instead of softmax. Linear memory in sequence length.',
+      w:(i,j)=> Math.max(0, 0.55 + 0.45*Math.cos((i-j)*0.45) * Math.cos(i*0.3)) },
+    { name:'Induction head', kind:'copy', cap:'Finds where the current token appeared before and looks just after it.',
+      w:(i,j)=> (i-j===4 ? 1 : 0) + (i===j ? 0.25 : 0) + 0.08*hash(i,j) },
+  ]
+  function hash(i,j){ const s=Math.sin(i*127.1+j*311.7)*43758.5453; return s-Math.floor(s) }
+  const mix=(a,b,t)=>a.map((x,k)=>Math.round(x+(b[k]-x)*t))
+  const LINE=[30,30,42], A=[124,156,255], B=[177,140,255]
+  function color(v){ return v<0.6 ? mix(LINE,A,v/0.6) : mix(A,B,(v-0.6)/0.4) }
+
+  const track = document.getElementById('t')
+  const cards = P.map((p) => {
+    const el = document.createElement('article')
+    el.className = 'card' + (p.star ? ' star' : '')
+    el.innerHTML = `<canvas width="424" height="424"></canvas><div class="meta"><span class="name">${p.name}</span><span class="kind">${p.kind}</span></div><p class="cap">${p.cap}</p>`
+    track.appendChild(el)
+    // row-normalize weights like a softmax output
+    const W = Array.from({length:N},(_,i)=>{ const r=Array.from({length:N},(_,j)=>Math.max(0,p.w(i,j))); const m=Math.max(...r)||1; return r.map(x=>x/m) })
+    return { el, ctx: el.querySelector('canvas').getContext('2d'), W, q: Math.random()*N, hover:null, glow: new Float32Array(N*N) }
+  })
+  // clone for seamless loop
+  const clone = track.cloneNode(true); clone.setAttribute('aria-hidden','true'); clone.inert = true
+  track.parentElement.appendChild(clone)
+  const cloneCards = [...clone.querySelectorAll('.card')]
+  cloneCards.forEach((el,k)=>{ const c=cards[k]; c.mirror = el.querySelector('canvas').getContext('2d') })
+  ;[...cards.map(c=>c.el), ...cloneCards].forEach((el,k)=>{
+    const c = cards[k % cards.length]
+    el.addEventListener('pointermove',(e)=>{ const r=el.querySelector('canvas').getBoundingClientRect(); c.hover = Math.min(N-1, Math.max(0, (e.clientY-r.top)/r.height*N)) })
+    el.addEventListener('pointerleave',()=>{ c.hover=null })
+  })
+  const set=()=>{ const d=track.scrollWidth/18; track.style.setProperty('--dur',d+'s'); clone.style.setProperty('--dur',d+'s') }
+  set(); document.fonts.ready.then(set)
+
+  function draw(c, dt){
+    c.q = c.hover ?? (c.q + dt*1.6) % N
+    const row = c.q, S=424, pad=10, cell=(S-pad*2)/N, g=cell*0.16
+    const ctx=c.ctx; ctx.clearRect(0,0,S,S)
+    for(let i=0;i<N;i++) for(let j=0;j<N;j++){
+      const near = Math.max(0, 1-Math.abs(i-row+0.5)/1.2)
+      const target = c.W[i][j]*(0.28 + 0.72*near)
+      const k=i*N+j; c.glow[k] += (target-c.glow[k])*Math.min(1,dt*6)
+      const v=c.glow[k], [r,gg,b]=color(Math.min(1,v))
+      ctx.fillStyle=`rgb(${r},${gg},${b})`
+      ctx.beginPath(); ctx.roundRect(pad+j*cell+g/2, pad+i*cell+g/2, cell-g, cell-g, 5); ctx.fill()
+    }
+    c.mirror.clearRect(0,0,S,S); c.mirror.drawImage(ctx.canvas,0,0)
+  }
+  let last=performance.now(), rate=1, target=1, paused=false
+  const sec=document.querySelector('.section'), anims=()=>[track,clone].flatMap(t=>t.getAnimations())
+  sec.addEventListener('pointerenter',()=>target=0.25); sec.addEventListener('pointerleave',()=>target=1)
+  document.querySelector('.pause').onclick=(e)=>{ paused=!paused; e.target.textContent=paused?'Play':'Pause'; anims().forEach(a=>paused?a.pause():a.play()) }
+  function tick(now){ const dt=Math.min(0.05,(now-last)/1000); last=now
+    rate+=(target-rate)*0.06; if(!paused) anims().forEach(a=>a.updatePlaybackRate(rate))
+    cards.forEach(c=>draw(c, paused?0:dt)); requestAnimationFrame(tick) }
+  requestAnimationFrame(tick)
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ribbon hybrids</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --background: #07070B; --surface: #0F0F16; --line: #1E1E2A;
+    --foreground: #EDEDF3; --muted: #9494A8; --accent: #7C9CFF; --accent-2: #B18CFF;
+    --warm: #E8B27C; --green: #8FD0A8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: Geist, system-ui, sans-serif; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 16px 80px; }
+  header.top h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  header.top p { color: var(--muted); margin: 0 0 8px; font-size: 14px; max-width: 760px; }
+  .opt { margin-top: 56px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; cursor: pointer; }
+  .opt.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .opt-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .opt-head .t { font-family: 'Geist Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .opt-head .t b { color: var(--foreground); font-weight: 500; }
+  .pause { font: 500 12px 'Geist Mono', monospace; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+  .stage { padding: 40px 0; }
+  .note { padding: 0 18px 16px; color: var(--muted); font-size: 13px; }
+
+  .marquee { overflow: hidden; display: flex; -webkit-mask-image: linear-gradient(90deg, transparent, #0003 32px, #000 96px, #000 calc(100% - 96px), #0003 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, transparent, #0003 32px, #000 96px, #000 calc(100% - 96px), #0003 calc(100% - 32px), transparent); }
+  .marquee + .marquee { margin-top: 10px; }
+  .track { display: flex; flex-shrink: 0; align-items: center; will-change: transform; animation: scroll var(--dur, 60s) linear infinite; }
+  .marquee.rev .track { animation-direction: reverse; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
+  .ml { --c: var(--accent); } .mba { --c: var(--accent-2); } .bake { --c: var(--warm); } .hike { --c: var(--green); }
+  .item { display: inline-flex; align-items: flex-start; gap: 14px; font-size: clamp(48px, 8vw, 104px); font-weight: 600; letter-spacing: -0.035em; line-height: 1.05; white-space: nowrap; padding: 0 .35em; }
+  .item.o .w { color: transparent; -webkit-text-stroke: 1px #3a3a4e; }
+
+  /* Hybrid 1: tag chip leading each word */
+  .h1 .tag { font: 500 12px 'Geist Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--c); border: 1px solid var(--c); border-radius: 6px; padding: 3px 7px; margin-top: .55em; letter-spacing: .08em; opacity: .9; }
+  .h1 .sep { width: 10px; height: 10px; border-radius: 3px; background: var(--line); flex-shrink: 0; }
+
+  /* Hybrid 2: the glowing cell takes the category color and carries the label */
+  .h2 .sep { display: inline-flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
+  .h2 .cell { width: 28px; height: 28px; border-radius: 7px; background: var(--c); box-shadow: 0 0 20px var(--c); }
+  .h2 .lab { font: 500 11px 'Geist Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--c); opacity: .8; }
+  .h2 .item.o:hover .w, .h1 .item.o:hover .w { -webkit-text-stroke-color: var(--c); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>A with the categories from B, two ways</h1>
+    <p>Same big type, same speeds, hover slowdown and pause button. The difference is where the category lives. Hovering an outlined word also tints its outline in that category's color.</p>
+  </header>
+
+  <section class="opt h1" data-choice="tag-chip" onclick="toggleSelect(this)">
+    <div class="opt-head"><span class="t"><b>1</b> · Tag chip before each word</span><button class="pause" type="button">Pause</button></div>
+    <div class="stage">
+      <div class="marquee" data-speed="22" data-items="ml:Cosine Attention|hike:Half Dome|bake:Raspberry Kouign Amann|mba:Options Pricing|ml:CUDA Kernels|hike:The Wave|bake:Piña Colada Danish|mba:Wharton"></div>
+      <div class="marquee rev" data-speed="30" data-items="bake:Blueberry Yuzu Cookies|ml:Agentic Systems|hike:Angel’s Landing|mba:Quant Finance|bake:Orange Cardamom Morning Bun|ml:Linear Transformers|hike:Paintbrush Divide|mba:Black–Scholes"></div>
+    </div>
+    <p class="note">The closest literal blend of A and B. The tags read like a label above each word.</p>
+  </section>
+
+  <section class="opt h2" data-choice="color-cell" onclick="toggleSelect(this)">
+    <div class="opt-head"><span class="t"><b>2</b> · Category-colored cells as separators</span><button class="pause" type="button">Pause</button></div>
+    <div class="stage">
+      <div class="marquee" data-speed="22" data-items="ml:Cosine Attention|hike:Half Dome|bake:Raspberry Kouign Amann|mba:Options Pricing|ml:CUDA Kernels|hike:The Wave|bake:Piña Colada Danish|mba:Wharton"></div>
+      <div class="marquee rev" data-speed="30" data-items="bake:Blueberry Yuzu Cookies|ml:Agentic Systems|hike:Angel’s Landing|mba:Quant Finance|bake:Orange Cardamom Morning Bun|ml:Linear Transformers|hike:Paintbrush Divide|mba:Black–Scholes"></div>
+    </div>
+    <p class="note">Keeps A's glowing matrix cells, so it ties back to the hero, and lets each cell's color and small label carry the category. Less clutter in front of the words.</p>
+  </section>
+</div>
+
+<script>
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  document.querySelectorAll('.marquee').forEach((m) => {
+    const chip = m.closest('.h1')
+    const html = m.dataset.items.split('|').map((p, i) => {
+      const [cat, word] = p.split(':')
+      const o = i % 2 ? ' o' : ''
+      if (chip) return `<span class="item ${cat}${o}"><span class="tag">${cat}</span><span class="w">${esc(word)}</span></span><span class="sep"></span>`
+      return `<span class="sep ${cat}"><span class="cell"></span><span class="lab">${cat}</span></span><span class="item ${cat}${o}"><span class="w">${esc(word)}</span></span>`
+    }).join('')
+    m.innerHTML = `<div class="track">${html}</div><div class="track" aria-hidden="true" inert>${html}</div>`
+    const track = m.querySelector('.track')
+    const set = () => m.querySelectorAll('.track').forEach((t) => t.style.setProperty('--dur', track.scrollWidth / Number(m.dataset.speed) + 's'))
+    set()
+    document.fonts.ready.then(set)
+  })
+  document.querySelectorAll('.opt').forEach((opt) => {
+    let target = 1, rate = 1, paused = false
+    const anims = () => [...opt.querySelectorAll('.track')].flatMap((t) => t.getAnimations())
+    opt.addEventListener('pointerenter', () => { target = 0.25 })
+    opt.addEventListener('pointerleave', () => { target = 1 })
+    const btn = opt.querySelector('.pause')
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      paused = !paused
+      btn.textContent = paused ? 'Play' : 'Pause'
+      anims().forEach((a) => (paused ? a.pause() : a.play()))
+    })
+    const tick = () => {
+      rate += (target - rate) * 0.06
+      if (!paused) anims().forEach((a) => a.updatePlaybackRate(rate))
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+</script>
+</body>
+</html>
