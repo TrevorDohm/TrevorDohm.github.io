@@ -134,9 +134,8 @@ Sources for each category:
   his MBA resume) **(Trevor)**. Good picks from the menu: Orange Cardamom
   Morning Bun, Country Sourdough, Milk Tea Danish, Elote Danish.
 - **hike:** Half Dome, Angel's Landing, The Wave **(Trevor; also on both
-  resumes)**, and the Grand Teton hike Trevor called "Paintbrush Peak". The
-  mockup used "Paintbrush Divide", the pass on the Paintbrush Canyon loop.
-  **Confirm the name with Trevor before shipping.**
+  resumes)**, and Paintbrush Divide in Grand Teton National Park **(Trevor
+  confirmed the name on 2026-10-22)**.
 - One playful line is allowed, such as "Morning Buns at 3 a.m." (a nod to the
   overnight shifts).
 
@@ -260,9 +259,6 @@ src/lib/motion/prefers-reduced-motion.ts   shared check (listed in PLAN.md, not 
    insert this as its own stage. In the same edit, fix the stale status line:
    phases 1 and 2 are merged to `master` and live, not only "on branch
    `design-overhaul`".
-
-The Paintbrush hike name is a **release gate**, not a build step. Build with
-"Paintbrush Divide" and confirm before merging.
 
 Pause applies to everything in its section, including the sweep inside each
 gallery card.
