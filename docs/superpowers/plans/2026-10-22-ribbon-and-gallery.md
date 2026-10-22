@@ -19,7 +19,9 @@
 - Speeds: ribbon row 1 drifts left at 22 px/s, row 2 right at 30 px/s; gallery drifts left at 18 px/s. Hover eases playback rate to 0.25.
 - Pause control is a visible button, first in tab order in its section. Paused stays paused until Play. Pause stops all motion in its section, including the gallery sweep.
 - No motion unless the script has run and set `data-marquee-ready` on the root. JS off and reduced motion share one static mode: no animation, clone hidden, button hidden, row horizontally scrollable with `tabindex="0"`, `role="region"`, `aria-label`.
-- Clone track: `inert` and `aria-hidden="true"`. The first track is a real `<ul>`.
+- Clone track, and any copies added at runtime: `inert` and `aria-hidden="true"`. The first track is a real `<ul>`.
+- Inert content gets no pointer events, and about half the visible items are clones. So hover effects never use `:hover` alone. The marquee script hit-tests items on `pointermove` over the row and sets `data-hover` on the `<li>` under the pointer, in either list, and CSS styles `:hover, [data-hover]`.
+- Animation `currentTime` values are in milliseconds.
 - Section wrappers get `overflow-x: clip`. No `will-change` on tracks. Glow via `box-shadow`, never `filter: blur`.
 - Animations start after the window `load` event.
 - Gallery cards: 12×12 map, query row sweeps at 1.6 rows/s, one shared loop capped at ~30fps, only visible cards drawn, clone canvases mirrored with `drawImage`.
@@ -53,12 +55,14 @@ Work in the worktree `/Users/tdohm/code/website/.claude/worktrees/ribbon-gallery
 | `src/styles/tokens.css` | Modify | `--color-bake`, `--color-hike` |
 | `src/styles/motion.css` | Modify | `marquee` keyframes |
 | `src/lib/motion/prefers-reduced-motion.ts` | Create | Shared reduced-motion check |
-| `src/lib/matrix/index.ts` | Modify | Use the shared check; export `readPalette` |
+| `src/lib/matrix/palette.ts` | Create | `readPalette`, moved out of `index.ts` |
+| `src/lib/matrix/index.ts` | Modify | Use the shared check; import `readPalette` |
 | `src/data/interests.ts` | Create | Ribbon items; Bresnan role as their source |
 | `src/data/patterns.ts` | Create | Gallery card copy |
 | `src/lib/marquee/math.ts` (+test) | Create | Duration, repeats, time rescale, rate easing |
 | `src/lib/marquee/rows.ts` (+test) | Create | Interleave items into rows |
-| `src/lib/marquee/index.ts` | Create | `init(root)`: durations, hover, pause, offscreen, focus |
+| `src/lib/marquee/timing.ts` | Create | Measure rows, add copies, set and rescale durations |
+| `src/lib/marquee/index.ts` | Create | `init(root)`: start, hover rate and hit-test, pause, offscreen, focus |
 | `src/components/ui/MarqueeRow.astro` | Create | One masked row: track `<ul>` + inert clone, static-mode CSS |
 | `src/components/home/Ribbon.astro` | Create | Ribbon section, pause button, two rows |
 | `src/components/home/RibbonItem.astro` | Create | Cell + label + word |
@@ -76,15 +80,15 @@ Work in the worktree `/Users/tdohm/code/website/.claude/worktrees/ribbon-gallery
 ### Task 1: Tokens, shared reduced-motion check, and ribbon data
 
 **Files:**
-- Modify: `src/styles/tokens.css`, `src/lib/matrix/index.ts:20-28, 44`
-- Create: `src/lib/motion/prefers-reduced-motion.ts`, `src/data/interests.ts`
+- Modify: `src/styles/tokens.css`, `src/lib/matrix/index.ts:18-26, 40`
+- Create: `src/lib/motion/prefers-reduced-motion.ts`, `src/lib/matrix/palette.ts`, `src/data/interests.ts`
 
 **Interfaces:**
-- Produces: `prefersReducedMotion(): boolean`; `readPalette(el: Element): Palette` (now exported from `src/lib/matrix/index.ts`); `type InterestCategory = 'ml' | 'mba' | 'bake' | 'hike'`; `interface Interest { label: string; category: InterestCategory }`; `interests: Interest[]`; `bakingRole` (`{ org, role, location, period }`).
+- Produces: `prefersReducedMotion(): boolean`; `readPalette(el: Element): Palette` from `src/lib/matrix/palette.ts` (`Palette` is the type in `renderer.ts`; `readPalette` throws if a token is unreadable, so callers wrap it in try/catch as `index.ts` already does); `type InterestCategory = 'ml' | 'mba' | 'bake' | 'hike'`; `interface Interest { label: string; category: InterestCategory }`; `interests: Interest[]`; `bakingRole` (`{ org, role, location, period }`).
 
 - [ ] **Step 1: Add the tokens.** In the first `@theme` block of `tokens.css`, after `--color-accent-2`, add `--color-bake: #e28d23;` and `--color-hike: #2ab580;`, with a comment noting both sit at about 7.7:1 on `background`, like the accents.
 
-- [ ] **Step 2: Create `prefersReducedMotion()`** in `src/lib/motion/prefers-reduced-motion.ts`, returning `window.matchMedia('(prefers-reduced-motion: reduce)').matches`. It is DOM wiring, so it has no test. Replace the inline `matchMedia` call in `src/lib/matrix/index.ts` with it, and add `export` to `readPalette`.
+- [ ] **Step 2: Create `prefersReducedMotion()`** in `src/lib/motion/prefers-reduced-motion.ts`, returning `window.matchMedia('(prefers-reduced-motion: reduce)').matches`. It is DOM wiring, so it has no test. Replace the inline `matchMedia` call in `src/lib/matrix/index.ts` with it. Move `readPalette` unchanged into `src/lib/matrix/palette.ts` and import it back into `index.ts`.
 
 - [ ] **Step 3: Create `src/data/interests.ts`** with the types above and this exact list (order does not matter; Task 2 interleaves it):
   - ml: Cottention, CUDA Kernels, Linear Transformers, Triton, Agents, Air-Gapped LLMs
@@ -92,7 +96,7 @@ Work in the worktree `/Users/tdohm/code/website/.claude/worktrees/ribbon-gallery
   - bake: Blueberry Yuzu Cookies, Raspberry Kouign Amann, Piña Colada Danish, Orange Cardamom Morning Bun, Country Sourdough, Lamination at 3 a.m.
   - hike: Half Dome, Angel's Landing, The Wave, Paintbrush Divide
 
-  Also export `bakingRole = { org: 'Bresnan Bread & Pastry', role: 'Operations Lead, Overnight Pastry Baker', location: 'McKinney, TX', period: '2025 – 2026' }`, with a doc comment that it is the source for the bake items (from Trevor's MBA resume) and is not rendered yet. Use a typographic apostrophe in "Angel’s Landing".
+  Also export `bakingRole = { org: 'Bresnan Bread & Pastry', role: 'Operations Lead, Overnight Pastry Baker', location: 'McKinney, TX', period: '2025 – 2026' }`, with a doc comment that it is the source for the bake items and is not rendered yet. All four fields come from Trevor's MBA resume ("Operations Lead – Overnight Pastry Baker, Bresnan Bread & Pastry, McKinney, TX (2025 – 2026)"). Use a typographic apostrophe in "Angel’s Landing".
 
 - [ ] **Step 4: Verify.** Run `npm test && npm run build`. Expected: 45 tests pass, build reports 0 errors. The hero behaves as before (`npm run dev`, load `/`, the matrix animates).
 
@@ -145,12 +149,12 @@ describe('approach', () => {
 })
 ```
 
-And in `rows.test.ts`, using the real list from `src/data/interests.ts` and `ORDER = ['ml', 'bake', 'mba', 'hike']`:
+And in `rows.test.ts`, with `ORDER = ['ml', 'bake', 'mba', 'hike']`. Use a local fixture with the real data's category counts: ml 6, bake 6, mba 4, hike 4, labels `ml1`…`hike4`. Don't import `src/data/` (CLAUDE.md rule 3). A comment should say the fixture must track those counts:
 
 ```ts
 it('places every item exactly once', ...)            // flattened rows, sorted labels equal input
 it('keeps row lengths within 1 of each other', ...)  // for 20 items/2 rows, and 3 items/2 rows
-it('never puts the same category side by side in the real data', ...)
+it('never puts the same category side by side for the 6/6/4/4 fixture', ...)
   // check i and i+1 in each row, and the loop seam (last item next to first)
 it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).toEqual([[], []]))
 ```
@@ -167,7 +171,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
 //    (the first rows get the extra item).
 ```
 
-- [ ] **Step 4: Run** `npx vitest run src/lib/marquee`. Expected: PASS. If the seam test fails for the real data, reorder `ORDER`, not the test.
+- [ ] **Step 4: Run** `npx vitest run src/lib/marquee`. Expected: PASS. The expected rows are `ml bake mba hike ml bake mba hike ml bake` and `mba hike ml bake mba hike ml bake ml bake`.
 
 - [ ] **Step 5: Commit** with the message "Add marquee timing math and row interleaving".
 
@@ -176,7 +180,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
 ### Task 3: Marquee behavior and the shared row component
 
 **Files:**
-- Create: `src/lib/marquee/index.ts`, `src/components/ui/MarqueeRow.astro`
+- Create: `src/lib/marquee/timing.ts`, `src/lib/marquee/index.ts`, `src/components/ui/MarqueeRow.astro`
 - Modify: `src/styles/motion.css`
 
 **Interfaces:**
@@ -189,6 +193,9 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
     - the toggle is `button[data-marquee-toggle]` inside the root
     - each row is `[data-marquee-row][data-speed]` and contains `ul[data-marquee-track]` plus `ul[data-marquee-clone]`
   - root states set by the script: `data-marquee-ready` and `data-marquee-paused`
+  - `data-hover` on the `<li>` under the pointer
+  - a `marquee:layout` event (a `CustomEvent`) dispatched on the root each time copies are added or durations change
+  - `layoutRow(row: HTMLElement, speed: number, viewportPx: number): void` from `timing.ts`
 
 - [ ] **Step 1: Add the keyframes** to `motion.css`, above the reduced-motion block: `@keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-100%) } }`.
 
@@ -204,20 +211,28 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
   - clone: `display: none`
   - track: `display: flex`, `width: max-content`
 
+  Layout in both modes:
+  - row: `display: flex`, `padding-block: 8px` (room for the 4px card lift)
+  - both lists: `display: flex`, `flex-shrink: 0`, `width: max-content`, `gap` and `padding-right` set to `gap`, items centered, no list bullets or margin
+  - item heights come from fixed `font-size` and `line-height` (or fixed card sizes), so a font swap cannot change row height. This is the spec's "reserve row height".
+
   Ready mode, under `:global([data-marquee-ready])`:
   - row: `overflow: hidden` and the eased mask, as in the mockup (`transparent, #0003 32px, #000 96px, …` mirrored). Write it with `rgb(0 0 0 / 0.2)` and `black` in place of the hex shorthands, since mask stops are alpha only.
-  - clone: shown
+  - clone: shown, side by side with the track
   - both tracks: `animation: marquee var(--marquee-duration, 0s) linear infinite`, with `animation-direction: reverse` when `reverse` is set
 
   Do not rely on the global reduced-motion rule; ready mode is never entered under reduced motion.
 
-- [ ] **Step 3: Implement `init(root)`** in `src/lib/marquee/index.ts`:
+- [ ] **Step 3: Implement `layoutRow`** in `src/lib/marquee/timing.ts`:
+  - Measure the width of one copy of the content: the track's `scrollWidth` before any copies are added. Store it on the row so later calls start from the original width.
+  - If `repeatsNeeded(contentWidth, viewportPx)` is more than 1, add the missing copies of the original children to both track and clone. Mark every added element `inert` and `aria-hidden="true"`, since added copies may contain links.
+  - **Re-measure** the track's `scrollWidth` after adding copies, and set `--marquee-duration` on the row to `durationSeconds(trackWidth, speed)` seconds.
+  - If the duration changed and the row has running animations, set each one's `currentTime` (in ms) with `rescaleCurrentTime`, so it does not jump.
+
+- [ ] **Step 4: Implement `init(root)`** in `src/lib/marquee/index.ts`:
   - **Reduced motion:** return a no-op cleanup if `prefersReducedMotion()` is true or the root has no rows.
-  - **Durations:**
-    - Per row, measure `track.scrollWidth`.
-    - If `repeatsNeeded(width, window.innerWidth)` is more than 1, append that many minus one copies of the track's children to both track and clone, marking each added copy `aria-hidden="true"`.
-    - Set `--marquee-duration` to `durationSeconds(width, speed)` seconds on the row.
-    - Recompute on `document.fonts.ready` and from a `ResizeObserver` on the root. When a duration changes on a running animation, set its `currentTime` with `rescaleCurrentTime` so it does not jump.
+  - **Layout:** call `layoutRow` for each row now, on `document.fonts.ready`, and from a `ResizeObserver` on the root. Dispatch `marquee:layout` on the root after each pass.
+  - **Hover hit-testing:** `pointermove` on each row finds the `<li>`, in either list, whose `getBoundingClientRect()` contains the pointer, and moves `data-hover` to it. `pointerleave` clears it.
   - **Start:** after the window `load` event (immediately if `document.readyState === 'complete'`):
     - set `root.dataset.marqueeReady`
     - remove `role` and `tabindex` from the rows (they no longer scroll)
@@ -225,15 +240,15 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
   - **Rate:** keep `rate` and `target`.
     - `pointerenter` sets the target to 0.25 and `pointerleave` sets it to 1.
     - `focusin` within a row sets a `focusHeld` flag that pauses the animations. `focusout` clears it.
-    - While `rate` differs from `target` by more than 0.001, run a rAF that applies `approach(rate, target, 4, dt)` and calls `updatePlaybackRate(rate)` on every animation from `track.getAnimations()` and `clone.getAnimations()`. Stop the rAF once settled.
+    - While `rate` differs from `target` by more than 0.001, run a rAF that applies `approach(rate, target, 4, dt)` and calls `updatePlaybackRate(rate)` on every animation from `track.getAnimations()` and `clone.getAnimations()`. Once settled, snap `rate = target`, apply it once more, and stop the rAF.
   - **Pause:** the toggle flips `userPaused`, sets `aria-pressed`, swaps its text between "Pause" and "Play", and sets or removes `data-marquee-paused` on the root.
     - One function `sync()` plays the animations only when not `userPaused`, not `focusHeld`, on screen (IntersectionObserver on the root) and `!document.hidden`; otherwise it pauses them.
     - Offscreen and hidden-tab changes call `sync()` and never touch `userPaused`.
   - **Cleanup:** disconnect the observers, remove the listeners, cancel the rAF, and remove `data-marquee-ready` and `data-marquee-paused`.
 
-- [ ] **Step 4: Verify** with `npm run build`. Expected: 0 errors. Behavior is checked in Task 5, once a section uses the row.
+- [ ] **Step 5: Verify** with `npm run build`, and check that both `timing.ts` and `index.ts` are under ~150 lines. Expected: 0 errors. Behavior is checked in Task 5, once a section uses the row.
 
-- [ ] **Step 5: Commit** with the message "Add the shared marquee row and its behavior".
+- [ ] **Step 6: Commit** with the message "Add the shared marquee row and its behavior".
 
 ---
 
@@ -253,7 +268,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
   - under the cell, the category as an 11px uppercase mono label in `var(--cat)`
   - the word at `clamp(48px, 8vw, 104px)`, weight 600, letter-spacing `-0.035em`
 
-  Outlined words are transparent with a 1px text stroke. The stroke color must not be `line`: use `muted` at rest and `var(--cat)` on hover, so the outline passes as text. Map `--cat` from `data-category`: ml to `--color-accent`, mba to `--color-accent-2`, bake to `--color-bake`, hike to `--color-hike`.
+  Outlined words are transparent with a 1px text stroke. The stroke color must not be `line`: use `muted` at rest and `var(--cat)` on `:hover, [data-hover]`, so the outline passes as text. Map `--cat` from `data-category`: ml to `--color-accent`, mba to `--color-accent-2`, bake to `--color-bake`, hike to `--color-hike`.
 
 - [ ] **Step 2: Create `Ribbon.astro`.**
   - It calls `itemsByRow(items, 2, ['ml', 'bake', 'mba', 'hike'])`, the order Task 2 settled.
@@ -283,7 +298,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
   - **Speed.** Read `getAnimations()[0].effect.getComputedTiming().duration` and the track width; width divided by seconds should be 22 and 30 px/s, within ±10%.
   - **Fonts.** Reload with the cache disabled and network throttled to Fast 4G. Speed should be the same after fonts load, with no visible jump (Review Focus 1).
   - **Seams.** At 375, 1440 and 2560px wide, watch one full loop of each row. There should be no gap and no seam (Review Focus 2).
-  - **Hover.** Pointer over the ribbon; the rows should ease to about quarter speed, not snap.
+  - **Hover.** Pointer over the ribbon; the rows should ease to about quarter speed, not snap. Hover outlined words in both the original and the clone half; each should tint.
   - **Pause.** Press Pause, scroll the ribbon offscreen and back, switch tabs and return. It should still be paused, with the button reading "Play" and `aria-pressed="true"`. Press Play and it resumes (Review Focus 3).
   - **Reduced motion.** Emulate it in Rendering. Nothing should move, the button should be hidden, no clone should be visible, and each row should be scrollable by keyboard (Tab to it, then arrow keys).
   - **JS off.** Disable JavaScript. The result should match reduced motion, and every word should be readable by scrolling.
@@ -374,7 +389,7 @@ it('rampMix clamps out-of-range weights', ...)             // -1 => 0% accent; 2
 **Interfaces:**
 - Consumes:
   - Task 6's functions
-  - `createLoop` from `src/lib/matrix/loop.ts`, `easeToward` from `src/lib/matrix/attention.ts`, `rampColor` from `src/lib/matrix/color.ts`, `readPalette` from `src/lib/matrix/index.ts`
+  - `createLoop` from `src/lib/matrix/loop.ts`, `easeToward` from `src/lib/matrix/attention.ts`, `rampColor` from `src/lib/matrix/color.ts`, `readPalette` from `src/lib/matrix/palette.ts`
   - `prefersReducedMotion()`
   - `MarqueeRow.astro` and marquee `init`
 - Produces:
@@ -387,37 +402,44 @@ it('rampMix clamps out-of-range weights', ...)             // -1 => 0% accent; 2
 - [ ] **Step 1: Create `src/data/patterns.ts`.** Use the spec's table, in its order, with these names, kinds and captions verbatim. Cottention gets `href: 'https://arxiv.org/abs/2409.18747'` (the paper link in `projects.ts`). Run the captions past the `no-ai-slop` rules. Each caption has to stay one line of plain language, and the Cottention caption must keep the "linear memory in sequence length" claim, which traces to `projects.ts`.
 
 - [ ] **Step 2: Create `PatternCard.astro`.** It renders an `<li>` card, about 240px wide, as a `surface` panel with a `line` border and 14px radius, holding:
-  - **The map:** a square box containing, at build time, an inline `<svg viewBox="0 0 424 424" aria-hidden="true">` with one `<rect>` per cell. Each rect uses `cellRect` and `fill={rampMix(w)}` from `sweepWeights(patternWeights(id, 12), 12, 6, …)`. A `<canvas data-pattern={id} width="424" height="424" aria-hidden="true">` sits absolutely over the SVG.
+  - **The map:** a square box containing, at build time, an inline `<svg viewBox="0 0 424 424" aria-hidden="true">` with one `<rect>` per cell, positioned by `cellRect` and weighted by `sweepWeights(patternWeights(id, 12), 12, 6, …)`. A `<canvas data-pattern={id} width="424" height="424" aria-hidden="true">` sits absolutely over the SVG.
+
+  To keep the HTML small (about 1,700 rects counting the clone):
+  - round rect coordinates to 2 decimals
+  - quantize each weight to 11 levels, `round(w * 10)`, and set `style="fill:var(--w{level})"` on the rect
+  - define `--w0` to `--w10` once on the gallery section as `rampMix(level / 10)`
   - **The text:** a name / kind row, then the caption in `muted`.
 
   If `href` is set:
   - the name becomes a link with `↗`
   - the card gets an `accent`-tinted border, as in the mockup
 
-  Hover lifts the card 4px over 0.4s. While the card has `data-pattern-live`, the SVG is hidden.
+  On `:hover, [data-hover]` the card lifts 4px over 0.4s. While the card has `data-pattern-live`, the SVG is hidden.
 
 - [ ] **Step 3: Implement `drawPattern`** in `draw.ts`. It clears the canvas, then draws a rounded rect for each cell at `cellRect`, filled with `rampColor(min(1, w), palette.line, palette.accent, palette.accent2)`.
 
 - [ ] **Step 4: Implement `init(root)`** in `src/lib/patterns/index.ts`.
   - **Reduced motion:** return a no-op cleanup if `prefersReducedMotion()` is true, so the static SVG stays.
-  - **Card state:** for each canvas in `[data-marquee-track]`, store `base = patternWeights(id, 12)`, `current` (initialized to the static frame), `target`, and `queryRow`. The starting `queryRow` is staggered by card index (`index * 2 % 12`), so the cards don't sweep in lockstep.
-  - **Clone canvases:** pair each with its original by index.
-  - **Visibility:** one IntersectionObserver over every canvas marks each original or clone as visible.
+  - **Palette:** read it with `readPalette(root)` inside try/catch. On failure, return a no-op cleanup so the static SVGs stay.
+  - **Card state:** key cards by pattern id. The *primary* canvas for an id is the first `canvas[data-pattern=id]` inside `[data-marquee-track]`. Every other canvas with that id is a *mirror*: those in the clone and in runtime copies.
+  - For each id, store `base = patternWeights(id, 12)`, `current` (initialized to the static frame), `target`, `queryRow`, and its list of mirrors. The starting `queryRow` is staggered by card index (`index * 2 % 12`), so the cards don't sweep in lockstep.
+  - **Re-collect** primaries and mirrors, and re-observe them, on every `marquee:layout` event, since the marquee may add copies after this init runs.
+  - **Visibility:** one IntersectionObserver over every canvas tracks which are visible.
   - **Frame loop:** `createLoop(root, tick, () => true)`, which caps it at about 30fps. `tick(dt)`:
     - returns early if the root has `data-marquee-paused`
-    - for each card whose original or clone is visible:
+    - for each id with any visible canvas:
       - `queryRow = hoverRow ?? (queryRow + 1.6 * dt) % 12`
       - `sweepWeights` into `target`
       - `easeToward(current, target, 6, dt)`
-      - `drawPattern` to the original
-      - if the clone is visible, `cloneCtx.drawImage(original, 0, 0)`
-    - after a card's first draw, sets `data-pattern-live` on both card elements
-  - **Hover:** `pointermove` on a card, original or clone, sets `hoverRow = clamp((clientY - top) / height * 12, 0, 11.99)`. `pointerleave` clears it.
-  - **Start:** after `load`, like the marquee.
+      - `drawPattern` to the primary
+      - for each visible mirror, `clearRect`, then `drawImage(primary, 0, 0)`
+    - after a canvas is first drawn, sets `data-pattern-live` on its card
+  - **Hover:** inert mirrors get no pointer events, so `pointermove` on the row finds the canvas, in any list, whose rect contains the pointer. It sets that id's `hoverRow = clamp((clientY - top) / height * 12, 0, 11.99)` and clears the others. `pointerleave` on the row clears all.
+  - **Start:** after `load`, like the marquee. The gallery script runs the marquee init before this one.
   - **Cleanup:** stop the loop, disconnect the observer, remove the listeners, and remove `data-pattern-live`.
 
 - [ ] **Step 5: Create `Gallery.astro`.**
-  - It renders a `<section data-marquee-root aria-labelledby=…>` with `overflow-x: clip`.
+  - It renders a `<section data-marquee-root data-gallery aria-label="Ways to pay attention">` with `overflow-x: clip`. `SectionHeading` has no `id` prop, so use `aria-label` rather than `aria-labelledby`.
   - At the top, a row with:
     - `SectionHeading`, eyebrow "How models look at text" and title "Ways to pay attention"
     - the marquee toggle button, as in the ribbon
@@ -450,7 +472,9 @@ it('rampMix clamps out-of-range weights', ...)             // -1 => 0% accent; 2
   - **Keyboard focus.** Tab to the Cottention link. The strip should stop while it has focus and resume on Tab away, unless the user paused it (Review Focus 4).
   - **Reduced motion and JS off.** Every card should show its static SVG frame, with nothing moving and the row keyboard-scrollable.
   - **Offscreen.** In a Performance trace, no canvas draws should happen while the gallery is offscreen, and only visible cards should be drawn while it is on screen.
-  - **Narrow and wide screens.** No horizontal page scroll at 375px, and no seam at 2560px.
+  - **Narrow and wide screens.** No horizontal page scroll at 375px, and no seam at 2560px. At 2560px the gallery adds runtime copies: every copied card must animate rather than stay blank or frozen, and Tab must never reach a link inside a copy (axe should report no `aria-hidden-focus`).
+  - **Hover in the clone half.** Hovering a mirrored card should lift it and drive its sweep, just as on a primary card.
+  - **HTML weight.** `dist/index.html` should grow by under about 60 KB uncompressed.
 
 - [ ] **Step 2: Measure the JS budget.** Run `npm run build`, then `gzip -c dist/_astro/*.js | wc -c`. Also count the inline scripts in `dist/index.html`. Expected: total under 15,000 bytes. Record the figure in `PLAN.md`'s technical notes.
 
