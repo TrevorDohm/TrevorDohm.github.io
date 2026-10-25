@@ -1,0 +1,91 @@
+---
+// One drifting row of <li> items. The parent element must carry
+// data-marquee-root and may hold a button[data-marquee-toggle] (rendered
+// hidden). Without the script, or under reduced motion, the row is a static
+// list that scrolls sideways. Items need fixed font-size and line-height (or
+// fixed card sizes) so a font swap cannot change the row height.
+interface Props {
+  /** Drift speed in px/s. */
+  speed: number
+  /** Drift right instead of left. */
+  reverse?: boolean
+  /** Accessible name for the scrollable static row. */
+  label: string
+  /** Space between items, also used at the seam. */
+  gap?: string
+}
+
+const { speed, reverse = false, label, gap = '2rem' } = Astro.props
+const items = await Astro.slots.render('default')
+---
+
+<div
+  class="row"
+  data-marquee-row
+  data-speed={speed}
+  data-reverse={reverse || undefined}
+  role="region"
+  tabindex="0"
+  aria-label={label}
+  style={`--marquee-gap: ${gap}`}
+>
+  <ul data-marquee-track><slot /></ul>
+  <ul data-marquee-clone inert aria-hidden="true" set:html={items} />
+</div>
+
+<style>
+  .row {
+    display: flex;
+    padding-block: 8px; /* room for the 4px card lift */
+    overflow-x: auto;
+  }
+
+  .row ul {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    width: max-content;
+    gap: var(--marquee-gap);
+    margin: 0;
+    padding: 0 var(--marquee-gap) 0 0;
+    list-style: none;
+  }
+
+  .row ul[data-marquee-clone] {
+    display: none;
+  }
+
+  /* Ready mode: only entered once the script has run, never under reduced motion. */
+  :global([data-marquee-ready]) .row {
+    overflow: hidden;
+    --marquee-mask: linear-gradient(
+      90deg,
+      transparent,
+      rgb(0 0 0 / 0.2) 32px,
+      black 96px,
+      black calc(100% - 96px),
+      rgb(0 0 0 / 0.2) calc(100% - 32px),
+      transparent
+    );
+    -webkit-mask-image: var(--marquee-mask);
+    mask-image: var(--marquee-mask);
+  }
+
+  :global([data-marquee-ready]) .row ul[data-marquee-clone] {
+    display: flex;
+  }
+
+  :global([data-marquee-ready]) .row ul {
+    animation: marquee var(--marquee-duration, 0s) linear infinite;
+  }
+
+  :global([data-marquee-ready]) .row[data-reverse] ul {
+    animation-direction: reverse;
+  }
+</style>
+
+<script>
+  import { init } from '../../lib/marquee'
+
+  document.querySelectorAll<HTMLElement>('[data-marquee-root]').forEach((root) => init(root))
+</script>

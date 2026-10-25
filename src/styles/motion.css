@@ -3,6 +3,12 @@
   to   { transform: none; filter: none; }
 }
 
+/* Marquee rows: each list slides its own width, so track + clone loop seamlessly. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
 /* Users who ask for less motion get none. Phase 3's scroll-driven
    animations use a no-preference guard instead of relying on this. */
 @media (prefers-reduced-motion: reduce) {
