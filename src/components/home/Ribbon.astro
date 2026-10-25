@@ -1,0 +1,57 @@
+---
+import type { Interest } from '../../data/interests'
+import { itemsByRow } from '../../lib/marquee/rows'
+import MarqueeRow from '../ui/MarqueeRow.astro'
+import RibbonItem from './RibbonItem.astro'
+
+interface Props {
+  items: Interest[]
+}
+
+// MarqueeRow's own script starts the rows, so this section adds none.
+const rows = itemsByRow(Astro.props.items, 2, ['ml', 'bake', 'mba', 'hike'])
+---
+
+<section data-marquee-root aria-label="Things I work on and love" class="ribbon">
+  <button type="button" data-marquee-toggle hidden class="toggle">Pause</button>
+  <MarqueeRow speed={22} label="Interests, first row">
+    {rows[0].map((item, i) => <RibbonItem item={item} outlined={i % 2 === 1} />)}
+  </MarqueeRow>
+  <MarqueeRow speed={30} reverse label="Interests, second row">
+    {rows[1].map((item, i) => <RibbonItem item={item} outlined={i % 2 === 1} />)}
+  </MarqueeRow>
+</section>
+
+<style>
+  .ribbon {
+    position: relative;
+    overflow-x: clip;
+    padding-block: 5rem;
+  }
+
+  .ribbon :global([data-marquee-row]) + :global([data-marquee-row]) {
+    margin-top: 10px;
+  }
+
+  .toggle {
+    position: absolute;
+    top: 1.5rem;
+    right: 1rem;
+    z-index: 1;
+    padding: 6px 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    font: 500 12px var(--font-mono);
+    cursor: pointer;
+  }
+
+  .toggle[hidden] {
+    display: none;
+  }
+
+  .toggle:hover {
+    color: var(--color-foreground);
+  }
+</style>
