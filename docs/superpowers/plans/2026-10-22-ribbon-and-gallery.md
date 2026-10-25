@@ -241,7 +241,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
     - `pointerenter` sets the target to 0.25 and `pointerleave` sets it to 1.
     - `focusin` within a row sets a `focusHeld` flag that pauses the animations. `focusout` clears it.
     - While `rate` differs from `target` by more than 0.001, run a rAF that applies `approach(rate, target, 4, dt)` and calls `updatePlaybackRate(rate)` on every animation from `track.getAnimations()` and `clone.getAnimations()`. Once settled, snap `rate = target`, apply it once more, and stop the rAF.
-  - **Pause:** the toggle flips `userPaused`, sets `aria-pressed`, swaps its text between "Pause" and "Play", and sets or removes `data-marquee-paused` on the root.
+  - **Pause:** the toggle flips `userPaused`, swaps its text between "Pause" and "Play", and sets or removes `data-marquee-paused` on the root.
     - One function `sync()` plays the animations only when not `userPaused`, not `focusHeld`, on screen (IntersectionObserver on the root) and `!document.hidden`; otherwise it pauses them.
     - Offscreen and hidden-tab changes call `sync()` and never touch `userPaused`.
   - **Cleanup:** disconnect the observers, remove the listeners, cancel the rAF, and remove `data-marquee-ready` and `data-marquee-paused`.
@@ -273,7 +273,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
 - [ ] **Step 2: Create `Ribbon.astro`.**
   - It calls `itemsByRow(items, 2, ['ml', 'bake', 'mba', 'hike'])`, the order Task 2 settled.
   - It renders a `<section data-marquee-root aria-label="Things I work on and love">` with `overflow-x: clip` and vertical padding.
-  - Inside: a `button[data-marquee-toggle]` with `hidden` and `aria-pressed="false"` and text "Pause", styled as the mockup's mono pill, top right, first in the section's DOM order.
+  - Inside: a `button[data-marquee-toggle]` with `hidden`, `type="button"` and text "Pause" (no `aria-pressed`; the label swap carries the state), styled as the mockup's mono pill, top right, first in the section's DOM order.
   - Then two `MarqueeRow`s:
     - row 0: speed 22, label "Interests, first row"
     - row 1: speed 30, `reverse`, label "Interests, second row"
@@ -299,7 +299,7 @@ it('returns empty rows for empty input', () => expect(itemsByRow([], 2, ORDER)).
   - **Fonts.** Reload with the cache disabled and network throttled to Fast 4G. Speed should be the same after fonts load, with no visible jump (Review Focus 1).
   - **Seams.** At 375, 1440 and 2560px wide, watch one full loop of each row. There should be no gap and no seam (Review Focus 2).
   - **Hover.** Pointer over the ribbon; the rows should ease to about quarter speed, not snap. Hover outlined words in both the original and the clone half; each should tint.
-  - **Pause.** Press Pause, scroll the ribbon offscreen and back, switch tabs and return. It should still be paused, with the button reading "Play" and `aria-pressed="true"`. Press Play and it resumes (Review Focus 3).
+  - **Pause.** Press Pause, scroll the ribbon offscreen and back, switch tabs and return. It should still be paused, with the button reading "Play". Press Play and it resumes (Review Focus 3).
   - **Reduced motion.** Emulate it in Rendering. Nothing should move, the button should be hidden, no clone should be visible, and each row should be scrollable by keyboard (Tab to it, then arrow keys).
   - **JS off.** Disable JavaScript. The result should match reduced motion, and every word should be readable by scrolling.
   - **Narrow screens.** At 375px the page must not scroll horizontally (`document.documentElement.scrollWidth === innerWidth`).
