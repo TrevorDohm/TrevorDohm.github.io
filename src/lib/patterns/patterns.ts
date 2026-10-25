@@ -22,7 +22,8 @@ const FORMULAS: Record<PatternId, Weight> = {
   window: (i, j) => (Math.abs(i - j) <= 2 ? 1 - Math.abs(i - j) * 0.25 : 0),
   sparse: (i, j) =>
     j === 0 || i === 0 ? 0.9 : Math.abs(i - j) <= 1 ? 0.8 : hash2(i, j) > 0.86 ? 0.6 : 0,
-  cosine: (i, j) => Math.max(0, 0.55 + 0.45 * Math.cos((i - j) * 0.45) * Math.cos(i * 0.3)),
+  // Raised cosine over the offset: smooth, broad, always peaked on the diagonal, never negative.
+  cosine: (i, j) => 0.3 + 0.7 * (0.5 + 0.5 * Math.cos(((i - j) * Math.PI) / 12)),
   induction: (i, j) => (i - j === 4 ? 1 : 0) + (i === j ? 0.25 : 0) + 0.08 * hash2(i, j),
 }
 
