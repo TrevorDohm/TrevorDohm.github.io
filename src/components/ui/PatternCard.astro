@@ -1,6 +1,6 @@
 ---
 import type { PatternCardData } from '../../data/patterns'
-import { cellRect } from '../../lib/patterns/geometry'
+import { frameGeometry, levelPaths, num } from '../../lib/patterns/frame'
 import { patternWeights, sweepWeights } from '../../lib/patterns/patterns'
 
 interface Props {
@@ -12,23 +12,19 @@ const N = 12
 const SIZE = 424
 
 // Static frame for JS off and reduced motion: query row in the middle. Weights
-// are quantized to the 11 --w{level} colors the gallery section defines, and
-// coordinates rounded, to keep the markup small (the clone repeats it).
+// are quantized to the 11 --w{level} colors the gallery section defines, with
+// one path per level, to keep the markup small (the clone repeats it).
 const weights = sweepWeights(patternWeights(card.id, N), N, N / 2, new Float32Array(N * N))
-const round = (v: number) => Number(v.toFixed(2))
-let rects = ''
-for (let i = 0; i < N; i++) {
-  for (let j = 0; j < N; j++) {
-    const { x, y, w, r } = cellRect(i, j, N, SIZE)
-    const level = Math.round(Math.min(1, weights[i * N + j]) * 10)
-    rects += `<rect x="${round(x)}" y="${round(y)}" width="${round(w)}" height="${round(w)}" rx="${round(r)}" style="fill:var(--w${level})"/>`
-  }
-}
+const g = frameGeometry(N, SIZE)
+const paths = levelPaths(weights, N, 11, g.side)
+  .map((d, level) => (d ? `<path d="${d}" style="fill:var(--w${level});stroke:var(--w${level})"/>` : ''))
+  .join('')
+const frame = `<g transform="translate(${num(g.offset)} ${num(g.offset)}) scale(${num(g.scale)})" stroke-width="${num(g.stroke)}" stroke-linejoin="round">${paths}</g>`
 ---
 
 <li class="card" data-featured={card.href ? '' : undefined}>
   <div class="map">
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true" set:html={rects} />
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true" set:html={frame} />
     <canvas data-pattern={card.id} width={SIZE} height={SIZE} aria-hidden="true"></canvas>
   </div>
   <div class="meta">

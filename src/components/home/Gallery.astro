@@ -30,6 +30,11 @@ const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(le
     overflow-x: clip;
   }
 
+  /* Over a copy's link, which forwards its click to the real one. */
+  .gallery :global([data-marquee-row][data-link-hover]) {
+    cursor: pointer;
+  }
+
   .toggle {
     margin-bottom: 2rem; /* level with the heading, which has mb-8 */
     padding: 6px 12px;
@@ -52,9 +57,13 @@ const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(le
 
 <script>
   import { init } from '../../lib/patterns'
+  import { initCopyLinks } from '../../lib/patterns/links'
 
-  // MarqueeRow's own script drives the row. This one only draws the cards.
+  // MarqueeRow's own script drives the row. This one draws the cards and
+  // makes the links in the inert copies clickable.
   document.querySelectorAll<HTMLElement>('[data-marquee-root]').forEach((root) => {
-    if (root.querySelector('canvas[data-pattern]')) init(root)
+    if (!root.querySelector('canvas[data-pattern]')) return
+    init(root)
+    initCopyLinks(root)
   })
 </script>
