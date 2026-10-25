@@ -57,7 +57,7 @@ const items = await Astro.slots.render('default')
 
   /* Ready mode: only entered once the script has run, never under reduced motion. */
   :global([data-marquee-ready]) .row {
-    overflow: hidden;
+    overflow: clip; /* not a scroll container, so focusing an item cannot scroll the row */
     --marquee-mask: linear-gradient(
       90deg,
       transparent,
@@ -69,6 +69,12 @@ const items = await Astro.slots.render('default')
     );
     -webkit-mask-image: var(--marquee-mask);
     mask-image: var(--marquee-mask);
+  }
+
+  /* A focused item can only be seeked as far as the row's edge, under the fade. */
+  :global([data-marquee-ready]) .row:focus-within {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   :global([data-marquee-ready]) .row ul[data-marquee-clone] {

@@ -28,3 +28,19 @@ export function rescaleCurrentTime(t: number, oldDur: number, newDur: number): n
 export function approach(current: number, target: number, ratePerSec: number, dtSeconds: number): number {
   return current + (target - current) * (1 - Math.exp(-ratePerSec * dtSeconds))
 }
+
+/** Just short of one loop, so a seek to the end does not wrap to the start. */
+const LAST_PROGRESS = 1 - 1e-6
+
+/**
+ * Loop progress, 0 up to (not including) 1, that brings an item at `itemX`
+ * (its offset inside a list `listPx` wide) as close to the middle of a row
+ * `rowPx` wide as one loop allows. `reverse` is a loop that plays backward.
+ */
+export function revealProgress(itemX: number, itemPx: number, rowPx: number, listPx: number, reverse: boolean): number {
+  if (!usable(listPx)) return 0
+  const shift = Math.min(0, Math.max(-listPx, (rowPx - itemPx) / 2 - itemX)) // translateX, -listPx..0
+  const progress = (0 - shift) / listPx // not -shift, which gives -0
+  // Not % 1: a full loop wraps to the far end of the range, not back to the item.
+  return Math.min(reverse ? 1 - progress : progress, LAST_PROGRESS)
+}

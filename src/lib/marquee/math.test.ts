@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approach, durationSeconds, repeatsNeeded, rescaleCurrentTime } from './math'
+import { approach, durationSeconds, repeatsNeeded, rescaleCurrentTime, revealProgress } from './math'
 
 describe('durationSeconds', () => {
   it('is width over speed', () => expect(durationSeconds(6600, 22)).toBe(300))
@@ -32,4 +32,24 @@ describe('approach', () => {
     for (let i = 0; i < 2; i++) a = approach(a, 0.25, 4, 0.1)
     expect(a).toBeCloseTo(approach(1, 0.25, 4, 0.2))
   })
+})
+
+describe('revealProgress', () => {
+  // Row 1000px wide, list 3000px wide, 100px item. Centering puts the item's left edge at 450px.
+  it('shifts the list so the item is centered', () => expect(revealProgress(2000, 100, 1000, 3000, false)).toBeCloseTo(1550 / 3000))
+  it('plays the same shift backward when reversed', () =>
+    expect(revealProgress(2000, 100, 1000, 3000, true)).toBeCloseTo(1 - 1550 / 3000))
+  // Progress 0 is translateX(0) going forward but translateX(-100%) in reverse.
+  it('stops at the list start for items already near it', () => {
+    expect(revealProgress(100, 100, 1000, 3000, false)).toBe(0)
+    const reversed = revealProgress(100, 100, 1000, 3000, true)
+    expect(reversed).toBeCloseTo(1)
+    expect(reversed).toBeLessThan(1)
+  })
+  it('stays below one loop', () => {
+    const p = revealProgress(2950, 2000, 1000, 3000, false)
+    expect(p).toBeGreaterThanOrEqual(0)
+    expect(p).toBeLessThan(1)
+  })
+  it('is 0 for an unusable list width', () => expect(revealProgress(10, 10, 100, 0, false)).toBe(0))
 })

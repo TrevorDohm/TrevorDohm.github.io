@@ -1,4 +1,5 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
+import { revealItem } from './focus'
 import { approach } from './math'
 import { layoutRow } from './timing'
 
@@ -78,22 +79,21 @@ export function init(root: HTMLElement): () => void {
     setHover(hit ?? null)
   }
   const onEnter = () => setTarget(HOVER_RATE)
-  const onLeave = () => {
-    setHover(null)
-    setTarget(1)
-  }
-  // Focus inside a row holds it still. Moving focus between items keeps the hold.
+  const onLeave = () => { setHover(null); setTarget(1) }
+  // Focus inside a row holds it still, with the focused item seeked into view.
+  // Moving focus between items keeps the hold.
   const onFocus = (event: FocusEvent) => {
     const inside = event.type === 'focusin' ? event.target : event.relatedTarget
-    focusHeld = inside instanceof Node && rows.some((row) => row.contains(inside))
+    focusHeld = inside instanceof Element && rows.some((row) => row.contains(inside))
     sync()
+    const item = event.type === 'focusin' && focusHeld && (inside as Element).closest<HTMLElement>('[data-marquee-track] > li')
+    if (item && 'marqueeReady' in root.dataset) revealItem(event.currentTarget as HTMLElement, item)
   }
 
+  // The label says what a press will do. No aria-pressed: with a changing label it reads backwards.
   const onToggle = () => {
-    if (!toggle) return
     userPaused = !userPaused
-    toggle.setAttribute('aria-pressed', String(userPaused))
-    toggle.textContent = userPaused ? 'Play' : 'Pause'
+    if (toggle) toggle.textContent = userPaused ? 'Play' : 'Pause'
     if (userPaused) root.dataset.marqueePaused = ''
     else delete root.dataset.marqueePaused
     sync()
