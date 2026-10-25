@@ -1,0 +1,60 @@
+---
+import type { PatternCardData } from '../../data/patterns'
+import { rampMix } from '../../lib/patterns/geometry'
+import MarqueeRow from '../ui/MarqueeRow.astro'
+import PatternCard from '../ui/PatternCard.astro'
+import SectionHeading from '../ui/SectionHeading.astro'
+
+interface Props {
+  cards: PatternCardData[]
+}
+
+const { cards } = Astro.props
+
+// The 11 colors the static card frames use, defined once for every card.
+const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(level / 10)}`).join('; ')
+---
+
+<section data-marquee-root data-gallery aria-label="Ways to pay attention" class="gallery py-24" style={ramp}>
+  <div class="section-container flex flex-wrap items-end justify-between gap-x-4">
+    <SectionHeading eyebrow="How models look at text" title="Ways to pay attention" />
+    <button type="button" data-marquee-toggle hidden class="toggle">Pause</button>
+  </div>
+  <MarqueeRow speed={18} label="Attention patterns" gap="1.25rem">
+    {cards.map((card) => <PatternCard card={card} />)}
+  </MarqueeRow>
+</section>
+
+<style>
+  .gallery {
+    overflow-x: clip;
+  }
+
+  .toggle {
+    margin-bottom: 2rem; /* level with the heading, which has mb-8 */
+    padding: 6px 12px;
+    border: 1px solid var(--color-line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--color-muted);
+    font: 500 12px var(--font-mono);
+    cursor: pointer;
+  }
+
+  .toggle[hidden] {
+    display: none;
+  }
+
+  .toggle:hover {
+    color: var(--color-foreground);
+  }
+</style>
+
+<script>
+  import { init } from '../../lib/patterns'
+
+  // MarqueeRow's own script drives the row. This one only draws the cards.
+  document.querySelectorAll<HTMLElement>('[data-marquee-root]').forEach((root) => {
+    if (root.querySelector('canvas[data-pattern]')) init(root)
+  })
+</script>
