@@ -1,10 +1,11 @@
+import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { attentionWeights, easeToward } from './attention'
-import { parseHex } from './color'
 import { applyBoost, idlePoint, RIPPLE } from './effects'
 import { layoutGrid, type Grid } from './geometry'
 import { bindInput } from './input'
 import { createLoop } from './loop'
-import { createRenderer, type Palette, type Renderer } from './renderer'
+import { readPalette } from './palette'
+import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
 
 /** Softmax temperature in cells. Higher spreads the glow wider. */
@@ -14,16 +15,6 @@ const EASE_RATE = 7
 /** Brightness added to the hovered cell's row and column. */
 const AXIS_BOOST = 0.12
 const INTRO_SECONDS = 1.2
-
-function readPalette(el: Element): Palette {
-  const style = getComputedStyle(el)
-  const token = (name: string) => parseHex(style.getPropertyValue(name))
-  return {
-    line: token('--color-line'),
-    accent: token('--color-accent'),
-    accent2: token('--color-accent-2'),
-  }
-}
 
 /** Mounts the attention matrix on the canvas inside `root`. Returns cleanup. */
 export function init(root: HTMLElement): () => void {
@@ -37,7 +28,7 @@ export function init(root: HTMLElement): () => void {
     return () => {} // no canvas support or unreadable tokens: the CSS backdrop stays
   }
 
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reduced = prefersReducedMotion()
   const state = createState()
   let grid: Grid | null = null
   let weights = new Float32Array(0)
