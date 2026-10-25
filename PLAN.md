@@ -5,7 +5,8 @@
 | Phase | Status |
 |---|---|
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
-| Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) done on branch `design-overhaul` |
+| Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) are merged to `master` and live |
+| Ribbon and gallery | **Ribbon done** on branch `ribbon-gallery`, verified in the browser 2026-10-25. Gallery next |
 
 ---
 
@@ -44,6 +45,7 @@ be just as easy to read as it is now.
 | Matrix tech | Canvas 2D in plain TypeScript | About 5 KB, 60fps, works on phones. WebGL/Three.js would add 150 KB+ and drain phone batteries faster |
 | Framework JS | None | Every animation is plain TS in Astro `<script>` tags. No React, GSAP, or Framer Motion |
 | Page transitions | Browser-native cross-document view transitions, not Astro's `<ClientRouter />` **(review)** | Zero JS instead of ~8.6 KB gzipped (measured), and it avoids the two lifecycle bugs described under Technical notes |
+| Word ribbon and attention gallery | Two drifting rows of interest words under the hero, and a gallery of attention-map cards. Page order: Hero, stats strip, Ribbon, Selected Work, Gallery, Contact. See the [design spec](docs/superpowers/specs/2026-10-22-ribbon-and-gallery-design.md) | The stats strip keeps the matrix and the ribbon, both glowing and moving, from sitting next to each other. Until phase 3 adds it, the ribbon sits directly under the hero |
 
 ### Look
 
@@ -59,6 +61,8 @@ Contrast was computed with the WCAG formula.
 | `muted` | `#9494A8` | Secondary text | 6.76:1 (6.42:1 on `surface`) |
 | `accent` | `#7C9CFF` | Links, focus rings, glow core | 7.71:1 |
 | `accent-2` | `#B18CFF` | Second glow color, for gradients | 7.72:1 |
+| `bake` | `#E28D23` | bake category color | 7.73:1 |
+| `hike` | `#2AB580` | hike category color | 7.68:1 |
 
 **Type.** Geist Sans for headings and body, Geist Mono for labels such as dates,
 tags, section numbers, and stats. Self-hosted through Astro 7's top-level `fonts`
