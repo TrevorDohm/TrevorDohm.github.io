@@ -124,27 +124,55 @@ This replaces the current CSS mask on the canvas.
 - How the name weights plug into the existing renderer (an extra layer or a
   `base` array added before drawing), provided files stay under ~150 lines.
 
-## Superseded by build rulings (2026-10-25)
+## Superseded by build rulings (2026-10-25, updated 2026-10-26)
 
-Where this list and the sections above disagree, this list wins.
+Where this list and the sections above disagree, this list wins. The
+2026-10-26 round (the owner's layout feedback) replaced the intro start, the
+copy fade, the name size and the dissolve band; the replaced rulings are noted
+in place.
 
-- **Intro start.** The canvas and the intro clock start when the script runs,
-  not at `load`. If the page has already painted (so the visitor has seen the
-  static name lit), the intro starts lit, in the hold, instead of sweeping in
-  from dark.
-- **No copy fade-in.** The tagline, role line and buttons are visible from first
-  paint and never start at `opacity: 0`. The tagline is the LCP element.
-- **Measured pitches** (the name's width / 23, after the pitch floor below):
-  24px at 1366×657, 32px at 1440×790, 32px at 1440×900 and 14px at 390×844
-  (18, 27, 32 and 14 before the mockup-parity round), not the ~38px at 1440px
-  estimated under Grid.
-- **Name size (mockup parity).** The name's width share is the mockup's: 86vw
-  below 40rem, 62vw below 68.75rem, 52vw above, never wider than the text
-  column. Its height cap reserves only what the copy measures in Chrome: the
-  hero's top padding (nav clearance) plus the copy below the name's one-row gap
-  (153.11px with a 2-line tagline and 1-line role, 202.36px on phones), so the
-  buttons end at or above 78% of the hero. The role line sits 10px below the
-  tagline and the buttons 24px below the role line (were 12px and 40px).
+- **Intro start (2026-10-26).** The canvas and the intro clock start when the
+  script runs, not at `load`, and the intro always starts dark: the name sweeps
+  in (form), holds, then breaks into the ghost, as the mockup. (This replaces
+  the 2026-10-25 ruling that started lit, in the hold, once the page had
+  painted.) The lit static name never shows first: a tiny inline script just
+  before the hero sets `data-js-intro` on `<html>` when motion is allowed, and
+  CSS hides the static name under it until the canvas draws. If the matrix
+  never takes over, a CSS animation shows the static name after 3 s. Without
+  JavaScript, or with reduced motion, the static name shows at once (reduced
+  motion: lit and still, and the canvas takes over in place).
+- **Copy fade-in (2026-10-26).** The role line and buttons start at opacity 0
+  under `data-js-intro` and fade in over 0.8 s from FORM + 0.2 s = 1.1 s on the
+  intro clock (the matrix sets `data-copy-shown`), opacity only, as the
+  mockup. The same 3 s CSS safety net shows them if the matrix never runs. A
+  focused button shows at once (`:focus-within`). Never hidden without
+  JavaScript or under reduced motion. (This replaces "no copy fade-in".) The
+  role line is now the LCP element and LCP lands as its fade ends: 2.0 s
+  observed, 2.1 s in Lighthouse's simulated mobile run (Performance 98, CLS 0),
+  up from 1.5 s with the tagline.
+- **Tagline removed (2026-10-26).** The hero copy is the role line and the
+  buttons. The role line reads `MBA Candidate @ Wharton | AI Engineer @ RTX |
+  Philadelphia, PA`: `site.role` plus `site.location`, composed in `Hero`, and
+  it wraps only at the separators. `site.tagline` stays in `src/data/site.ts`
+  but is not shown.
+- **Centred block (2026-10-26).** The block (name, one-row gap, role line,
+  buttons) is centred at 45% of the hero below the nav: top padding for nav
+  clearance and a bottom padding of a tenth of the rest. Measured centre:
+  0.451 to 0.454 of the area below the nav at every size checked, down to
+  320×480.
+- **Name size (2026-10-26).** Width shares are unchanged (86vw below 40rem,
+  62vw below 68.75rem, 52vw above, never wider than the text column) and the
+  11px floor stays. The height cap now keeps the name's bottom at or above the
+  dissolve band's top (65% of the hero): with the block centred at 45%, that
+  is 23p ≤ 4.6 (0.2H − 0.55N + 0.5C), where C is the copy below the gap,
+  measured in Chrome at 87.2px (1-line role) and 107.2px on phones (2 lines).
+  Name cells are also exempt from the dissolve, so a forced floor on a short
+  screen can't erode the name.
+- **Measured pitches (2026-10-26):** 27px at 1366×657, 32px at 1440×790, 32px
+  at 1440×900, 41px at 2560×1440, 14px at 390×844 and 14px at 375×667 (24, 32,
+  32, 41, 14 and 14 before; the name grows only where height was the limit).
+  Earlier: 18, 27, 32 and 14 before the mockup-parity round, not the ~38px at
+  1440px estimated under Grid.
 - **The drag (mockup parity).** The query trails its target with the mockup's
   plain exponential: each frame it closes 1 - exp(-4·dt) of the gap, with no
   speed cap (6.45% of the gap per 60Hz frame; while following a pointer it
@@ -158,14 +186,15 @@ Where this list and the sections above disagree, this list wins.
   button pulls the light onto it with the same glide; like any resting pointer
   it lets go after 2.5 s, as the mockup. Focus leaving the hero releases it at
   once. The idle path is the mockup's drift: x = W(0.5 + 0.34 sin(0.31t)
-  cos(0.13t)), y = H(0.45 + 0.3 sin(0.23t + 1)), t seconds since the break, so
-  y stays within 0.15H to 0.75H, above the dissolve band.
+  cos(0.13t)), t seconds since the break, with y scaled to fit above the 35%
+  band (2026-10-26): y = H(0.38 + 0.23 sin(0.23t + 1)), within 0.15H to 0.61H
+  (the mockup's 0.45 + 0.3 reached 0.75H).
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
   touched, and overlapping drops are capped at 0.7.
 - **Copy mask.** On each layout, the mask is built from the ink of the copy:
-  one box per text line of the tagline and role line (Range client rects,
+  one box per text line of the copy (the role line since 2026-10-26; Range client rects,
   fragments merged only when they overlap by more than half the shorter one)
   and one per button. Cells overlapping a box keep 0.2 of their weight and the
   cells around them (one cell, diagonals included) keep 0.6; neither gets a
@@ -180,3 +209,10 @@ Where this list and the sections above disagree, this list wins.
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
   the floor still fits it.
+- **Bottom dissolve (2026-10-26).** The band is the lowest 35% of rows (was
+  22%) and scattered: each cell drops out at its own seeded depth over a short
+  edge (12% of the band), so the band thins out as cells dropping out instead
+  of an even ramp. Row averages fall from 0.98 at the band top to 0 on the last
+  row; the mean in-row variance is 0.14 (0.017 for the old ramp) and 89% of band
+  cells are fully on or fully off. The buttons can sit over the band's upper
+  part; their solid backgrounds and the copy dimming keep them legible.
