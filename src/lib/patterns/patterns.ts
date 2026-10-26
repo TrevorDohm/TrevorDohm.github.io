@@ -1,18 +1,11 @@
+import { hash2 } from '../matrix/math'
+
 export type PatternId = 'full' | 'causal' | 'window' | 'sparse' | 'cosine' | 'induction'
 
 /** Rows farther than this from the query row sit at this fraction of their weight. */
 export const SWEEP_FLOOR = 0.28
 /** Distance in rows over which the sweep highlight falls off to the floor. */
 export const SWEEP_SPREAD = 1.2
-
-/** Deterministic noise in [0, 1) from integer mixing, identical in every JS engine. */
-export function hash2(i: number, j: number): number {
-  let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1)
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b)
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35)
-  h ^= h >>> 16
-  return (h >>> 0) / 4294967296
-}
 
 type Weight = (i: number, j: number) => number
 

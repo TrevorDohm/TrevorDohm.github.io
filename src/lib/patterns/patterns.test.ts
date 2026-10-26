@@ -1,22 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { SWEEP_FLOOR, hash2, patternWeights, sweepWeights, type PatternId } from './patterns'
+import { SWEEP_FLOOR, patternWeights, sweepWeights, type PatternId } from './patterns'
 
 const N = 12
 const IDS: PatternId[] = ['full', 'causal', 'window', 'sparse', 'cosine', 'induction']
 const W = (id: PatternId) => patternWeights(id, N)
-
-describe('hash2', () => {
-  it('is deterministic and in [0, 1)', () => {
-    for (let i = 0; i < N; i++) {
-      for (let j = 0; j < N; j++) {
-        const v = hash2(i, j)
-        expect(hash2(i, j)).toBe(v)
-        expect(v).toBeGreaterThanOrEqual(0)
-        expect(v).toBeLessThan(1)
-      }
-    }
-  })
-})
 
 describe('patternWeights', () => {
   it('gives every row a max of exactly 1, and every pattern has non-zero entries', () => {

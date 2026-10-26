@@ -1,5 +1,4 @@
-import { hash2 } from '../patterns/patterns'
-import { clamp01 } from './math'
+import { clamp01, hash2 } from './math'
 
 export const NAME_LINES = ['TREVOR', 'DOHM'] as const
 export const LINE_GAP = 1

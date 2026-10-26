@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hash2 } from '../patterns/patterns'
+import { hash2 } from './math'
 import { bottomFade, GLYPHS, LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
 
 const mask = nameMask(NAME_LINES, LINE_GAP)
