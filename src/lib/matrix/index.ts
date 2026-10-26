@@ -15,6 +15,8 @@ const EASE_RATE = 7
 /** Brightness added to the hovered cell's row and column. */
 const AXIS_BOOST = 0.12
 const INTRO_SECONDS = 1.2
+/** Interim layout: Task 3 replaces it with the name-aligned grid. */
+const MOBILE_BREAKPOINT = 768
 
 /** Mounts the attention matrix on the canvas inside `root`. Returns cleanup. */
 export function init(root: HTMLElement): () => void {
@@ -42,7 +44,7 @@ export function init(root: HTMLElement): () => void {
   const updateTarget = (now: number) => {
     if (!grid) return
     if (isIdle(state, now) || !state.hasQuery) {
-      const [x, y] = idlePoint(clock, grid.originX, grid.originY, grid.n * grid.pitch)
+      const [x, y] = idlePoint(clock, 0, 0, width, height)
       state.query.x = x
       state.query.y = y
     }
@@ -62,8 +64,8 @@ export function init(root: HTMLElement): () => void {
     if (grid && unchanged) return
     width = rect.width
     height = rect.height
-    grid = layoutGrid(width, height)
-    const count = grid.n * grid.n
+    grid = layoutGrid(width, height, width < MOBILE_BREAKPOINT ? 22 : 40, 0, 0)
+    const count = grid.cols * grid.rows
     weights = new Float32Array(count)
     target = new Float32Array(count)
     boost = new Float32Array(count)

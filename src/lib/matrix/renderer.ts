@@ -65,13 +65,13 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
 
   function draw({ weights, boost, intro }: Frame): void {
     if (!grid) return
-    const { n, cell, centers } = grid
+    const { cols, rows, cell, centers } = grid
     const half = cell / 2
     const glowSize = cell * GLOW_SCALE
     ctx.clearRect(0, 0, cssWidth, cssHeight)
 
-    for (let i = 0; i < n * n; i++) {
-      const appear = introAlpha(intro, Math.floor(i / n), i % n, n)
+    for (let i = 0; i < cols * rows; i++) {
+      const appear = introAlpha(intro, Math.floor(i / cols), i % cols, rows, cols)
       if (appear <= 0) continue
       const w = Math.min(1, weights[i] + boost[i])
       const [r, g, b] = rampColor(w, palette.line, palette.accent, palette.accent2)
@@ -83,10 +83,10 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
     }
 
     ctx.globalCompositeOperation = 'lighter'
-    for (let i = 0; i < n * n; i++) {
+    for (let i = 0; i < cols * rows; i++) {
       const w = Math.min(1, weights[i] + boost[i])
       if (w <= GLOW_THRESHOLD) continue
-      const appear = introAlpha(intro, Math.floor(i / n), i % n, n)
+      const appear = introAlpha(intro, Math.floor(i / cols), i % cols, rows, cols)
       ctx.globalAlpha = appear * ((w - GLOW_THRESHOLD) / (1 - GLOW_THRESHOLD)) * 0.55
       ctx.drawImage(sprite, centers[i * 2] - glowSize / 2, centers[i * 2 + 1] - glowSize / 2, glowSize, glowSize)
     }
