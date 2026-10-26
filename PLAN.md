@@ -6,7 +6,7 @@
 |---|---|
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
 | Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) are merged to `master` and live |
-| Ribbon and gallery | **Done** 2026-10-25 on branch `ribbon-gallery`. Ribbon and gallery both verified in the browser. Not yet merged to `master` |
+| Ribbon and gallery | **Done** 2026-10-25 on branch `ribbon-gallery`. Ribbon and gallery both verified in Chrome only; Safari, Firefox and VoiceOver are unchecked. Not yet merged to `master` |
 
 ---
 
@@ -209,8 +209,10 @@ Target layout:
 src/
   components/
     layout/     Nav.astro, Footer.astro
-    ui/         Button.astro, Tag.astro, SectionHeading.astro, SpotlightCard.astro
-    home/       Hero.astro, Stats.astro, SelectedWork.astro, Contact.astro
+    ui/         Button.astro, Tag.astro, SectionHeading.astro, SpotlightCard.astro,
+                MarqueeRow.astro, PatternCard.astro
+    home/       Hero.astro, Stats.astro, SelectedWork.astro, Contact.astro,
+                Ribbon.astro, RibbonItem.astro, Gallery.astro
     projects/   ProjectCard.astro
     experience/ TimelineItem.astro
     matrix/     AttentionMatrix.astro
@@ -221,10 +223,13 @@ src/
                 input.ts      pointer, tap, and button-attraction events
                 loop.ts       rAF loop, visibility pause, idle drift
                 index.ts      init(root), wires the above together
+    marquee/    drifting rows: sizing, copies, hover, Pause, keyboard focus hold
+    patterns/   attention pattern maps for the gallery cards, and their canvas loop
     motion/     reveal.ts, countup.ts, spotlight.ts
                 prefers-reduced-motion.ts  shared check used by all of them
+                while-motion-allowed.ts    starts and stops a behavior as the setting changes
   styles/       tokens.css, base.css, utilities.css, motion.css, global.css
-  data/         site.ts, projects.ts, experience.ts (unchanged)
+  data/         site.ts, projects.ts, experience.ts, interests.ts, patterns.ts
   pages/        index, projects, experience, 404
 ```
 

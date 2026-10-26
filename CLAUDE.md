@@ -11,7 +11,9 @@ startup. `PLAN.md` is the source of truth for design decisions. If this file and
 
 - `PLAN.md`: goals, design decisions, code structure rules, phase status
 - `docs/superpowers/plans/`: step-by-step implementation plans, one per phase
-- `src/data/`: all site content (`site.ts`, `projects.ts`, `experience.ts`)
+- `docs/superpowers/specs/`: design specs, such as the ribbon and gallery spec
+- `src/data/`: all site content (`site.ts`, `projects.ts`, `experience.ts`,
+  `interests.ts` for the ribbon words, `patterns.ts` for the gallery cards)
 - `src/data/site.ts` `privacy`: toggles for what appears in the contact section.
   The phone number stays hidden unless Trevor says otherwise.
 
