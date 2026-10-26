@@ -168,7 +168,8 @@ in place.
   62vw below 68.75rem, 52vw above, never wider than the text column) and the
   11px floor stays. The height cap now keeps the name's bottom at or above the
   dissolve band's top (65% of the hero): with the block centred at 45%, that
-  is 23p ≤ 4.6 (0.2H − 0.55N + 0.5C), where C is the copy below the gap,
+  is 23p ≤ 4.6 (0.2H − 0.55N + 0.5C) (the line stays at 0.65 after the band
+  grew to 45%; see Bottom fade), where C is the copy below the gap,
   measured in Chrome at 87.2px (1-line role) and 107.2px on phones (2 lines).
   Name cells are also exempt from the dissolve, so a forced floor on a short
   screen can't erode the name.
@@ -190,8 +191,8 @@ in place.
   button pulls the light onto it with the same glide; like any resting pointer
   it lets go after 2.5 s, as the mockup. Focus leaving the hero releases it at
   once. The idle path is the mockup's drift: x = W(0.5 + 0.34 sin(0.31t)
-  cos(0.13t)), t seconds since the break, with y scaled to fit above the 35%
-  band (2026-10-26): y = H(0.38 + 0.23 sin(0.23t + 1)), within 0.15H to 0.61H
+  cos(0.13t)), t seconds since the break, with y scaled to fit above the 45%
+  band (2026-10-26): y = H(0.31 + 0.17 sin(0.23t + 1)), within 0.14H to 0.48H
   (the mockup's 0.45 + 0.3 reached 0.75H).
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
@@ -208,24 +209,30 @@ in place.
   light parked on the role line, above it, between it and the buttons, right
   of it, right of the buttons and below the buttons, at 1440×900, 1366×657 and
   390×844: the brightest background pixel behind the role line gives at least
-  4.88:1 against the muted text. Name cells are exempt. The idle path stays
+  5.19:1 against the muted text. Name cells are exempt. The idle path stays
   above the dissolve band.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
   the floor still fits it.
-- **Bottom dissolve (2026-10-26, revised after Trevor's review).** The band
-  is the lowest 35% of rows (was 22%). The first version scattered cells out
-  at seeded depths and left big black gaps, which Trevor didn't like; it now
-  darkens gradually. Each cell's visibility eases from 1 at the band top to
-  0.18 on the last row (`d(1.4 - 0.4d)`, steeper toward the bottom), times a
-  seeded ±12% jitter. A few cells drop out fully: only cells on a sparse
-  lattice ((col + 2 row) mod 5 = 0, no two touching) can drop, with a chance
-  rising from 0 at two thirds up the band to 75% on the last row, about 5% of
-  band cells overall, so dropouts never join into holes. Measured from the
-  canvas: row means fall from about 0.95 to 0.15-0.16 on the last row, 4.8% to
-  5.7% of band cells are dark, none in the band's top third, and no dark cell
-  touches more than one other. On desktop the band is only 9 to 11 rows, so a
-  row-to-row step reaches 0.13 there; on a 390×844 phone (22 rows) it is at
-  most 0.08. The buttons can sit over the band's upper part; their solid
-  backgrounds and the copy dimming keep them legible.
+- **Bottom fade (2026-10-26, revised twice after Trevor's review).** The band
+  is the lowest 45% of rows (22% before this round). A scattered-dropout
+  version left big black gaps, and a version that only darkened to 0.18 left a
+  visible cutoff where the hero ends; Trevor wanted neither. It now fades
+  continuously to about 0: each cell's visibility goes from 1 at the band top
+  to about 0 on the last row along half a straight line and half a smoothstep
+  (bright longer at the top, settling gently at the bottom), times a seeded
+  ±10% jitter that shrinks to nothing toward the bottom. A few isolated cells
+  drop out fully, only in the band's middle: cells on a sparse lattice
+  ((col + 2 row) mod 5 = 0, no two touching), with a chance peaking at 30% at
+  the band's middle and 0 in its top third and bottom fifth, about 1% of band
+  cells. Measured from the canvas at 1440×900, 1366×657 and 390×844: last-row
+  means 0.021, 0.029 and 0.007; dropouts 0.9% to 1.3%; no dark cell touches
+  another dark cell more than once. Desktop bands are 12 to 14 rows, so a
+  row-to-row step reaches 0.12 there; the 390×844 band (28 rows) steps at most
+  0.07. With the hero's bottom scrolled to mid-screen there is no visible line
+  where it meets the ribbon. The band's top (0.55 of the hero) now sits above
+  the name's lower rows on desktop; name cells are exempt and the band is
+  still above 0.9 there. The role line and buttons sit in the band's upper
+  half (about 0.6 to 0.8 visibility); their solid backgrounds and the copy
+  dimming keep them legible.
