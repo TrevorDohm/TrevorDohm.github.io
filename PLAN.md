@@ -131,8 +131,9 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
   point onto it. **(review)**
 - **Idle drift.** After 2 seconds without input, a query point wanders a smooth
   looping path so the hero never sits still. When the pointer leaves or goes
-  idle, the light glides back to that path at about the path's own pace,
-  easing in over 0.3 s, instead of snapping (2026-10-26). Idle drift is capped at about 30fps to
+  idle, the light glides back to that path at about the path's own pace (1.1
+  times its top speed), easing in over 0.3 s, instead of snapping; the intro's
+  break keeps its original motion (2026-10-26). Idle drift is capped at about 30fps to
   save battery. **(review)** At 60 Hz that measures about 22 draws a second,
   because a gap of just under 33 ms waits one more frame.
 - **Touch.** Tapping sends a ripple and moves the glow to the tap point.
