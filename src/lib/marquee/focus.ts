@@ -26,3 +26,31 @@ export function revealItem(row: HTMLElement, item: HTMLElement): void {
     if (duration > 0) animation.currentTime = progress * duration
   }
 }
+
+/**
+ * Focus handlers for the rows of one root. Keyboard focus in a row holds it:
+ * `onHold(true)`, `data-focus-hold` on the row (which drops its edge mask) and
+ * the focused item seeked into view. A mouse click also focuses a link, but
+ * must not freeze the row or move the card under the pointer, so only
+ * `:focus-visible` focus holds. Moving focus between items keeps the hold.
+ */
+export function focusHold(root: HTMLElement, rows: HTMLElement[], onHold: (held: boolean) => void) {
+  const hold = (row: HTMLElement | null) => {
+    for (const r of rows) r.toggleAttribute('data-focus-hold', r === row)
+    onHold(row !== null)
+  }
+  const onFocusIn = (event: FocusEvent) => {
+    const row = event.currentTarget as HTMLElement
+    const target = event.target as Element
+    const held = target.matches(':focus-visible')
+    hold(held ? row : null)
+    const item = held && target.closest<HTMLElement>('[data-marquee-track] > li')
+    if (item && 'marqueeReady' in root.dataset) revealItem(row, item)
+  }
+  // Focus moving to another item in a row: the focusin that follows decides.
+  const onFocusOut = (event: FocusEvent) => {
+    const next = event.relatedTarget
+    if (!(next instanceof Element && rows.some((row) => row.contains(next)))) hold(null)
+  }
+  return { onFocusIn, onFocusOut, release: () => hold(null) }
+}

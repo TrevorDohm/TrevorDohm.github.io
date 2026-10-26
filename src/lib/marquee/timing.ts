@@ -25,6 +25,16 @@ function setCopies(list: HTMLElement, count: number, copies: number) {
   }
 }
 
+/** Undoes layoutRow: removes the added copies and the duration, for the static row. */
+export function resetRow(row: HTMLElement): void {
+  const state = states.get(row)
+  if (!state) return
+  for (const list of row.querySelectorAll<HTMLElement>('ul[data-marquee-track], ul[data-marquee-clone]'))
+    setCopies(list, state.count, 1)
+  row.style.removeProperty('--marquee-duration')
+  states.delete(row)
+}
+
 /**
  * Sizes one marquee row: adds copies of the content so each list covers
  * `viewportPx`, then sets `--marquee-duration` so the row moves at `speed`

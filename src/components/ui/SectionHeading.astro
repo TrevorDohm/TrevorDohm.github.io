@@ -3,14 +3,16 @@ interface Props {
   title: string
   eyebrow?: string
   level?: 'h1' | 'h2'
+  /** Lands on the heading, so a section can name itself with aria-labelledby. */
+  id?: string
 }
 
-const { title, eyebrow, level = 'h2' } = Astro.props
+const { title, eyebrow, level = 'h2', id } = Astro.props
 const Heading = level
 ---
 
 <div class="mb-8">
   {eyebrow && <p class="eyebrow mb-3">{eyebrow}</p>}
-  <Heading class={level === 'h1' ? 'heading-xl' : 'heading-lg'}>{title}</Heading>
+  <Heading id={id} class={level === 'h1' ? 'heading-xl' : 'heading-lg'}>{title}</Heading>
   <slot />
 </div>

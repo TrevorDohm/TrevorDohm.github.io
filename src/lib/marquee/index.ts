@@ -1,7 +1,7 @@
-import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
-import { revealItem } from './focus'
+import { whileMotionAllowed } from '../motion/while-motion-allowed'
+import { focusHold } from './focus'
 import { approach } from './math'
-import { layoutRow } from './timing'
+import { layoutRow, resetRow } from './timing'
 
 /** Playback rate while the pointer is over a row. */
 const HOVER_RATE = 0.25
@@ -14,13 +14,18 @@ const STATIC_ATTRS = ['role', 'tabindex', 'aria-label']
 
 /**
  * Drives every marquee row inside `root`: sizing, hover slowdown, the Pause
- * button and pausing offscreen. Under reduced motion the rows stay static.
+ * button and pausing offscreen. Under reduced motion the rows stay static,
+ * and turning it on later returns them to static.
  */
-export function init(root: HTMLElement): () => void {
+export const init = (root: HTMLElement): (() => void) => whileMotionAllowed(() => drive(root))
+
+function drive(root: HTMLElement): () => void {
   const rows = Array.from(root.querySelectorAll<HTMLElement>('[data-marquee-row]'))
-  if (prefersReducedMotion() || rows.length === 0) return () => {}
+  if (rows.length === 0) return () => {}
 
   const toggle = root.querySelector<HTMLButtonElement>('button[data-marquee-toggle]')
+  // The visible word lives in its own span, beside hidden text naming the section.
+  const label = toggle?.querySelector('[data-marquee-label]') ?? toggle
   const lists = rows.flatMap((row) =>
     Array.from(row.querySelectorAll<HTMLElement>('ul[data-marquee-track], ul[data-marquee-clone]')),
   )
@@ -80,20 +85,15 @@ export function init(root: HTMLElement): () => void {
   }
   const onEnter = () => setTarget(HOVER_RATE)
   const onLeave = () => { setHover(null); setTarget(1) }
-  // Focus inside a row holds it still, with the focused item seeked into view.
-  // Moving focus between items keeps the hold.
-  const onFocus = (event: FocusEvent) => {
-    const inside = event.type === 'focusin' ? event.target : event.relatedTarget
-    focusHeld = inside instanceof Element && rows.some((row) => row.contains(inside))
+  const focus = focusHold(root, rows, (held) => {
+    focusHeld = held
     sync()
-    const item = event.type === 'focusin' && focusHeld && (inside as Element).closest<HTMLElement>('[data-marquee-track] > li')
-    if (item && 'marqueeReady' in root.dataset) revealItem(event.currentTarget as HTMLElement, item)
-  }
+  })
 
   // The label says what a press will do. No aria-pressed: with a changing label it reads backwards.
   const onToggle = () => {
     userPaused = !userPaused
-    if (toggle) toggle.textContent = userPaused ? 'Play' : 'Pause'
+    if (label) label.textContent = userPaused ? 'Play' : 'Pause'
     if (userPaused) root.dataset.marqueePaused = ''
     else delete root.dataset.marqueePaused
     sync()
@@ -117,8 +117,8 @@ export function init(root: HTMLElement): () => void {
     ['pointermove', onMove],
     ['pointerenter', onEnter],
     ['pointerleave', onLeave],
-    ['focusin', onFocus],
-    ['focusout', onFocus],
+    ['focusin', focus.onFocusIn],
+    ['focusout', focus.onFocusOut],
   ] as const
 
   layout()
@@ -141,7 +141,10 @@ export function init(root: HTMLElement): () => void {
     toggle?.removeEventListener('click', onToggle)
     for (const row of rows) for (const [type, fn] of rowEvents) row.removeEventListener(type, fn as EventListener)
     setHover(null)
+    focus.release()
     rows.forEach((row, i) => saved[i].forEach((v, j) => v !== null && row.setAttribute(STATIC_ATTRS[j], v)))
+    rows.forEach(resetRow)
+    if (label) label.textContent = 'Pause'
     if (toggle) toggle.hidden = true
     delete root.dataset.marqueeReady
     delete root.dataset.marqueePaused

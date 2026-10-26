@@ -15,10 +15,10 @@ const { cards } = Astro.props
 const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(level / 10)}`).join('; ')
 ---
 
-<section data-marquee-root data-gallery aria-label="Ways to pay attention" class="gallery py-24" style={ramp}>
+<section data-marquee-root data-gallery aria-labelledby="gallery-heading" class="gallery py-24" style={ramp}>
   <div class="section-container flex flex-wrap items-end justify-between gap-x-4">
-    <SectionHeading eyebrow="How models look at text" title="Ways to pay attention" />
-    <button type="button" data-marquee-toggle hidden class="toggle">Pause</button>
+    <SectionHeading id="gallery-heading" eyebrow="How models look at text" title="Ways to pay attention" />
+    <button type="button" data-marquee-toggle hidden class="toggle"><span data-marquee-label>Pause</span><span class="sr-only"> gallery</span></button>
   </div>
   <MarqueeRow speed={18} label="Attention patterns" gap="1.25rem">
     {cards.map((card) => <PatternCard card={card} />)}

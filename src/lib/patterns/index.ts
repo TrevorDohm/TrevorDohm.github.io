@@ -2,7 +2,7 @@ import { easeToward } from '../matrix/attention'
 import { createLoop } from '../matrix/loop'
 import { readPalette } from '../matrix/palette'
 import type { Palette } from '../matrix/renderer'
-import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
+import { whileMotionAllowed } from '../motion/while-motion-allowed'
 import { drawPattern } from './draw'
 import { patternWeights, sweepWeights, type PatternId } from './patterns'
 
@@ -26,11 +26,13 @@ interface Card {
 /**
  * Animates every pattern card inside `root`: a query row sweeps down each
  * map, or follows the pointer over a card. One loop at ~30fps draws each
- * pattern once and copies it to the visible clones. Under reduced motion, or
- * if the palette can't be read, the static SVG frames stay.
+ * pattern once and copies it to the visible clones. Under reduced motion
+ * (including when it is turned on later), or if the palette can't be read,
+ * the static SVG frames show.
  */
-export function init(root: HTMLElement): () => void {
-  if (prefersReducedMotion()) return () => {}
+export const init = (root: HTMLElement): (() => void) => whileMotionAllowed(() => animate(root))
+
+function animate(root: HTMLElement): () => void {
   let palette: Palette
   try {
     palette = readPalette(root)
