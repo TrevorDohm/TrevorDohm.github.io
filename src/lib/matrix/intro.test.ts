@@ -120,7 +120,7 @@ describe('composeTargets', () => {
     composeTargets(target, attention, grid, cells, INTRO_END + 1)
     for (let i = 0; i < count; i++) {
       if (isName.has(i)) expect(target[i]).toBeCloseTo(Math.max(0.3 + 0.75 * 0.5, 0.5))
-      else expect(target[i]).toBeCloseTo(0.5)
+      else expect(target[i]).toBeCloseTo(0.9 * 0.5) // the mockup's 0.9 · attention
     }
   })
 

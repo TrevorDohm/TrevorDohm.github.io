@@ -2,13 +2,12 @@ import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
 import { layoutGrid, type Grid } from './geometry'
-import { idleQuery } from './idle'
 import { bindInput } from './input'
 import * as intro from './intro'
 import { createLoop } from './loop'
 import { copyMask } from './mask'
 import { measure } from './measure'
-import { queryTarget, smoothQuery } from './query'
+import { goalAt, isSettled, smoothQuery } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
@@ -17,8 +16,6 @@ import { createState, isIdle, pruneRipples } from './state'
 const TEMPERATURE = 2.2
 /** How quickly each cell settles on its target, per second (the mockup's 0.18 a frame). */
 const EASE_RATE = 12
-/** While the light is more than this many cells from its target it is gliding, and the loop runs at full rate. */
-const GLIDE_CELLS = 3
 
 /**
  * Mounts the attention matrix on the canvas inside `root`. The grid is laid out
@@ -58,16 +55,12 @@ export function init(root: HTMLElement): () => void {
   const painted = performance.getEntriesByType('paint').length > 0
   let clock = reduced ? intro.STILL_AT : intro.introStart(painted)
 
-  // Where the light heads now: the pointer while input is recent, else the intro or idle path.
-  const goalAt = (now: number) => {
-    const idle = idleQuery(Math.max(0, clock - intro.BREAK_AT), width, height)
-    return queryTarget(state, now, intro.introQuery(clock, centre, idle))
-  }
+  const goal = (now: number) => goalAt(state, now, clock, centre, width, height)
 
   const updateTarget = (now: number, dt: number) => {
     if (!grid) return
-    const goal = goalAt(now)
-    query = query ? smoothQuery(query, goal, dt, grid.pitch) : [goal[0], goal[1]]
+    const [gx, gy] = goal(now)
+    query = query ? smoothQuery(query, [gx, gy], dt) : [gx, gy]
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
     intro.composeTargets(target, attention, grid, cells, clock)
@@ -135,11 +128,11 @@ export function init(root: HTMLElement): () => void {
   }
 
   // The intro starts now, not at `load`: the static name is already hidden.
+  // Idle frames drop to ~30fps once the light has settled near its path.
   const settled = () => {
     const now = performance.now()
     if (!grid || !query || clock < intro.INTRO_END || !isIdle(state, now)) return false
-    const goal = goalAt(now)
-    return Math.hypot(goal[0] - query[0], goal[1] - query[1]) <= GLIDE_CELLS * grid.pitch
+    return isSettled(query, goal(now), grid.pitch)
   }
   const loop = createLoop(root, tick, settled)
   const unbind = bindInput(root, canvas, state)

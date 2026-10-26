@@ -9,6 +9,8 @@ import { bottomFade, LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from
 
 export const NAME = nameMask(NAME_LINES, LINE_GAP)
 
+/** Brightest a background cell gets under the query (the mockup's 0.9). */
+const GLOW_PEAK = 0.9
 /** Seconds the background attention takes to sweep in. */
 const WAVE_SECONDS = 1.2
 /** When the background attention starts sweeping in. */
@@ -65,8 +67,8 @@ export function introQuery(
 
 /**
  * Target weights at time t. Attention reaches each cell with the load-in wave,
- * which starts after the name has formed; name cells follow `nameWeight` on
- * top of that attention.
+ * which starts after the name has formed, at GLOW_PEAK times its weight. Name
+ * cells follow `nameWeight` on the attention itself, as the mockup does.
  */
 export function composeTargets(
   target: Float32Array,
@@ -79,12 +81,12 @@ export function composeTargets(
   const wave = (t - WAVE_START) / WAVE_SECONDS
   for (let i = 0; i < cols * rows; i++) {
     const a = wave >= 1 ? 1 : introAlpha(wave, Math.floor(i / cols), i % cols, rows, cols)
-    target[i] = attention[i] * a
+    target[i] = GLOW_PEAK * attention[i] * a
   }
   cells.forEach((i, k) => {
     if (i < 0) return
     const [row, col] = NAME.cells[k]
-    target[i] = nameWeight(t, col, row, NAME.cols, target[i])
+    target[i] = nameWeight(t, col, row, NAME.cols, target[i] / GLOW_PEAK)
   })
   return target
 }

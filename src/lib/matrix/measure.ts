@@ -1,5 +1,5 @@
 import { NAME } from './intro'
-import type { Rect } from './mask'
+import { lineRects, type Rect } from './mask'
 
 /** Fallback pitch when the name anchor is missing: phones, then wider screens. */
 const FALLBACK_PITCH = [22, 40] as const
@@ -14,7 +14,7 @@ export interface Layout {
   ax: number
   ay: number
   named: boolean
-  /** Boxes of the hero copy the glow must stay out of. */
+  /** Boxes of the hero copy the glow must stay out of: text lines and buttons. */
   copy: Rect[]
   /** Changes whenever any of the above does. */
   key: string
@@ -36,9 +36,14 @@ export function measure(
   const pitch = named ? box.width / NAME.cols : FALLBACK_PITCH[rect.width < MOBILE_BREAKPOINT ? 0 : 1]
   const ax = named ? box.left - rect.left : 0
   const ay = named ? box.top - rect.top : 0
-  const boxes = copy.map((el) => {
-    const b = el.getBoundingClientRect()
-    return { left: b.left - rect.left, top: b.top - rect.top, right: b.right - rect.left, bottom: b.bottom - rect.top }
+  const local = (b: DOMRect): Rect => ({ left: b.left - rect.left, top: b.top - rect.top, right: b.right - rect.left, bottom: b.bottom - rect.top })
+  const boxes = copy.flatMap((el) => {
+    // A row of links or buttons masks each one; text masks the ink of each line.
+    const controls = [...el.querySelectorAll('a, button')]
+    if (controls.length) return controls.map((c) => local(c.getBoundingClientRect()))
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    return lineRects([...range.getClientRects()].map(local))
   })
   const values = [rect.width, rect.height, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
