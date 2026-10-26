@@ -1,6 +1,6 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { attentionWeights, easeToward } from './attention'
-import { applyBoost, RIPPLE } from './effects'
+import { applyBoost, DROP } from './effects'
 import { layoutGrid, type Grid } from './geometry'
 import { idleQuery } from './idle'
 import { bindInput } from './input'
@@ -8,16 +8,17 @@ import * as intro from './intro'
 import { createLoop } from './loop'
 import { copyMask } from './mask'
 import { measure } from './measure'
+import { queryTarget, smoothQuery } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
 
-/** Softmax temperature in cells. Higher spreads the glow wider. */
-const TEMPERATURE = 1.6
-/** How quickly the glow follows the query, per second. */
-const EASE_RATE = 7
-/** Brightness added to the hovered cell's row and column. */
-const AXIS_BOOST = 0.12
+/** Softmax temperature in cells. Higher spreads the glow wider (the mockup's 2.2). */
+const TEMPERATURE = 2.2
+/** How quickly each cell settles on its target, per second (the mockup's 0.18 a frame). */
+const EASE_RATE = 12
+/** While the light is more than this many cells from its target it is gliding, and the loop runs at full rate. */
+const GLIDE_CELLS = 3
 
 /**
  * Mounts the attention matrix on the canvas inside `root`. The grid is laid out
@@ -51,17 +52,23 @@ export function init(root: HTMLElement): () => void {
   let layoutKey = ''
   let width = 0
   let height = 0
+  // The light's centre. It glides toward the pointer or the idle path, never jumps.
+  let query: [number, number] | null = null
   // Intro clock in seconds, from now. Reduced motion holds it on the lit name.
   const painted = performance.getEntriesByType('paint').length > 0
   let clock = reduced ? intro.STILL_AT : intro.introStart(painted)
 
-  const updateTarget = (now: number) => {
+  // Where the light heads now: the pointer while input is recent, else the intro or idle path.
+  const goalAt = (now: number) => {
+    const idle = idleQuery(Math.max(0, clock - intro.BREAK_AT), width, height)
+    return queryTarget(state, now, intro.introQuery(clock, centre, idle))
+  }
+
+  const updateTarget = (now: number, dt: number) => {
     if (!grid) return
-    if (isIdle(state, now) || !state.hasQuery) {
-      const idle = idleQuery(Math.max(0, clock - intro.BREAK_AT), width, height)
-      ;[state.query.x, state.query.y] = intro.introQuery(clock, centre, idle)
-    }
-    attentionWeights(grid.centers, grid.pitch, state.query.x, state.query.y, TEMPERATURE, attention)
+    const goal = goalAt(now)
+    query = query ? smoothQuery(query, goal, dt, grid.pitch) : [goal[0], goal[1]]
+    attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
     intro.composeTargets(target, attention, grid, cells, clock)
   }
@@ -100,7 +107,7 @@ export function init(root: HTMLElement): () => void {
     fade = intro.fadeMap(grid)
     copy = copyMask(grid, m.copy, cells)
     renderer.resize(grid, width, height, window.devicePixelRatio || 1)
-    updateTarget(performance.now())
+    updateTarget(performance.now(), 0)
     // New arrays start from the targets; either way the name keeps its eased state.
     if (fresh || reduced) weights.set(target)
     intro.moveName(weights, fresh ? new Int32Array(0) : oldCells, cells, saved, target)
@@ -110,10 +117,10 @@ export function init(root: HTMLElement): () => void {
   const tick = (dt: number, now: number) => {
     if (!grid) return
     clock += dt
-    updateTarget(now)
+    updateTarget(now, dt)
     easeToward(weights, target, EASE_RATE, dt)
-    pruneRipples(state, now, RIPPLE.lifetime * 1000)
-    applyBoost(boost, grid, isIdle(state, now) ? -1 : state.hover, state.ripples, now, AXIS_BOOST)
+    pruneRipples(state, now, DROP.lifetime * 1000)
+    applyBoost(boost, grid, state.ripples, now)
     draw()
   }
 
@@ -128,8 +135,14 @@ export function init(root: HTMLElement): () => void {
   }
 
   // The intro starts now, not at `load`: the static name is already hidden.
-  const loop = createLoop(root, tick, () => clock >= intro.INTRO_END && isIdle(state, performance.now()))
-  const unbind = bindInput(root, canvas, state, () => grid)
+  const settled = () => {
+    const now = performance.now()
+    if (!grid || !query || clock < intro.INTRO_END || !isIdle(state, now)) return false
+    const goal = goalAt(now)
+    return Math.hypot(goal[0] - query[0], goal[1] - query[1]) <= GLIDE_CELLS * grid.pitch
+  }
+  const loop = createLoop(root, tick, settled)
+  const unbind = bindInput(root, canvas, state)
   loop.start()
 
   return () => {

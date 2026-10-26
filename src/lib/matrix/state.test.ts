@@ -1,22 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { IDLE_AFTER_MS, MAX_RIPPLES, addRipple, createState, isIdle, pruneRipples, setQuery } from './state'
+import { IDLE_AFTER_MS, MAX_RIPPLES, addRipple, clearPointer, createState, isIdle, pruneRipples, setPointer } from './state'
 
 describe('matrix state', () => {
-  it('starts idle, with no query, hover, or ripples', () => {
+  it('starts idle, with no pointer or ripples', () => {
     const s = createState()
-    expect(s.hasQuery).toBe(false)
-    expect(s.hover).toBe(-1)
+    expect(s.pointer).toBeNull()
     expect(s.ripples).toEqual([])
     expect(isIdle(s, 0)).toBe(true)
   })
 
-  it('is active right after input and idle once IDLE_AFTER_MS has passed', () => {
+  it('is active right after input and idle 2.5 s later, as the mockup', () => {
+    expect(IDLE_AFTER_MS).toBe(2500)
     const s = createState()
-    setQuery(s, 10, 20, 1000)
-    expect(s.query).toEqual({ x: 10, y: 20 })
-    expect(s.hasQuery).toBe(true)
+    setPointer(s, 10, 20, 1000)
+    expect(s.pointer).toEqual({ x: 10, y: 20 })
     expect(isIdle(s, 1000 + IDLE_AFTER_MS)).toBe(false)
     expect(isIdle(s, 1000 + IDLE_AFTER_MS + 1)).toBe(true)
+  })
+
+  it('is idle at once when the pointer leaves', () => {
+    const s = createState()
+    setPointer(s, 10, 20, 1000)
+    clearPointer(s)
+    expect(s.pointer).toBeNull()
+    expect(isIdle(s, 1001)).toBe(true)
   })
 
   it('keeps at most MAX_RIPPLES, dropping the oldest', () => {

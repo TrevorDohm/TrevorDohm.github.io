@@ -1,6 +1,5 @@
 import { CELL_RADIUS, type Grid } from './geometry'
 import { mix, rampTable, type Rgb } from './color'
-import { COPY_CAP } from './mask'
 
 export interface Palette {
   line: Rgb
@@ -11,11 +10,11 @@ export interface Palette {
 export interface Frame {
   /** Eased attention, 0 to 1. */
   weights: Float32Array
-  /** Extra brightness from hover and ripples, added on top. */
+  /** Extra brightness from click drops, added on top. */
   boost: Float32Array
   /** Per-cell visibility, 0 to 1 (the bottom dissolve). Scales weight and opacity. */
   fade: Float32Array
-  /** 1 for cells under the hero copy: drawn at most at COPY_CAP, with no glow. */
+  /** 1 for cells under the hero copy: drawn at resting weight, with no glow. */
   copy: Uint8Array
 }
 
@@ -80,7 +79,7 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (appear <= 0) continue
-      const w = Math.min(copy[i] ? COPY_CAP : 1, weights[i] + boost[i]) * appear
+      const w = copy[i] ? 0 : Math.min(1, weights[i] + boost[i]) * appear
       ctx.globalAlpha = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
       ctx.fillStyle = ramp[Math.round(w * (RAMP_STEPS - 1))]
       ctx.beginPath()

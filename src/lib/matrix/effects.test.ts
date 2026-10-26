@@ -1,28 +1,42 @@
 import { describe, expect, it } from 'vitest'
-import { applyBoost, idlePoint, introAlpha, rippleAt } from './effects'
+import { applyBoost, DROP, dropAt, idlePoint, introAlpha } from './effects'
 import { layoutGrid } from './geometry'
 
-describe('rippleAt', () => {
-  const speed = 10
-  const width = 1
-  const lifetime = 2
+describe('dropAt', () => {
+  const ages = Array.from({ length: 121 }, (_, i) => i * 0.01) // 0 to 1.2 s
+  const distances = Array.from({ length: 201 }, (_, i) => i * 0.05) // 0 to 10 cells
 
-  it('is zero before it starts and after its lifetime', () => {
-    expect(rippleAt(0, -0.1, speed, width, lifetime)).toBe(0)
-    expect(rippleAt(20, lifetime, speed, width, lifetime)).toBe(0)
+  it('adds nothing at 4 cells or more from the click, at any time', () => {
+    for (const age of ages) for (const d of distances) if (d >= 4) expect(dropAt(d, age)).toBe(0)
   })
 
-  it('peaks on the expanding ring', () => {
-    const age = 0.5 // ring radius = 5
-    const onRing = rippleAt(5, age, speed, width, lifetime)
-    expect(onRing).toBeGreaterThan(rippleAt(3, age, speed, width, lifetime))
-    expect(onRing).toBeGreaterThan(rippleAt(7, age, speed, width, lifetime))
+  it('is gone by 0.8 s, and before the click', () => {
+    for (const d of distances) {
+      expect(dropAt(d, -0.01)).toBe(0)
+      for (const age of ages) if (age >= 0.8) expect(dropAt(d, age)).toBe(0)
+    }
+    expect(DROP.lifetime).toBeLessThanOrEqual(0.8)
   })
 
-  it('fades as it ages', () => {
-    const early = rippleAt(2, 0.2, speed, width, lifetime)
-    const late = rippleAt(15, 1.5, speed, width, lifetime)
-    expect(late).toBeLessThan(early)
+  it('never adds more than 0.7', () => {
+    let peak = 0
+    for (const age of ages) for (const d of distances) peak = Math.max(peak, dropAt(d, age))
+    expect(peak).toBeLessThanOrEqual(0.7)
+    expect(peak).toBeGreaterThan(0.6) // the clicked cell flashes near full
+  })
+
+  it('starts on the clicked cell and sends a ring out to about 3 cells', () => {
+    const crest = (age: number) => distances.reduce((best, d) => (dropAt(d, age) > dropAt(best, age) ? d : best), 0)
+    expect(dropAt(0, 0)).toBeCloseTo(DROP.peak)
+    expect(crest(0.05)).toBeLessThan(crest(0.2))
+    expect(crest(0.2)).toBeLessThan(crest(0.45))
+    expect(crest(0.6)).toBeLessThanOrEqual(3.1)
+    expect(crest(0.6)).toBeGreaterThan(2)
+  })
+
+  it('peaks lower the farther a cell is from the click', () => {
+    const most = (d: number) => Math.max(...ages.map((age) => dropAt(d, age)))
+    for (let d = 0.5; d < 4; d += 0.5) expect(most(d)).toBeLessThan(most(d - 0.5))
   })
 })
 
@@ -69,33 +83,39 @@ describe('introAlpha', () => {
 })
 
 describe('applyBoost', () => {
-  const grid = layoutGrid(200, 120, 40, 0, 0) // 5 cols x 3 rows
-  const { cols, rows } = grid
-  const count = cols * rows
-
-  it('boosts exactly the hovered row and column, counting the hovered cell once', () => {
-    expect([cols, rows]).toEqual([5, 3])
-    const boost = new Float32Array(count)
-    const hover = 1 * cols + 3 // row 1, col 3
-    applyBoost(boost, grid, hover, [], 0, 0.1)
-    expect(Array.from(boost).filter((v) => v !== 0).length).toBe(cols + rows - 1)
-    for (let i = 0; i < count; i++) {
-      const inAxis = Math.floor(i / cols) === 1 || i % cols === 3
-      expect(boost[i]).toBeCloseTo(inAxis ? 0.1 : 0)
-    }
-  })
+  const grid = layoutGrid(400, 400, 20, 0, 0) // 20 x 20 cells of 20px
+  const count = grid.cols * grid.rows
+  const at = (col: number, row: number) => ({ x: grid.centers[(row * grid.cols + col) * 2], y: grid.centers[(row * grid.cols + col) * 2 + 1] })
 
   it('resets the buffer each call', () => {
     const boost = new Float32Array(count).fill(9)
-    applyBoost(boost, grid, -1, [], 0, 0.1)
+    applyBoost(boost, grid, [], 0)
     expect(Math.max(...boost)).toBe(0)
   })
 
-  it('lights cells on the ring of an active ripple', () => {
-    const wide = layoutGrid(400, 120, 40, 0, 0)
-    const boost = new Float32Array(wide.cols * wide.rows)
-    // 0.5 s after a click at cell 0, the ring is 7 cells out (speed 14 cells/s).
-    applyBoost(boost, wide, -1, [{ x: wide.centers[0], y: wide.centers[1], start: 0 }], 500, 0.1)
-    expect(boost[7]).toBeGreaterThan(boost[2])
+  it('boosts no cell 4 or more cells from a click', () => {
+    const boost = new Float32Array(count)
+    const click = { ...at(10, 10), start: 0 }
+    for (let ms = 0; ms <= 900; ms += 25) {
+      applyBoost(boost, grid, [click], ms)
+      for (let i = 0; i < count; i++) {
+        const d = Math.hypot(grid.centers[i * 2] - click.x, grid.centers[i * 2 + 1] - click.y) / grid.pitch
+        if (d >= 4) expect(boost[i]).toBe(0)
+      }
+    }
+  })
+
+  it('caps rapid clicks on one spot at the peak', () => {
+    const boost = new Float32Array(count)
+    const clicks = Array.from({ length: 6 }, (_, k) => ({ ...at(10, 10), start: k * 10 }))
+    applyBoost(boost, grid, clicks, 60)
+    expect(Math.max(...boost)).toBeLessThanOrEqual(DROP.peak + 1e-6)
+    expect(Math.max(...boost)).toBeGreaterThan(0.6)
+  })
+
+  it('matches dropAt on each cell near the click', () => {
+    const boost = new Float32Array(count)
+    applyBoost(boost, grid, [{ ...at(3, 3), start: 0 }], 300)
+    expect(boost[3 * grid.cols + 5]).toBeCloseTo(dropAt(2, 0.3), 6)
   })
 })

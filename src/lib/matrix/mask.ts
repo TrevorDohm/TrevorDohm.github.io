@@ -8,13 +8,10 @@ export interface Rect {
   bottom: number
 }
 
-/** Highest weight a cell under the hero copy may be drawn at. Such cells get no glow. */
-export const COPY_CAP = 0.35
-
 /**
  * 1 for each grid cell whose square overlaps one of `rects` (touching an edge
  * doesn't count), else 0. Cells listed in `exempt` (grid indices; -1 is
- * ignored) stay 0, so the name is never capped.
+ * ignored) stay 0, so the name is never held at rest.
  */
 export function copyMask(grid: Grid, rects: readonly Rect[], exempt: Int32Array): Uint8Array {
   const { cols, rows, pitch, originX, originY } = grid
