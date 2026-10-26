@@ -6,40 +6,43 @@ const W = 1440
 const H = 900
 const PITCH = 32
 const cruise = cruiseSpeed(W, H)
+const ACCEL = cruise / GLIDE_RAMP // px/s gained or shed per second, at most
 const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
 /**
- * The pointer swipes from mid-screen to a far corner in 0.3 s and leaves at
- * once, with the light still moving after it (the owner's case): from then on
- * the target is the idle path (time from `t0` on the path). Returns the light
- * and the target at every frame after the leave.
+ * The light follows a pointer, then lets go: `swipe` sweeps the pointer from
+ * mid-screen to a far corner in 0.3 s and leaves at once with the light still
+ * moving (the owner's case); otherwise the light is parked on the corner. From
+ * then on the target is the idle path from time `t0`. Returns every frame
+ * after the release and the light's last step before it.
  */
-function leave(fps: number, seconds: number, swipe = true, corner: Point = [1420, 70], t0 = 10) {
+export function leave(fps: number, seconds: number, swipe = true, corner: Point = [1420, 70], t0 = 10) {
   const dt = 1 / fps
   const light = createLight()
-  const from: Point = swipe ? [700, 450] : corner // parked: the same release point at any frame rate
-  for (let i = 0; i < fps * 3; i++) stepLight(light, from, true, dt, cruise)
-  const frames = swipe ? Math.round(0.3 * fps) : 0
-  for (let i = 1; i <= frames; i++) {
-    const k = i / frames
-    stepLight(light, [from[0] + (corner[0] - from[0]) * k, from[1] + (corner[1] - from[1]) * k], true, dt, cruise)
-  }
-  const out: Array<{ q: Point; target: Point; step: number }> = []
+  const from: Point = swipe ? [700, 450] : corner
+  for (let i = 0; i < fps * 3; i++) stepLight(light, from, true, dt, cruise, PITCH)
   let prev: Point = light.q!
-  for (let i = 1; i <= fps * seconds; i++) {
-    const target = idleQuery(t0 + i * dt, W, H)
-    const q = stepLight(light, target, false, dt, cruise)
-    out.push({ q, target, step: dist(q, prev) })
+  let lastStep = 0
+  const n = swipe ? Math.round(0.3 * fps) : 0
+  for (let i = 1; i <= n; i++) {
+    const q = stepLight(light, [from[0] + ((corner[0] - from[0]) * i) / n, from[1] + ((corner[1] - from[1]) * i) / n], true, dt, cruise, PITCH)
+    lastStep = dist(q, prev)
     prev = q
   }
-  return { frames: out, dt }
+  const frames: Array<{ q: Point; target: Point; step: number; speed: number }> = []
+  for (let i = 1; i <= fps * seconds; i++) {
+    const target = idleQuery(t0 + i * dt, W, H)
+    const q = stepLight(light, target, false, dt, cruise, PITCH)
+    frames.push({ q, target, step: dist(q, prev), speed: dist(q, prev) / dt })
+    prev = q
+  }
+  return { frames, dt, lastStep }
 }
 
 describe('idlePeakSpeed', () => {
   it('is the idle path’s actual top speed, within 1%', () => {
     for (const [w, h, floor] of [[1440, 900, Infinity], [390, 844, Infinity], [2560, 1440, Infinity], [390, 844, 200]]) {
-      // The path's own positions, differenced at 240 Hz over 20 minutes.
-      const dt = 1 / 240
+      const dt = 1 / 240 // the path's own positions, differenced at 240 Hz over 20 minutes
       let max = 0
       for (let i = 0; i < 240 * 1200; i++) max = Math.max(max, dist(idleQuery((i + 1) * dt, w, h, floor), idleQuery(i * dt, w, h, floor)) / dt)
       expect(Math.abs(idlePeakSpeed(w, h, floor) / max - 1)).toBeLessThan(0.01)
@@ -55,103 +58,93 @@ describe('idlePeakSpeed', () => {
 })
 
 describe('stepLight', () => {
-  it('follows the pointer exactly as smoothQuery does (the approved drag)', () => {
-    const light = createLight()
-    let q: Point = [100, 100]
-    stepLight(light, q, true, 0, cruise)
-    for (let i = 0; i < 120; i++) {
-      const target: Point = [100 + i * 13, 100 + i * 2]
-      q = smoothQuery(q, target, 1 / 60)
-      expect(stepLight(light, target, true, 1 / 60, cruise)).toEqual(q)
+  it('follows the pointer exactly as smoothQuery does (the approved drag), and so does the intro', () => {
+    for (const following of [true, false]) {
+      const light = createLight()
+      let q: Point = [100, 100]
+      stepLight(light, q, following, 0, cruise, PITCH)
+      for (let i = 0; i < 120; i++) {
+        const target: Point = [100 + i * 13, 100 + i * 2] // faster than cruise, as in the break
+        q = smoothQuery(q, target, 1 / 60)
+        expect(stepLight(light, target, following, 1 / 60, cruise, PITCH)).toEqual(q)
+      }
     }
   })
 
-  it('after a leave from far away, never moves faster than the cruise speed', () => {
-    const { frames, dt } = leave(60, 8)
-    for (const f of frames) expect(f.step).toBeLessThanOrEqual(cruise * dt + 1e-9)
+  it('after a release never moves faster than cruise, and its speed changes smoothly throughout', () => {
+    for (const swipe of [true, false]) {
+      const { frames, dt } = leave(60, 12, swipe)
+      for (const f of frames) expect(f.step).toBeLessThanOrEqual(cruise * dt + 1e-9)
+      // From the first glide frame on (the release itself caps the speed at cruise), including the arrival.
+      for (let i = 1; i < frames.length; i++) expect(Math.abs(frames[i].speed - frames[i - 1].speed)).toBeLessThanOrEqual(ACCEL * dt + 0.5)
+    }
   })
 
-  it('does not snap: the first step is tiny and the speed ramps up over about 0.3 s', () => {
-    const { frames, dt } = leave(60, 8)
-    // One frame of acceleration from rest: (dt / GLIDE_RAMP) of a cruise step, 0.25px at 60fps here.
+  it('does not stop dead on release: it carries the light’s own speed (capped at cruise)', () => {
+    const { frames, dt, lastStep } = leave(60, 2, true)
+    expect(lastStep).toBeGreaterThan(cruise * dt) // the light was moving fast when the pointer left
+    expect(frames[0].step).toBeGreaterThan(0.9 * cruise * dt)
+  })
+
+  it('from rest, eases in over about 0.3 s', () => {
+    const { frames, dt } = leave(60, 2, false)
     expect(frames[0].step).toBeLessThanOrEqual((dt / GLIDE_RAMP) * cruise * dt + 1e-9)
     const ramp = Math.round(GLIDE_RAMP / dt)
     for (let i = 1; i < ramp; i++) expect(frames[i].step).toBeGreaterThan(frames[i - 1].step)
-    expect(frames[ramp - 2].step).toBeLessThan(cruise * dt)
-    expect(frames[ramp + 2].step).toBeGreaterThan(0.99 * cruise * dt)
+    expect(frames[ramp + 2].step).toBeGreaterThan(0.95 * cruise * dt)
   })
 
-  it('rejoins the path in finite time and then rides it', () => {
-    const { frames } = leave(60, 12)
-    const caught = frames.findIndex((f) => dist(f.q, f.target) < 1e-6)
-    expect(caught).toBeGreaterThan(0)
-    for (const f of frames.slice(caught)) expect(dist(f.q, f.target)).toBeLessThanOrEqual(PITCH)
-    // No jump at the handover: the step there is no bigger than a cruise step.
-    expect(frames[caught].step).toBeLessThanOrEqual(cruise / 60 + 1e-9)
-  })
-
-  it('is the same at 30, 60 and 144 fps', () => {
-    // From the same release point (the light parked on the corner); a swipe's
-    // pointer samples differ by frame rate, so its release point does too.
-    const at = (fps: number) => {
-      const { frames, dt } = leave(fps, 12, false)
-      const caught = frames.findIndex((f) => dist(f.q, f.target) < 1e-6)
-      return { caughtAt: (caught + 1) * dt, oneSecond: frames[fps - 1].q }
-    }
-    const ref = at(60)
-    for (const fps of [30, 144]) {
-      const r = at(fps)
-      expect(Math.abs(r.caughtAt - ref.caughtAt)).toBeLessThan(0.1)
-      expect(dist(r.oneSecond, ref.oneSecond)).toBeLessThan(1)
-    }
-  })
-
-  it('keeps the original blend when no pointer has steered it (the intro and its break)', () => {
-    const light = createLight()
-    let q: Point = [500, 300]
-    stepLight(light, q, false, 0, cruise)
-    for (let i = 1; i <= 240; i++) {
-      // A path target faster than cruise, as in the break: the exponential, not capped.
-      const target: Point = [500 + 3 * cruise * i / 60, 300]
-      q = smoothQuery(q, target, 1 / 60)
-      expect(stepLight(light, target, false, 1 / 60, cruise)).toEqual(q)
-    }
-  })
-
-  it('keeps gliding after a release until the pointer steers it again', () => {
-    const { frames, dt } = leave(60, 12)
-    expect(frames.every((f, i) => i === 0 || f.step <= cruise * dt + 1e-9)).toBe(true)
-    // Then the pointer comes back: the exponential again, from wherever the light is.
-    const light = createLight()
-    stepLight(light, [100, 100], true, dt, cruise)
-    stepLight(light, [400, 100], false, dt, cruise)
-    const q = light.q!
-    expect(stepLight(light, [900, 100], true, dt, cruise)).toEqual(smoothQuery(q, [900, 100], dt))
-  })
-
-  it('eases into motion when, after a release, the path target sets off fast', () => {
+  it('lands on a still target without overshooting, slowing down as it arrives', () => {
     const light = createLight()
     const dt = 1 / 60
-    const centre: Point = [500, 300]
-    stepLight(light, centre, true, dt, cruise) // the pointer parks the light on the centre...
-    for (let i = 0; i < 60; i++) stepLight(light, centre, false, dt, cruise) // ...and lets go
-    // The target sets off at 3x cruise speed: the light accelerates, it doesn't jump.
-    let prev: Point = light.q!
-    let prevStep = 0
-    for (let i = 1; i <= 60; i++) {
-      const q = stepLight(light, [500 + 3 * cruise * i * dt, 300], false, dt, cruise)
-      const step = dist(q, prev)
-      expect(step - prevStep).toBeLessThanOrEqual((cruise / GLIDE_RAMP) * dt * dt + 1e-9)
-      prev = q
-      prevStep = step
+    const target: Point = [1000, 400]
+    stepLight(light, [200, 400], true, dt, cruise, PITCH)
+    let gap = dist(light.q!, target)
+    const speeds: number[] = []
+    const gaps: number[] = []
+    for (let i = 0; i < 60 * 10; i++) {
+      const prev = light.q!
+      const q = stepLight(light, target, false, dt, cruise, PITCH)
+      expect(q[0]).toBeLessThanOrEqual(target[0] + 1e-9) // never past it
+      expect(dist(q, target)).toBeLessThanOrEqual(gap + 1e-9)
+      gap = dist(q, target)
+      speeds.push(dist(q, prev) / dt)
+      gaps.push(gap)
     }
+    expect(gap).toBeLessThan(0.5)
+    // By the time it is within a pixel it has slowed to a crawl, not still at cruise.
+    const arrival = gaps.findIndex((g) => g < 1)
+    expect(arrival).toBeGreaterThan(0)
+    expect(speeds[arrival]).toBeLessThan(0.1 * cruise)
+    expect(Math.max(...speeds)).toBeGreaterThan(0.99 * cruise) // and at cruise on the way
+  })
+
+  it('is the same at 30, 60 and 144 fps: within 2px at 1, 3, 6 and 9 s', () => {
+    // (On the path a sub-pixel lag remains, proportional to the frame time: the
+    // path's velocity is read from its last frame. So compare positions, not the
+    // moment a threshold is crossed.)
+    const at = (fps: number) => {
+      const { frames } = leave(fps, 12, false)
+      return [1, 3, 6, 9].map((s) => frames[s * fps - 1].q)
+    }
+    const ref = at(60)
+    for (const fps of [30, 144]) at(fps).forEach((q, k) => expect(dist(q, ref[k])).toBeLessThan(2))
+  })
+
+  it('keeps gliding after a release until the pointer steers it again, then follows it as before', () => {
+    const light = createLight()
+    const dt = 1 / 60
+    stepLight(light, [100, 100], true, dt, cruise, PITCH)
+    stepLight(light, [400, 100], false, dt, cruise, PITCH)
+    const q = light.q!
+    expect(stepLight(light, [900, 100], true, dt, cruise, PITCH)).toEqual(smoothQuery(q, [900, 100], dt))
   })
 
   it('stays put on a zero-length frame (a re-layout)', () => {
-    const { frames } = leave(60, 1)
     const light = createLight()
-    stepLight(light, frames[0].q, false, 1 / 60, cruise)
+    stepLight(light, [300, 300], true, 1 / 60, cruise, PITCH)
+    stepLight(light, [600, 300], false, 1 / 60, cruise, PITCH)
     const q = light.q!
-    expect(stepLight(light, [0, 0], false, 0, cruise)).toEqual(q)
+    expect(stepLight(light, [0, 0], false, 0, cruise, PITCH)).toEqual(q)
   })
 })

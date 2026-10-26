@@ -61,7 +61,7 @@ export function init(root: HTMLElement): () => void {
 
   const updateTarget = (now: number, dt: number) => {
     if (!grid) return
-    const query = stepLight(light, goal(now), isFollowing(state, now), dt, cruiseSpeed(width, height, at?.floor))
+    const query = stepLight(light, goal(now), isFollowing(state, now), dt, cruiseSpeed(width, height, at?.floor), grid.pitch)
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
     intro.composeTargets(target, attention, grid, cells, clock)
