@@ -17,10 +17,17 @@ export const WAVE_START = TIMELINE.form + 0.6 * TIMELINE.hold
 export const BREAK_AT = TIMELINE.form + TIMELINE.hold
 /** When the name has fully broken up and the query is on its idle path. */
 export const INTRO_END = TIMELINE.form + TIMELINE.hold + TIMELINE.break
-/** When the tagline, role and buttons fade in. */
-export const COPY_AT = TIMELINE.form + 0.2
 /** A moment in the hold: the name is fully lit and nothing else is. */
 export const STILL_AT = TIMELINE.form + TIMELINE.hold / 2
+
+/**
+ * Where the intro clock starts. If the page has already painted, the visitor
+ * has seen the static name lit, so the canvas takes over in the hold (every
+ * name cell is fully on at `form`) instead of sweeping in from dark.
+ */
+export function introStart(painted: boolean): number {
+  return painted ? TIMELINE.form : 0
+}
 
 /**
  * Grid index of each name cell (in `NAME.cells` order) when the name block's

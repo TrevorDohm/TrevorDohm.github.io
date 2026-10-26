@@ -26,7 +26,16 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
   focusable="false"
   class="name-mark"
 >
+  <!-- The canvas adds a glow sprite over each lit cell ('lighter'); this adds
+       a blurred copy of the cells the same way, so the handoff doesn't jump. -->
+  <filter id="name-glow" x="-0.1" y="-0.2" width="1.2" height="1.4" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" result="blur" />
+    <feFlood flood-opacity="0.95" />
+    <feComposite in2="blur" operator="in" result="glow" />
+    <feComposite in="SourceGraphic" in2="glow" operator="arithmetic" k2="1" k3="1" />
+  </filter>
   <path
+    filter="url(#name-glow)"
     transform={`translate(${num(offset)} ${num(offset)})`}
     d={d}
     stroke-width={num(stroke)}
@@ -47,6 +56,7 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
     height: auto;
     aspect-ratio: 23 / 11;
     margin-bottom: calc(var(--name-w) / 23);
+    overflow: visible; /* the glow spills past the outer cells */
   }
   @media (min-width: 40rem) {
     .name-mark {
@@ -73,6 +83,11 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
     fill: var(--name-fill);
     stroke: var(--name-fill);
     opacity: 0.98;
+  }
+
+  /* The canvas glow colour: halfway between the accents. */
+  feFlood {
+    flood-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-accent-2));
   }
 
   /* Hidden, still in flow, once the canvas has drawn the name. */

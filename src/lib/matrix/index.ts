@@ -49,8 +49,9 @@ export function init(root: HTMLElement): () => void {
   let layoutKey = ''
   let width = 0
   let height = 0
-  // Intro clock in seconds, from `load`. Reduced motion holds it on the lit name.
-  let clock = reduced ? intro.STILL_AT : 0
+  // Intro clock in seconds, from now. Reduced motion holds it on the lit name.
+  const painted = performance.getEntriesByType('paint').length > 0
+  let clock = reduced ? intro.STILL_AT : intro.introStart(painted)
 
   const updateTarget = (now: number) => {
     if (!grid) return
@@ -110,7 +111,6 @@ export function init(root: HTMLElement): () => void {
   const tick = (dt: number, now: number) => {
     if (!grid) return
     clock += dt
-    if (clock >= intro.COPY_AT && root.dataset.intro === 'pending') root.dataset.intro = 'shown'
     updateTarget(now)
     easeToward(weights, target, EASE_RATE, dt)
     pruneRipples(state, now, RIPPLE.lifetime * 1000)
@@ -128,16 +128,12 @@ export function init(root: HTMLElement): () => void {
     return () => resizeObserver.disconnect()
   }
 
-  root.dataset.intro = 'pending' // hides the copy until COPY_AT
+  // The intro starts now, not at `load`: the static name is already hidden.
   const loop = createLoop(root, tick, () => clock >= intro.INTRO_END && isIdle(state, performance.now()))
   const unbind = bindInput(root, canvas, state, () => grid)
-  const start = () => loop.start()
-  if (document.readyState === 'complete') start()
-  else window.addEventListener('load', start, { once: true })
+  loop.start()
 
   return () => {
-    window.removeEventListener('load', start)
-    delete root.dataset.intro
     loop.stop()
     unbind()
     resizeObserver.disconnect()

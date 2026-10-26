@@ -18,7 +18,7 @@ const { name, tagline, role, linkedin } = Astro.props
   data-matrix-root
   class="relative isolate flex h-svh min-h-[32.5rem] touch-pan-y items-center-safe overflow-hidden"
 >
-  <!-- The CSS backdrop shows without JavaScript and dims once the matrix
+  <!-- The CSS backdrop shows without JavaScript and fades out once the matrix
        has drawn its first frame. -->
   <div aria-hidden="true" class="matrix-layer absolute inset-0 -z-10">
     <div class="hero-backdrop absolute inset-0"></div>
@@ -29,9 +29,9 @@ const { name, tagline, role, linkedin } = Astro.props
   <div class="hero-copy section-container relative w-full pt-16 pb-[22svh]">
     <h1 class="sr-only">{name}</h1>
     <NameMark />
-    <p data-reveal="0" class="tagline body-lg max-w-2xl">{tagline}</p>
-    <p data-reveal="1" class="mt-3 font-mono text-sm text-muted">{role}</p>
-    <div data-reveal="2" class="mt-10 flex flex-wrap gap-4">
+    <p class="tagline body-lg max-w-2xl">{tagline}</p>
+    <p class="mt-3 font-mono text-sm text-muted">{role}</p>
+    <div class="mt-10 flex flex-wrap gap-4">
       <Button href="#contact">Get in touch</Button>
       <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
     </div>
@@ -49,32 +49,15 @@ const { name, tagline, role, linkedin } = Astro.props
     transition: opacity 0.8s ease;
   }
 
+  /* Once the matrix has drawn, its cells replace the backdrop; the backdrop's
+     48px lines would otherwise show through the dissolving bottom rows. */
   [data-matrix-ready] .hero-backdrop {
-    opacity: 0.35;
+    opacity: 0;
   }
 
   /* Pull the first line's leading up so the text starts one row below DOHM. */
   .tagline {
     margin-top: -0.3em;
-  }
-
-  /* With the script running, the copy is hidden at once, then fades in as the
-     name finishes forming. data-intro is never set under reduced motion or
-     without JS, so the copy is simply visible there. */
-  [data-intro='pending'] [data-reveal] {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  [data-intro='shown'] [data-reveal] {
-    transition:
-      opacity 0.8s ease,
-      transform 0.8s ease;
-  }
-  [data-intro='shown'] [data-reveal='1'] {
-    transition-delay: 0.1s;
-  }
-  [data-intro='shown'] [data-reveal='2'] {
-    transition-delay: 0.2s;
   }
 
   /* A halo in the page color keeps the text readable over bright cells. */

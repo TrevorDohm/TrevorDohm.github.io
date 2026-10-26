@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { layoutGrid } from './geometry'
 import {
   composeTargets,
-  COPY_AT,
   fadeMap,
   INTRO_END,
+  introStart,
   introQuery,
   moveName,
   NAME,
@@ -19,10 +19,25 @@ describe('timeline constants', () => {
   it('derive from TIMELINE', () => {
     expect(WAVE_START).toBeCloseTo(0.9 + 0.6 * 1.6)
     expect(INTRO_END).toBeCloseTo(0.9 + 1.6 + 1.4)
-    expect(COPY_AT).toBeCloseTo(1.1)
     expect(BREAK_AT).toBeCloseTo(2.5)
     expect(STILL_AT).toBeGreaterThan(TIMELINE.form)
     expect(STILL_AT).toBeLessThan(TIMELINE.form + TIMELINE.hold)
+  })
+})
+
+describe('introStart', () => {
+  it('sweeps from dark before the first paint', () => {
+    expect(introStart(false)).toBe(0)
+  })
+
+  it('starts lit, in the hold, once the static name has been painted', () => {
+    const grid = layoutGrid(400, 300, 10, 20, 30)
+    const cells = nameCells(grid, 20, 30)
+    const target = new Float32Array(grid.cols * grid.rows)
+    const t = introStart(true)
+    expect(t).toBeLessThan(TIMELINE.form + TIMELINE.hold)
+    composeTargets(target, new Float32Array(target.length), grid, cells, t)
+    for (const i of cells) expect(target[i]).toBeCloseTo(0.95)
   })
 })
 
