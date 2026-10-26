@@ -226,10 +226,15 @@ in place.
     in one frame.
   - On the path it settles 2 to 4 px behind (an eighth of a cell, from the
     path's velocity being read over the last frame at the 30 fps idle rate).
-  In simulation at 60 fps over 240 releases (6 points, 40 path phases),
-  rejoining to within 2 px takes 6.1 s at the median and 13.3 s at worst,
-  from 921 px away with the path heading away. The drag at 800 px/s is
-  unchanged: q trails the pointer by 186.7 px (the mockup, 186.6 px).
+  In simulation, releasing from rest at 6 points (the corners and the middle
+  of the top and bottom edges) at every 0.5 s of the path's first 120 s,
+  rejoining to within 2 px takes 6.1 s at the median and 13.3 s at worst at
+  1440×900 and 60 fps (from 921 px away with the path heading away; a 0.1 s
+  step finds the same worst). At 30 fps the worst is 15.3 s, and on a 390×844
+  phone (cruise 57 px/s) 15.0 s. The tests bound each at 1.5 times its worst.
+  A release is also kept when it happens on a zero-length frame (a
+  re-layout). The drag at 800 px/s is unchanged: q trails the pointer by
+  186.7 px (the mockup, 186.6 px).
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
