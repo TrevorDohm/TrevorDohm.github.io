@@ -130,7 +130,9 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
 - **Buttons pull the glow.** Hovering or focusing a hero button moves the query
   point onto it. **(review)**
 - **Idle drift.** After 2 seconds without input, a query point wanders a smooth
-  looping path so the hero never sits still. Idle drift is capped at about 30fps to
+  looping path so the hero never sits still. When the pointer leaves or goes
+  idle, the light glides back to that path at about the path's own pace,
+  easing in over 0.3 s, instead of snapping (2026-10-26). Idle drift is capped at about 30fps to
   save battery. **(review)** At 60 Hz that measures about 22 draws a second,
   because a gap of just under 33 ms waits one more frame.
 - **Touch.** Tapping sends a ripple and moves the glow to the tap point.
