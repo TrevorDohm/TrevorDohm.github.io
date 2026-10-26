@@ -6,7 +6,7 @@
 |---|---|
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
 | Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) are merged to `master` and live |
-| Ribbon and gallery | **Ribbon done** on branch `ribbon-gallery`, verified in the browser 2026-10-25. Gallery next |
+| Ribbon and gallery | **Done** 2026-10-25 on branch `ribbon-gallery`. Ribbon and gallery both verified in the browser. Not yet merged to `master` |
 
 ---
 
@@ -239,9 +239,12 @@ reading, and none is needed to reach the goal.
 
 ### Technical notes
 
-- **JS budget.** The site ships 0 KB of JS today. After the overhaul the total
-  target is under 15 KB gzipped, all first-party. Without `<ClientRouter />` this
-  has plenty of room.
+- **JS budget.** The total target is under 15 KB gzipped, all first-party.
+  Without `<ClientRouter />` this has plenty of room. Measured 2026-10-25 after
+  the ribbon and gallery: `gzip -c dist/_astro/*.js | wc -c` gives 7,399 bytes
+  for the five bundled scripts (hero matrix, marquee, gallery, a shared palette
+  and loop chunk, reduced-motion helper). `dist/index.html` has one inline
+  script, the nav menu, at 253 bytes gzipped. Total about 7.7 KB.
 - **New files.** See Code structure for the full layout. Beyond it:
   `public/og.png` and a Vitest config.
 - **Why not `<ClientRouter />`.** **(review)** It would add ~8.6 KB gzipped and two
