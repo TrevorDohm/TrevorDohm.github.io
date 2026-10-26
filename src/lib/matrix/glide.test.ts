@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { idleQuery, idleSpeed } from './idle'
-import { createLight, cruiseSpeed, GLIDE_RAMP, smoothQuery, stepLight, type Point } from './query'
+import { idlePeakSpeed, idleQuery } from './idle'
+import { createLight, CRUISE_FACTOR, cruiseSpeed, GLIDE_RAMP, smoothQuery, stepLight, type Point } from './query'
 
 const W = 1440
 const H = 900
@@ -35,20 +35,22 @@ function leave(fps: number, seconds: number, swipe = true, corner: Point = [1420
   return { frames: out, dt }
 }
 
-describe('idleSpeed', () => {
-  it('bounds the idle path’s own speed, and not loosely', () => {
-    for (const [w, h] of [[1440, 900], [390, 844], [2560, 1440]]) {
+describe('idlePeakSpeed', () => {
+  it('is the idle path’s actual top speed, within 1%', () => {
+    for (const [w, h, floor] of [[1440, 900, Infinity], [390, 844, Infinity], [2560, 1440, Infinity], [390, 844, 200]]) {
+      // The path's own positions, differenced at 240 Hz over 20 minutes.
       const dt = 1 / 240
       let max = 0
-      for (let i = 0; i < 240 * 600; i++) max = Math.max(max, dist(idleQuery((i + 1) * dt, w, h), idleQuery(i * dt, w, h)) / dt)
-      expect(max).toBeLessThanOrEqual(idleSpeed(w, h))
-      expect(max).toBeGreaterThan(0.85 * idleSpeed(w, h))
+      for (let i = 0; i < 240 * 1200; i++) max = Math.max(max, dist(idleQuery((i + 1) * dt, w, h, floor), idleQuery(i * dt, w, h, floor)) / dt)
+      expect(Math.abs(idlePeakSpeed(w, h, floor) / max - 1)).toBeLessThan(0.01)
     }
   })
 
-  it('sets the cruise speed at 1.25 times that bound', () => {
-    expect(cruise).toBeCloseTo(1.25 * idleSpeed(W, H), 9)
-    expect(cruiseSpeed(390, 844, 200)).toBeCloseTo(1.25 * idleSpeed(390, 844, 200), 9)
+  it('sets the cruise speed a little above it, so the light always catches the path', () => {
+    expect(cruise).toBeCloseTo(CRUISE_FACTOR * idlePeakSpeed(W, H), 9)
+    expect(CRUISE_FACTOR).toBeGreaterThan(1)
+    expect(CRUISE_FACTOR).toBeLessThanOrEqual(1.5)
+    expect(cruiseSpeed(390, 844, 200)).toBeCloseTo(CRUISE_FACTOR * idlePeakSpeed(390, 844, 200), 9)
   })
 })
 
@@ -104,11 +106,35 @@ describe('stepLight', () => {
     }
   })
 
-  it('eases into motion when the path target starts moving (the intro’s break)', () => {
+  it('keeps the original blend when no pointer has steered it (the intro and its break)', () => {
+    const light = createLight()
+    let q: Point = [500, 300]
+    stepLight(light, q, false, 0, cruise)
+    for (let i = 1; i <= 240; i++) {
+      // A path target faster than cruise, as in the break: the exponential, not capped.
+      const target: Point = [500 + 3 * cruise * i / 60, 300]
+      q = smoothQuery(q, target, 1 / 60)
+      expect(stepLight(light, target, false, 1 / 60, cruise)).toEqual(q)
+    }
+  })
+
+  it('keeps gliding after a release until the pointer steers it again', () => {
+    const { frames, dt } = leave(60, 12)
+    expect(frames.every((f, i) => i === 0 || f.step <= cruise * dt + 1e-9)).toBe(true)
+    // Then the pointer comes back: the exponential again, from wherever the light is.
+    const light = createLight()
+    stepLight(light, [100, 100], true, dt, cruise)
+    stepLight(light, [400, 100], false, dt, cruise)
+    const q = light.q!
+    expect(stepLight(light, [900, 100], true, dt, cruise)).toEqual(smoothQuery(q, [900, 100], dt))
+  })
+
+  it('eases into motion when, after a release, the path target sets off fast', () => {
     const light = createLight()
     const dt = 1 / 60
     const centre: Point = [500, 300]
-    for (let i = 0; i < 60; i++) stepLight(light, centre, false, dt, cruise)
+    stepLight(light, centre, true, dt, cruise) // the pointer parks the light on the centre...
+    for (let i = 0; i < 60; i++) stepLight(light, centre, false, dt, cruise) // ...and lets go
     // The target sets off at 3x cruise speed: the light accelerates, it doesn't jump.
     let prev: Point = light.q!
     let prevStep = 0

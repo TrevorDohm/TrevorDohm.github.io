@@ -3,7 +3,7 @@
  * pointer, each frame it moves part of the way toward it, as the mockup does;
  * heading for the idle path, it glides there at the path's own pace.
  */
-import { idleQuery, idleSpeed } from './idle'
+import { idlePeakSpeed, idleQuery } from './idle'
 import { BREAK_AT, introQuery } from './intro'
 import { isIdle, type MatrixState } from './state'
 
@@ -15,8 +15,11 @@ export const QUERY_RATE = 4
 export const GLIDE_CELLS = 3
 /** Seconds the light takes to reach its cruise speed from rest when it heads back to the path. */
 export const GLIDE_RAMP = 0.3
-/** The cruise speed as a multiple of the idle path's top speed, so the light always catches up. */
-const CRUISE_FACTOR = 1.25
+/**
+ * The cruise speed as a multiple of the idle path's actual top speed: the
+ * light glides back at about the drift's own pace, yet always gains on it.
+ */
+export const CRUISE_FACTOR = 1.1
 
 /**
  * One step of the query toward `target`, `dt` seconds long. It covers
@@ -40,29 +43,36 @@ export function queryTarget(state: MatrixState, now: number, path: Point): Point
   return pointer && isFollowing(state, now) ? [pointer.x, pointer.y] : path
 }
 
-/** How fast the light may glide back to the idle path (px/s): CRUISE_FACTOR x the path's top speed. */
+let cruiseKey = ''
+let cruiseMemo = 0
+/** How fast the light may glide back to the idle path (px/s): CRUISE_FACTOR x its top speed, kept per canvas size. */
 export function cruiseSpeed(width: number, height: number, floor = Infinity): number {
-  return CRUISE_FACTOR * idleSpeed(width, height, floor)
+  const key = `${width},${height},${floor}`
+  if (key !== cruiseKey) [cruiseKey, cruiseMemo] = [key, CRUISE_FACTOR * idlePeakSpeed(width, height, floor)]
+  return cruiseMemo
 }
 
-/** The light's centre and how fast it last moved (px/s). */
+/** The light's centre, how fast it last moved (px/s), and whether it follows the pointer or glides after a release. */
 export interface Light {
   q: [number, number] | null
   speed: number
   following: boolean
+  gliding: boolean
 }
 
 export function createLight(): Light {
-  return { q: null, speed: 0, following: false }
+  return { q: null, speed: 0, following: false, gliding: false }
 }
 
 /**
  * One frame of the light toward `target`, `dt` seconds long. Following the
- * pointer it is `smoothQuery`, the mockup's drag. Heading for the idle path
- * (after the pointer leaves or goes idle, and in the intro's break) it moves
- * straight at the target no faster than `cruise`, gaining at most
- * cruise / GLIDE_RAMP of speed a second, from rest when it lets go of the
- * pointer; once a step reaches the target it rides the path exactly.
+ * pointer it is `smoothQuery`, the mockup's drag, and so is the intro and its
+ * break, before any pointer has steered it (the approved look). Once it lets
+ * go of the pointer (the pointer leaves or goes idle, or focus leaves the
+ * hero) it glides until the pointer steers it again: straight at the path
+ * point no faster than `cruise`, setting off from rest and gaining at most
+ * cruise / GLIDE_RAMP of speed a second; once a step reaches the path it
+ * rides it exactly.
  */
 export function stepLight(light: Light, target: Point, following: boolean, dt: number, cruise: number): [number, number] {
   const q = light.q
@@ -70,10 +80,11 @@ export function stepLight(light: Light, target: Point, following: boolean, dt: n
     light.following = following
     return (light.q = [target[0], target[1]])
   }
+  if (light.following && !following) [light.gliding, light.speed] = [true, 0] // let go: set off from rest
+  if (following) light.gliding = false
   let next: [number, number]
-  if (following) next = smoothQuery(q, target, dt)
+  if (!light.gliding) next = smoothQuery(q, target, dt)
   else {
-    if (light.following) light.speed = 0 // let go of the pointer: set off from rest
     const gap = Math.hypot(target[0] - q[0], target[1] - q[1])
     const speed = Math.min(cruise, light.speed + (cruise / GLIDE_RAMP) * dt)
     // The mean of the frame's start and end speeds: exact for steady acceleration, at any frame rate.
@@ -86,7 +97,7 @@ export function stepLight(light: Light, target: Point, following: boolean, dt: n
       light.speed = speed
     }
   }
-  if (following && dt > 0) light.speed = Math.hypot(next[0] - q[0], next[1] - q[1]) / dt
+  if (!light.gliding && dt > 0) light.speed = Math.hypot(next[0] - q[0], next[1] - q[1]) / dt
   light.following = following
   return (light.q = next)
 }
