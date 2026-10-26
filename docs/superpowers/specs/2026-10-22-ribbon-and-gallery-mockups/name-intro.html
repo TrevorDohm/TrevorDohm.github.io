@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Name in the matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --background:#07070B; --surface:#0F0F16; --line:#1E1E2A; --foreground:#EDEDF3; --muted:#9494A8; --accent:#7C9CFF; --accent-2:#B18CFF; --bake:#E28D23; --hike:#2AB580; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--background); color: var(--foreground); font-family: Geist, system-ui, sans-serif; }
+  .note { position: fixed; top: 10px; right: 10px; z-index: 20; max-width: 300px; font: 12px/1.45 'Geist Mono', monospace; color: var(--muted); background: #0f0f16cc; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; backdrop-filter: blur(6px); }
+  .note button { margin-top: 8px; font: 500 12px 'Geist Mono', monospace; color: var(--foreground); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
+  .hero { position: relative; height: 100svh; min-height: 520px; overflow: hidden; touch-action: pan-y; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .copy { position: absolute; left: 0; right: 0; max-width: 1024px; margin: 0 auto; padding: 0 32px; pointer-events: none; text-shadow: 0 0 18px var(--background), 0 0 36px var(--background); }
+  .copy > * { pointer-events: auto; }
+  .eyebrow { font: 500 12px 'Geist Mono', monospace; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .tag { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 560px; margin: -0.3em 0 0; opacity: 0; transform: translateY(10px); transition: opacity .8s, transform .8s; }
+  .role { font: 13px 'Geist Mono', monospace; color: var(--muted); margin: 10px 0 0; opacity: 0; transition: opacity .8s .1s; }
+  .btns { display: flex; gap: 12px; margin-top: 28px; opacity: 0; transition: opacity .8s .2s; }
+  .btns a { font: 500 14px Geist, sans-serif; color: var(--foreground); text-decoration: none; padding: 11px 18px; border-radius: 999px; border: 1px solid var(--line); background: #0f0f16; }
+  .btns a.p { background: var(--foreground); color: var(--background); border-color: transparent; }
+  .shown .tag { opacity: 1; transform: none; } .shown .role, .shown .btns { opacity: 1; }
+
+  /* smaller ribbon peeking in */
+  .ribbon { position: relative; padding: 3rem 0; overflow-x: clip; }
+  .row { display: flex; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #0003 32px, #000 96px, #000 calc(100% - 96px), #0003 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, transparent, #0003 32px, #000 96px, #000 calc(100% - 96px), #0003 calc(100% - 32px), transparent); }
+  .row + .row { margin-top: 4px; }
+  .track { display: flex; flex-shrink: 0; align-items: center; animation: mq var(--d, 200s) linear infinite; }
+  .row.rev .track { animation-direction: reverse; }
+  @keyframes mq { to { transform: translateX(-100%); } }
+  .it { display: inline-flex; align-items: center; gap: 12px; white-space: nowrap; padding: 0 .4em; font-size: clamp(32px, 5vw, 64px); font-weight: 600; letter-spacing: -.035em; line-height: 1.1; }
+  .it.o .w { color: transparent; -webkit-text-stroke: 1px var(--muted); }
+  .mk { display: inline-flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cell { width: 20px; height: 20px; border-radius: 5px; background: var(--c); box-shadow: 0 0 10px color-mix(in srgb, var(--c) 40%, transparent); }
+  .lab { font: 500 10px 'Geist Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--c); }
+  .ml { --c: var(--accent); } .mba { --c: var(--accent-2); } .bake { --c: var(--bake); } .hike { --c: var(--hike); }
+  .after { max-width: 1024px; margin: 0 auto; padding: 40px 32px 120px; color: var(--muted); }
+  .after h2 { color: var(--foreground); font-size: 28px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<div class="note">
+  Mockup: your name forms in the grid, holds, then breaks into the roaming attention glow. A faint ghost of it stays and lights up as the glow or your cursor passes. Resize the window to see the cells re-size.
+  <br><button id="replay" type="button">Replay intro</button>
+</div>
+
+<section class="hero" id="hero">
+  <canvas id="c" aria-hidden="true"></canvas>
+  <div class="copy" id="copy">
+    <h1 class="sr">Trevor Dohm</h1>
+    <div id="nameSpace"></div>
+    <p class="tag">AI/ML engineer. I work on transformers, agentic systems, and the infrastructure that runs them.</p>
+    <p class="role">Software Engineer II at RTX · MBA Candidate at Wharton</p>
+    <div class="btns"><a class="p" href="#">Get in touch</a><a href="#">View LinkedIn</a></div>
+  </div>
+</section>
+
+<section class="ribbon">
+  <div class="row" data-speed="22" data-items="ml:Cottention|hike:Half Dome|bake:Raspberry Kouign Amann|mba:Options Pricing|ml:CUDA Kernels|hike:The Wave|bake:Piña Colada Danish|mba:Wharton|ml:Agents|bake:Country Sourdough"></div>
+  <div class="row rev" data-speed="30" data-items="bake:Blueberry Yuzu Cookies|ml:Linear Transformers|hike:Angel’s Landing|mba:Quant Finance|bake:Orange Cardamom Morning Bun|ml:Triton|hike:Paintbrush Divide|mba:Black–Scholes|ml:Air-Gapped LLMs|bake:Lamination at 3 a.m."></div>
+</section>
+<section class="after"><div class="eyebrow">Work</div><h2>Selected projects</h2></section>
+
+<script>
+// 3x5 pixel font (M is 5 wide).
+const G = {
+  T:['###','.#.','.#.','.#.','.#.'], R:['##.','#.#','##.','#.#','#.#'], E:['###','#..','##.','#..','###'],
+  V:['#.#','#.#','#.#','#.#','.#.'], O:['###','#.#','#.#','#.#','###'], D:['##.','#.#','#.#','#.#','##.'],
+  H:['#.#','#.#','###','#.#','#.#'], M:['#...#','##.##','#.#.#','#...#','#...#'],
+}
+const LINES = ['TREVOR', 'DOHM']
+const wordW = (w) => [...w].reduce((s, ch) => s + G[ch][0].length, 0) + w.length - 1
+const NAME_COLS = Math.max(...LINES.map(wordW))   // 23
+const LINE_GAP = 1                                   // empty rows between TREVOR and DOHM
+const NAME_ROWS = 5 * 2 + LINE_GAP
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hero = document.getElementById('hero')
+const copy = document.getElementById('copy'), nameSpace = document.getElementById('nameSpace')
+const css = getComputedStyle(document.documentElement)
+const hex = (n) => { const h = css.getPropertyValue(n).trim().slice(1); const v = parseInt(h, 16); return [v >> 16 & 255, v >> 8 & 255, v & 255] }
+const LINE = hex('--line'), A = hex('--accent'), B = hex('--accent-2')
+const mix = (a, b, t) => a.map((x, k) => Math.round(x + (b[k] - x) * t))
+const ramp = (w) => w < .6 ? mix(LINE, A, w / .6) : mix(A, B, (w - .6) / .4)
+const hash = (i, j) => { let h = Math.imul(i * 374761393 + j * 668265263, 1274126177); h ^= h >>> 13; return ((h >>> 0) % 10000) / 10000 }
+
+let W, H, pitch, cols, rows, ox, oy, nameCol0, nameRow0, isName, cur, glow, dpr
+function layout() {
+  const r = hero.getBoundingClientRect(); W = r.width; H = r.height
+  dpr = Math.min(2, devicePixelRatio || 1)
+  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  // Responsive density: the name spans ~85% of a phone, ~52% of a wide screen.
+  const share = W < 640 ? 0.86 : W < 1100 ? 0.62 : 0.52
+  // Also cap by height so name + tagline + buttons clear the dissolving bottom rows.
+  const byHeight = (H * 0.78 - 210) / NAME_ROWS
+  pitch = Math.max(9, Math.floor(Math.min(W * share / NAME_COLS, byHeight)))
+  cols = Math.ceil(W / pitch) + 1; rows = Math.ceil(H / pitch) + 1
+  ox = (W - (cols - 1) * pitch) / 2 - pitch / 2; oy = 0
+  // Align the name with the text column's left edge, above the tagline.
+  const cr = copy.getBoundingClientRect(), pad = parseFloat(getComputedStyle(copy).paddingLeft)
+  nameCol0 = Math.max(1, Math.round((cr.left + pad - ox) / pitch))
+  const nameH = NAME_ROWS * pitch
+  const blockH = nameH + 210
+  const top = Math.max(pitch * 2 + 40, (H * 0.8 - blockH) / 2 + 20)
+  nameRow0 = Math.round((top - oy) / pitch)
+  // Text starts exactly one empty row below DOHM, matching the gap between the lines.
+  copy.style.top = (oy + nameRow0 * pitch) + 'px'
+  nameSpace.style.height = (nameH + LINE_GAP * pitch) + 'px'
+  isName = new Uint8Array(cols * rows)
+  LINES.forEach((word, li) => {
+    let c = nameCol0
+    for (const ch of word) {
+      G[ch].forEach((line, r) => [...line].forEach((px, k) => {
+        if (px === '#') { const rr = nameRow0 + li * (5 + LINE_GAP) + r, cc = c + k; if (rr < rows && cc < cols) isName[rr * cols + cc] = 1 }
+      }))
+      c += G[ch][0].length + 1
+    }
+  })
+  cur = new Float32Array(cols * rows); glow = sprite()
+}
+function sprite() {
+  const s = document.createElement('canvas'); s.width = s.height = 64; const g = s.getContext('2d')
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(160,150,255,.9)'); gr.addColorStop(1, 'rgba(160,150,255,0)')
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return s
+}
+
+let t0 = performance.now(), q = { x: 0, y: 0 }, pointer = null, lastInput = -1e9
+hero.addEventListener('pointermove', (e) => { const r = hero.getBoundingClientRect(); pointer = { x: e.clientX - r.left, y: e.clientY - r.top }; lastInput = performance.now() })
+hero.addEventListener('pointerleave', () => { pointer = null })
+document.getElementById('replay').onclick = () => { t0 = performance.now(); copy.classList.remove('shown'); cur.fill(0) }
+addEventListener('resize', layout)
+
+const FORM = 0.9, HOLD = 1.6, BREAK = 1.4, GHOST = 0.3
+function frame(now) {
+  const t = (now - t0) / 1000
+  ctx.clearRect(0, 0, W, H)
+  const nameCx = ox + (nameCol0 + NAME_COLS / 2) * pitch, nameCy = oy + (nameRow0 + NAME_ROWS / 2) * pitch
+  // Roaming query: starts on the name, wanders when idle, follows the cursor otherwise.
+  const idleT = Math.max(0, t - FORM - HOLD)
+  const drift = { x: W * (0.5 + 0.34 * Math.sin(idleT * 0.31) * Math.cos(idleT * 0.13)), y: H * (0.45 + 0.3 * Math.sin(idleT * 0.23 + 1)) }
+  const k = Math.min(1, idleT / BREAK)
+  const target = pointer && now - lastInput < 2500 ? pointer : { x: nameCx + (drift.x - nameCx) * k, y: nameCy + (drift.y - nameCy) * k }
+  const ease = 1 - Math.exp(-4 * 1 / 60); q.x += (target.x - q.x) * ease; q.y += (target.y - q.y) * ease
+  if (t > FORM + 0.2) copy.classList.add('shown')
+  const temp = 2.2 * pitch, cell = pitch * 0.78, rad = Math.min(6, cell * 0.22)
+  for (let r = 0; r < rows; r++) {
+    // Bottom rows dissolve in steps into the ribbon below.
+    const fromBottom = (rows - 1 - r) / rows
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c, x = ox + c * pitch, y = oy + r * pitch
+      const d = Math.hypot(x + pitch / 2 - q.x, y + pitch / 2 - q.y)
+      const att = Math.exp(-d / temp)
+      let w
+      if (isName[i]) {
+        const wave = (c - nameCol0) / NAME_COLS * 0.6           // diagonal-ish form-in
+        const on = Math.min(1, Math.max(0, (t - wave * FORM) / 0.35))
+        const release = FORM + HOLD + hash(r, c) * BREAK          // each cell lets go at its own moment
+        const held = t < release ? 1 : Math.max(0, 1 - (t - release) / 0.5)
+        const ghost = GHOST + 0.75 * att                          // ghost lights up under the glow
+        w = Math.max(on * (held * 0.95 + (1 - held) * ghost), att * 0.9)
+      } else {
+        const arrive = Math.min(1, Math.max(0, (t - FORM - HOLD * 0.6) / 1.2))
+        w = att * 0.9 * arrive + 0.02
+      }
+      const fade = fromBottom < 0.22 ? Math.max(0, Math.min(1, (fromBottom / 0.22) * 1.6 - hash(c, r) * 0.6)) : 1
+      cur[i] += (w - cur[i]) * 0.18
+      const v = cur[i] * fade
+      if (v < 0.01 && fade < 1) continue
+      const [R, Gc, Bc] = ramp(Math.min(1, v))
+      ctx.globalAlpha = (0.5 + 0.5 * Math.min(1, v)) * fade
+      ctx.fillStyle = `rgb(${R},${Gc},${Bc})`
+      ctx.beginPath(); ctx.roundRect(x + (pitch - cell) / 2, y + (pitch - cell) / 2, cell, cell, rad); ctx.fill()
+      if (v > 0.45) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (v - 0.45) * 0.55 * fade; const s = pitch * 2.4; ctx.drawImage(glow, x + pitch / 2 - s / 2, y + pitch / 2 - s / 2, s, s); ctx.globalCompositeOperation = 'source-over' }
+    }
+  }
+  ctx.globalAlpha = 1
+  requestAnimationFrame(frame)
+}
+
+// ribbon rows
+document.querySelectorAll('.row').forEach((row) => {
+  const html = row.dataset.items.split('|').map((p, i) => { const [c, w] = p.split(':'); return `<span class="it ${c}${i % 2 ? ' o' : ''}"><span class="mk"><span class="cell"></span><span class="lab">${c}</span></span><span class="w">${w}</span></span>` }).join('')
+  row.innerHTML = `<div class="track">${html}</div><div class="track" aria-hidden="true">${html}</div>`
+  const t = row.querySelector('.track'); const set = () => row.querySelectorAll('.track').forEach((x) => x.style.setProperty('--d', t.scrollWidth / row.dataset.speed + 's'))
+  set(); document.fonts.ready.then(set)
+})
+
+document.fonts.ready.then(() => { layout(); t0 = performance.now(); requestAnimationFrame(frame) })
+</script>
+</body>
+</html>
