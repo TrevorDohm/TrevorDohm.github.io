@@ -5,7 +5,7 @@
 import { introAlpha } from './effects'
 import type { Grid } from './geometry'
 import { clamp01 } from './math'
-import { bottomFade, dropoutMap } from './dissolve'
+import { bottomFade, dropoutMap, type FadeRows } from './dissolve'
 import { LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
 
 export const NAME = nameMask(NAME_LINES, LINE_GAP)
@@ -54,15 +54,15 @@ export function nameCells(grid: Grid, anchorX: number, anchorY: number): Int32Ar
 }
 
 /**
- * Bottom fade visibility for every cell of the grid: the dimming, or 0 where a
- * cell is removed. Cells in `exempt` (grid indices; -1 is ignored) stay whole,
- * so the name never fades.
+ * Bottom fade visibility for every cell of the grid, from the rows in `at`:
+ * the dimming, or 0 where a cell is removed. Cells in `exempt` (grid indices;
+ * -1 is ignored) stay whole, so the name never fades.
  */
-export function fadeMap(grid: Grid, exempt: Int32Array): Float32Array {
+export function fadeMap(grid: Grid, exempt: Int32Array, at: FadeRows): Float32Array {
   const fade = new Float32Array(grid.cols * grid.rows)
-  const drop = dropoutMap(grid.cols, grid.rows)
+  const drop = dropoutMap(grid.cols, grid.rows, at.dropStart)
   for (let i = 0; i < fade.length; i++) {
-    fade[i] = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols)
+    fade[i] = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols, at.dimStart)
   }
   for (const i of exempt) if (i >= 0) fade[i] = 1
   return fade

@@ -9,7 +9,7 @@ import {
   NAME,
   nameCells,
 } from './intro'
-import { bottomFade, dropoutMap } from './dissolve'
+import { bottomFade, dropoutMap, fadeRows } from './dissolve'
 import { TIMELINE } from './name'
 
 describe('nameCells', () => {
@@ -39,19 +39,20 @@ describe('fadeMap', () => {
   it('keeps exempt cells (the name) whole, even inside the band', () => {
     const grid = layoutGrid(50, 100, 10, 0, 0)
     const last = grid.cols * grid.rows - 1
-    const fade = fadeMap(grid, Int32Array.from([-1, last, 3]))
+    const fade = fadeMap(grid, Int32Array.from([-1, last, 3]), fadeRows(grid, null))
     expect(fade[last]).toBe(1)
     expect(fade[last - 1]).toBeLessThan(1)
   })
 
   it('is bottomFade per cell, or 0 where dropoutMap removes the cell', () => {
     const grid = layoutGrid(300, 400, 10, 0, 0)
-    const fade = fadeMap(grid, new Int32Array(0))
-    const drop = dropoutMap(grid.cols, grid.rows)
+    const rows = fadeRows(grid, 280)
+    const fade = fadeMap(grid, new Int32Array(0), rows)
+    const drop = dropoutMap(grid.cols, grid.rows, rows.dropStart)
     expect(fade[0]).toBe(1)
     expect(drop.some((d) => d === 1)).toBe(true)
     fade.forEach((f, i) => {
-      const expected = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols)
+      const expected = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols, rows.dimStart)
       expect(f).toBeCloseTo(expected)
     })
   })

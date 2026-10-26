@@ -4,6 +4,7 @@ import { applyBoost, DROP } from './effects'
 import { layoutGrid, type Grid } from './geometry'
 import { bindInput } from './input'
 import * as intro from './intro'
+import { fadeRows, type FadeRows } from './dissolve'
 import { createLoop } from './loop'
 import { copyMask } from './mask'
 import { measure } from './measure'
@@ -49,15 +50,14 @@ export function init(root: HTMLElement): () => void {
   let layoutKey = ''
   let width = 0
   let height = 0
-  // The light's centre. It glides toward the pointer or the idle path, never jumps.
-  let query: [number, number] | null = null
-  // Intro clock in seconds, from now: dark, or lit in the hold if the CSS safety
-  // net already showed the static name (a late module). Reduced motion: still.
+  let at: FadeRows | null = null // where the bottom fade starts; the idle path stays above it
+  let query: [number, number] | null = null // the light's centre; it glides, never jumps
+  // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
   let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
   let copyShown = false
 
-  const goal = (now: number) => goalAt(state, now, clock, centre, width, height)
+  const goal = (now: number) => goalAt(state, now, clock, centre, width, height, at?.floor)
 
   const updateTarget = (now: number, dt: number) => {
     if (!grid) return
@@ -101,7 +101,8 @@ export function init(root: HTMLElement): () => void {
       target = new Float32Array(count)
       boost = new Float32Array(count)
     }
-    fade = intro.fadeMap(grid, cells)
+    at = fadeRows(grid, m.buttonBottom)
+    fade = intro.fadeMap(grid, cells, at)
     copy = copyMask(grid, m.copy, cells)
     renderer.resize(grid, width, height, window.devicePixelRatio || 1)
     updateTarget(performance.now(), 0)
@@ -131,8 +132,7 @@ export function init(root: HTMLElement): () => void {
     return () => resizeObserver.disconnect()
   }
 
-  // The intro starts now, not at `load`: the static name is already hidden.
-  // Idle frames drop to ~30fps once the light has settled near its path.
+  // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
   const settled = () => {
     const now = performance.now()
     if (!grid || !query || clock < intro.INTRO_END || !isIdle(state, now)) return false

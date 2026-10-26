@@ -46,9 +46,9 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
 <style>
   /* Width: 86% of a phone, 62% of a tablet, 52% of a wide screen (the
      mockup's shares), never wider than the text column, and capped by height
-     so the name ends at or above 0.65 of the hero, where the bottom fade
-     (the lowest 45%, DISSOLVE_BAND) is still nearly full; name cells are
-     exempt from it anyway. Hero.astro centres the block (name, one-row gap,
+     so the name ends at or above 0.65 of the hero. The bottom fade starts
+     under the buttons (dissolve.ts), so it never reaches the name, and name
+     cells are exempt from it anyway. Hero.astro centres the block (name, one-row gap,
      copy) at 45% of the hero below the nav, so with hero height H, nav
      clearance N, copy below the gap C and pitch p the name's bottom sits at
      N + 0.45(H - N) - C/2 + 5p; keeping that at or above 0.65H gives

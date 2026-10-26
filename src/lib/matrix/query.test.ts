@@ -69,6 +69,12 @@ describe('goalAt and isSettled', () => {
     expect(goalAt(s, 200, late, centre, 1366, 657)).toEqual([10, 20])
   })
 
+  it('keeps the idle path above the fade floor it is given', () => {
+    const s = createState()
+    const late = INTRO_END + 4
+    expect(goalAt(s, 0, late, centre, 390, 844, 200)).toEqual(introQuery(late, centre, idleQuery(late - 2.5, 390, 844, 200)))
+  })
+
   it('counts the light as settled within GLIDE_CELLS of its goal', () => {
     expect(isSettled([0, 0], [GLIDE_CELLS * pitch, 0], pitch)).toBe(true)
     expect(isSettled([0, 0], [GLIDE_CELLS * pitch + 1, 0], pitch)).toBe(false)

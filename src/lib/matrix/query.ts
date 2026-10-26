@@ -41,8 +41,9 @@ export function goalAt(
   centre: Point,
   width: number,
   height: number,
+  floor = Infinity,
 ): Point {
-  const idle = idleQuery(Math.max(0, clock - BREAK_AT), width, height)
+  const idle = idleQuery(Math.max(0, clock - BREAK_AT), width, height, floor)
   return queryTarget(state, now, introQuery(clock, centre, idle))
 }
 

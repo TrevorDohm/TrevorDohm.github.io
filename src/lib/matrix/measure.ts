@@ -16,6 +16,8 @@ export interface Layout {
   named: boolean
   /** Boxes of the hero copy the glow must stay out of: text lines and buttons. */
   copy: Rect[]
+  /** Bottom edge of the hero buttons, where the bottom fade starts; null without buttons. */
+  buttonBottom: number | null
   /** Changes whenever any of the above does. */
   key: string
 }
@@ -37,10 +39,15 @@ export function measure(
   const ax = named ? box.left - rect.left : 0
   const ay = named ? box.top - rect.top : 0
   const local = (b: DOMRect): Rect => ({ left: b.left - rect.left, top: b.top - rect.top, right: b.right - rect.left, bottom: b.bottom - rect.top })
+  let buttonBottom: number | null = null
   const boxes = copy.flatMap((el) => {
     // A row of links or buttons masks each one; text masks the ink of each line.
     const controls = [...el.querySelectorAll('a, button')]
-    if (controls.length) return controls.map((c) => local(c.getBoundingClientRect()))
+    if (controls.length) {
+      const rects = controls.map((c) => local(c.getBoundingClientRect())).filter((b) => b.bottom > b.top)
+      for (const b of rects) buttonBottom = Math.max(buttonBottom ?? -Infinity, b.bottom)
+      return rects
+    }
     const range = document.createRange()
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
@@ -54,6 +61,7 @@ export function measure(
     ay,
     named,
     copy: boxes,
+    buttonBottom,
     key: values.map((v) => v.toFixed(2)).join(),
   }
 }
