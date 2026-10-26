@@ -52,14 +52,17 @@ be just as easy to read as it is now.
 | Word ribbon and attention gallery | Two drifting rows of interest words under the hero, and a gallery of attention-map cards. Page order: Hero, stats strip, Ribbon, Selected Work, Gallery, Contact. See the [design spec](docs/superpowers/specs/2026-10-22-ribbon-and-gallery-design.md) | The stats strip keeps the matrix and the ribbon, both glowing and moving, from sitting next to each other. Until phase 3 adds it, the ribbon sits directly under the hero |
 
 **Name in the matrix, verified 2026-10-25 in Chrome only** (headless Chrome on
-`npm run preview`): the name is legible in every phase at 375x812, 375x667,
-768x1024, 1366x768, 1440x900 and 2560x1440, never overlaps the nav, tagline or
+`npm run preview`): at 375x812, 375x667, 768x1024, 1366x768, 1440x900 and 2560x1440 the
+name is lit at the hold (contrast against the cells around it about 12:1 or
+more). After the break the ghost is deliberately quiet, about 1.6 to 2.2:1 at
+weight 0.30 (Trevor's choice), and brightens under the glow. The name never overlaps the nav, tagline or
 buttons, and the ribbon's top sits exactly at the fold. On a fast load the canvas
 draws before first paint and sweeps the name in; on Slow 4G with 4x CPU the static
 SVG paints first and the canvas takes over lit, with name cells within 8/255 per
 channel of the SVG and layout shift 0. Lighthouse mobile: Performance 100,
 Accessibility 100, CLS 0, LCP 1.5 s. Moto G Power profile at 4x CPU: 60fps while
-dragging, about 22 draws a second while idle. Safari, Firefox, VoiceOver and real
+dragging. While idle the loop is capped at about 30fps; at 60 Hz it draws about
+22 times a second, because a gap of just under 33 ms waits one more frame. Safari, Firefox, VoiceOver and real
 touch are unchecked.
 
 ### Look
@@ -120,8 +123,9 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
 - **Buttons pull the glow.** Hovering or focusing a hero button moves the query
   point onto it. **(review)**
 - **Idle drift.** After 2 seconds without input, a query point wanders a smooth
-  looping path so the hero never sits still. Idle drift runs at about 30fps to
-  save battery. **(review)**
+  looping path so the hero never sits still. Idle drift is capped at about 30fps to
+  save battery. **(review)** At 60 Hz that measures about 22 draws a second,
+  because a gap of just under 33 ms waits one more frame.
 - **Touch.** Tapping sends a ripple and moves the glow to the tap point.
   Horizontal drags also move it. Vertical drags scroll the page as normal: with
   `touch-action: pan-y` the browser takes vertical drags for scrolling, so the
@@ -149,7 +153,10 @@ decorative.
 
 ### Motion across the site
 
-1. **Entrance (phase 3).** A staged ~1.2 s arrival, modeled on how raycast.com
+1. **Entrance (phase 3). Superseded 2026-10-25 by the name in the matrix:** the
+   name intro (form, hold, break) is the entrance now; the `<h1>` is `sr-only`
+   and the LCP element is the tagline. The original plan, kept for reference:
+   A staged ~1.2 s arrival, modeled on how raycast.com
    brightens its headline instead of fading it in. Nothing is ever invisible.
    - **0 ms:** all hero text is painted in `muted`, slightly blurred and offset;
      the grid sits near black.
@@ -164,7 +171,9 @@ decorative.
    finished state renders immediately. The `<h1>` carries `aria-label` with the
    full name and any per-letter spans are `aria-hidden`, so screen readers say
    the name once. **(review)**
-2. **Matrix fades on scroll (phase 3).** Cells dissolve bottom-row-up as the hero
+2. **Matrix fades on scroll (phase 3). Superseded 2026-10-25 by the name in the
+   matrix:** the bottom dissolve (lowest 22% of rows) now erodes the grid's lower
+   edge in place of a mask. The original plan, kept for reference: Cells dissolve bottom-row-up as the hero
    scrolls away, an `outroAlpha` mirror of the intro wave, so the grid erodes
    instead of being clipped by the hero's edge. Browsers without scroll-driven
    animations, and anyone with reduced motion, get a plain opacity and blur fade
@@ -280,8 +289,11 @@ reading, and none is needed to reach the goal.
   for the five bundled scripts (hero matrix, marquee, gallery, a shared palette
   and loop chunk, reduced-motion helper). `dist/index.html` has one inline
   script, the nav menu, at 253 bytes gzipped. Total about 7.7 KB. After the name
-  in the matrix (2026-10-25): 8,676 bytes for the same five scripts plus the
-  253-byte inline script, about 8.9 KB.
+  in the matrix (2026-10-25), by the same method: `gzip -c dist/_astro/*.js | wc -c`
+  (the five bundle files concatenated, then gzipped once) gives 8,676 bytes, plus
+  the 253-byte inline nav script, 8,929 bytes in all. That is comparable to the
+  earlier 7,399 + 253 because the method is the same. Gzipping each file
+  separately at `-9` and summing gives 8,438 bytes instead.
 - **New files.** See Code structure for the full layout. Beyond it:
   `public/og.png` and a Vitest config.
 - **Why not `<ClientRouter />`.** **(review)** It would add ~8.6 KB gzipped and two
