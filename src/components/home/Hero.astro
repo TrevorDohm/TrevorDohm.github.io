@@ -30,21 +30,26 @@ const facts = [...role.split(' | '), location]
     <AttentionMatrix />
   </div>
 
-  <!-- The block (name, one-row gap, role line, buttons) is centred at 45% of
-       the hero below the fixed nav: the top padding clears the nav (73px tall
-       on phones with the menu button, 65px from md up) and the bottom padding,
-       a tenth of what is left, lifts the centre from 50% to 45%. NameMark's
+  <!-- The block (name, one-row gap, role line, buttons) sits in a wrapper with
+       auto block margins, which centre it in the free space without feature
+       detection and never push it above the padding when it overflows. It is
+       centred at 45% of the hero below the fixed nav: the top padding clears
+       the nav (73px tall on phones with the menu button, 65px from md up) and
+       the bottom padding, a tenth of what is left, lifts the centre from 50%
+       to 45%. NameMark's
        height cap uses the same numbers. The matrix keeps its glow off the
        [data-matrix-copy] boxes. -->
   <div class="hero-copy section-container relative flex w-full flex-col">
     <h1 class="sr-only">{name}</h1>
-    <NameMark />
-    <p data-matrix-copy data-intro-copy class="role font-mono text-sm text-balance text-muted">
-      {facts.map((fact, i) => <>{i > 0 && ' | '}<span class="whitespace-nowrap">{fact}</span></>)}
-    </p>
-    <div data-matrix-copy data-intro-copy class="mt-6 flex flex-wrap gap-4">
-      <Button href="#contact">Get in touch</Button>
-      <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
+    <div class="my-auto">
+      <NameMark />
+      <p data-matrix-copy data-intro-copy class="role font-mono text-sm text-balance text-muted">
+        {facts.map((fact, i) => <>{i > 0 && ' | '}<span class="whitespace-nowrap">{fact}</span></>)}
+      </p>
+      <div data-matrix-copy data-intro-copy class="mt-6 flex flex-wrap gap-4">
+        <Button href="#contact">Get in touch</Button>
+        <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
+      </div>
     </div>
   </div>
 </section>
@@ -68,20 +73,12 @@ const facts = [...role.split(' | '), location]
 
   .hero-copy {
     --hero-nav: 4.75rem;
-    justify-content: safe center;
     padding-top: var(--hero-nav);
     padding-bottom: calc((max(100svh, 32.5rem) - var(--hero-nav)) / 10);
     /* A halo in the page color keeps the text readable over bright cells. */
     text-shadow:
       0 0 18px var(--color-background),
       0 0 36px var(--color-background);
-  }
-  /* Safari before 17.6 drops `safe center`; the minifier would merge a plain
-     `center` fallback away, so it sits behind @supports. */
-  @supports not (justify-content: safe center) {
-    .hero-copy {
-      justify-content: center;
-    }
   }
   @media (min-width: 48rem) {
     .hero-copy {
