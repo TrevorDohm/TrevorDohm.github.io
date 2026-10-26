@@ -95,14 +95,12 @@ export function stepLight(light: Light, target: Point, following: boolean, dt: n
   const q = light.q
   const last = light.last
   light.last = [target[0], target[1]]
-  if (!q || dt <= 0) {
-    light.following = following
-    return (light.q = q ?? [target[0], target[1]])
-  }
+  // Before the zero-length early return, so a release on such a frame (a re-layout) is not lost.
   const released = light.following && !following
   if (released) [light.gliding, light.v] = [true, capped(light.v, cruise)]
   if (following) light.gliding = false
   light.following = following
+  if (!q || dt <= 0) return (light.q = q ?? [target[0], target[1]])
   if (!light.gliding) {
     const next = smoothQuery(q, target, dt)
     light.v = [(next[0] - q[0]) / dt, (next[1] - q[1]) / dt]

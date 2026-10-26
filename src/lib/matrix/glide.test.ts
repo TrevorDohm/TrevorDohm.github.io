@@ -10,13 +10,11 @@ const ACCEL = cruise / GLIDE_RAMP // px/s gained or shed per second, at most
 const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1])
 
 /**
- * The light follows a pointer, then lets go: `swipe` sweeps the pointer from
- * mid-screen to a far corner in 0.3 s and leaves at once with the light still
- * moving (the owner's case); otherwise the light is parked on the corner. From
- * then on the target is the idle path from time `t0`. Returns every frame
- * after the release and the light's last step before it.
+ * The light follows a pointer, then lets go: `swipe` sweeps it from mid-screen to a far corner in
+ * 0.3 s and leaves at once (the owner's case); otherwise the light is parked on the corner. Then the
+ * target is the idle path from `t0`. Returns every frame after the release and the last step before.
  */
-export function leave(fps: number, seconds: number, swipe = true, corner: Point = [1420, 70], t0 = 10) {
+function leave(fps: number, seconds: number, swipe = true, corner: Point = [1420, 70], t0 = 10) {
   const dt = 1 / fps
   const light = createLight()
   const from: Point = swipe ? [700, 450] : corner
@@ -120,9 +118,7 @@ describe('stepLight', () => {
   })
 
   it('is the same at 30, 60 and 144 fps: within 2px at 1, 3, 6 and 9 s', () => {
-    // (On the path a sub-pixel lag remains, proportional to the frame time: the
-    // path's velocity is read from its last frame. So compare positions, not the
-    // moment a threshold is crossed.)
+    // Positions, not threshold times: on the path a sub-pixel lag remains, proportional to the frame time.
     const at = (fps: number) => {
       const { frames } = leave(fps, 12, false)
       return [1, 3, 6, 9].map((s) => frames[s * fps - 1].q)
@@ -140,11 +136,15 @@ describe('stepLight', () => {
     expect(stepLight(light, [900, 100], true, dt, cruise, PITCH)).toEqual(smoothQuery(q, [900, 100], dt))
   })
 
-  it('stays put on a zero-length frame (a re-layout)', () => {
+  it('stays put on a zero-length frame (a re-layout), and a release on one still glides', () => {
     const light = createLight()
-    stepLight(light, [300, 300], true, 1 / 60, cruise, PITCH)
-    stepLight(light, [600, 300], false, 1 / 60, cruise, PITCH)
-    const q = light.q!
-    expect(stepLight(light, [0, 0], false, 0, cruise, PITCH)).toEqual(q)
+    const dt = 1 / 60
+    for (let i = 0; i < 30; i++) stepLight(light, [300 + 40 * i, 300], true, dt, cruise, PITCH) // following, fast
+    const q = [...light.q!]
+    expect(stepLight(light, [100, 700], false, 0, cruise, PITCH)).toEqual(q) // released on a dt = 0 frame
+    for (let i = 0; i < 120; i++) {
+      const prev = light.q!
+      expect(dist(stepLight(light, [100, 700], false, dt, cruise, PITCH), prev)).toBeLessThanOrEqual(cruise * dt + 1e-9)
+    }
   })
 })
