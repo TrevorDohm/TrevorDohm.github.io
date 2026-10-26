@@ -167,9 +167,9 @@ in place.
 - **Name size (2026-10-26).** Width shares are unchanged (86vw below 40rem,
   62vw below 68.75rem, 52vw above, never wider than the text column) and the
   11px floor stays. The height cap now keeps the name's bottom at or above the
-  dissolve band's top (65% of the hero): with the block centred at 45%, that
-  is 23p ≤ 4.6 (0.2H − 0.55N + 0.5C) (the line stays at 0.65 after the band
-  grew to 45%; see Bottom fade), where C is the copy below the gap,
+  line at 65% of the hero (the first band's top): with the block centred at 45%, that
+  is 23p ≤ 4.6 (0.2H − 0.55N + 0.5C) (the 0.65 line stayed when the fade
+  moved; see Bottom fade), where C is the copy below the gap,
   measured in Chrome at 87.2px (1-line role) and 107.2px on phones (2 lines).
   Name cells are also exempt from the dissolve, so a forced floor on a short
   screen can't erode the name.
@@ -191,9 +191,10 @@ in place.
   button pulls the light onto it with the same glide; like any resting pointer
   it lets go after 2.5 s, as the mockup. Focus leaving the hero releases it at
   once. The idle path is the mockup's drift: x = W(0.5 + 0.34 sin(0.31t)
-  cos(0.13t)), t seconds since the break, with y scaled to fit above the 45%
-  band (2026-10-26): y = H(0.31 + 0.17 sin(0.23t + 1)), within 0.14H to 0.48H
-  (the mockup's 0.45 + 0.3 reached 0.75H).
+  cos(0.13t)), t seconds since the break, with y scaled (2026-10-26) to
+  y = H(0.31 + 0.17 sin(0.23t + 1)), within 0.14H to 0.48H (the mockup's
+  0.45 + 0.3 reached 0.75H). If the fade ever starts higher than that, the
+  same shape is squeezed between 0.14H and one row above the fade's start.
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
@@ -209,39 +210,41 @@ in place.
   light parked on the role line, above it, between it and the buttons, right
   of it, right of the buttons and below the buttons, at 1440×900, 1366×657 and
   390×844: the brightest background pixel behind the role line gives at least
-  5.19:1 against the muted text. Name cells are exempt. The idle path stays
-  above the dissolve band.
+  4.82:1 against the muted text (the fade now starts under the buttons, so
+  nothing dims the cells behind the role line). Name cells are exempt. The
+  idle path stays above the bottom fade.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
   the floor still fits it.
-- **Bottom fade (2026-10-26, revised three times after Trevor's review).**
-  The band is the lowest 45% of rows (22% before this round). Rejected along
-  the way: scattered random dropouts (big black gaps), darkening that stopped
-  at 0.18 (a visible cutoff), and a continuous fade with only about 1% of
-  cells removed (too few). Now each cell's visibility goes from 1 at the band
-  top to about 0 on the last row along half a straight line and half a
-  smoothstep, times a seeded ±10% jitter that shrinks toward the bottom. On
-  top of that, cells are removed more with depth: none in the band's top
-  fifth, then a smoothstep ramp to 55% of cells on the last rows, so the edge
-  tapers away and the cutoff can't be located. Which cells go is an ordered
-  dither, the R2 low-discrepancy sequence frac(0.7549 col + 0.5698 row) plus a
-  ±0.02 seeded jitter. A 4x4 Bayer matrix was the suggestion, but its rows
-  hold different threshold sets (at a 20% removal one Bayer row loses half its
-  cells and the next none), which would stripe; R2 gives every row its share.
-  Any 2x2 block's four R2 thresholds span at least 0.675 of [0, 1), so at 55%
-  no 2x2 block is ever fully removed. Measured from the canvas (row by row,
-  top to bottom of the band):
-  - 1440×900: removed 0, 0, 0, 0, 0.05, 0.05, 0.14, 0.18, 0.23, 0.34, 0.41,
-    0.50, 0.52, 0.55; last-row mean 0.010.
-  - 1366×657: removed 0, 0, 0, 0, 0.04, 0.10, 0.18, 0.30, 0.38, 0.46, 0.48,
-    0.56; last-row mean 0.013.
-  - 390×844: 0 for 8 rows, then rising to 0.48-0.56 on the last rows (27
-    cells a row, so steps of 0.037); last-row mean 0.003.
-  - No fully removed 2x2 block at any size.
+- **Bottom fade (2026-10-26, after several rounds with Trevor).** The fade
+  starts right under the buttons. Each layout measures the buttons' bottom
+  edge; the dimming starts on the grid row holding it (everything above, and
+  beside the buttons, stays at full brightness) and eases to 0 on the last
+  row, however few rows that is (half a straight line, half a smoothstep,
+  times a seeded ±10% jitter that shrinks toward the bottom). Cells are also
+  removed, starting on the first row wholly below the buttons: about 22% of
+  that row, rising on a smoothstep to about 68% at the bottom. Each cell draws
+  a seeded random threshold (white noise, so the scatter looks random), and a
+  scan-order rule (row by row, left to right) skips any removal that would
+  complete a fully removed 2x2 block with the cells up, left and up-left, so
+  removals never clump into black holes. The removal map is built once per
+  layout. Without measurable buttons the fade falls back to a band whose top
+  sits at 0.55 of the hero. Rejected along the way: scattered random dropouts
+  over a 35% band (big black gaps), darkening that stopped at 0.18 (a visible
+  cutoff), a continuous 45% fade with almost no removals (too even), an
+  ordered dither (visible patterns), and a fade starting at 0.55H (empty cells
+  too high up). Measured from the canvas, row by row from the buttons' bottom
+  row (the last row is fully faded by design and left out):
+  - 1440×900: buttons' bottom 678px, row 21; fade starts at 0.728 of the
+    height, removals at 0.763; removed 0, 0.14, 0.27, 0.27, 0.34, 0.73,
+    0.52; row means 0.98, 0.78, 0.56, 0.43, 0.27, 0.07, 0.05, 0.
+  - 1366×657: buttons' bottom 539px, row 20; fade at 0.810, removals at
+    0.852; removed 0, 0.20, 0.38, 0.68; row means 0.97, 0.64, 0.31, 0.07, 0.
+  - 390×844: buttons' bottom 559px, row 40; fade at 0.652, removals at 0.668;
+    removed 0, then 0.26 to 0.41 over the next six rows, rising to 0.59 to
+    0.82 on the last rows (27 cells a row, so steps of 0.037).
+  - No fully removed 2x2 block above the last row at any size, and nothing
+    removed above the first row below the buttons.
   With the hero's bottom scrolled to mid-screen there is no visible line where
-  it meets the ribbon. The band's top (0.55 of the hero) sits above the
-  name's lower rows on desktop; name cells are exempt and the band is still
-  above 0.9 there. The role line and buttons sit in the band's upper half,
-  where removal is light; their solid backgrounds and the copy dimming keep
-  them legible.
+  it meets the ribbon. The role line and buttons sit above the fade.

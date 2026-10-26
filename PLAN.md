@@ -45,7 +45,7 @@ be just as easy to read as it is now.
 | Hero centerpiece | The name in the matrix: `TREVOR` and `DOHM` spelled in cells of the interactive attention matrix, which forms, holds, then breaks into a ghost the cursor glow brightens (changed 2026-10-25) | Trevor's pick. Purely visual, with no explainer about the research. The name was the hero's real focal point, so it now lives in the grid instead of beside it |
 | Hero grid | Full-screen, sized by the name: the pitch is the name's width over 23 columns, and the grid fills the whole `100svh` hero (2026-10-25) | The name lands exactly on grid cells, and the hero reads as one surface |
 | Hero eyebrow | Removed ("Philadelphia, PA") (2026-10-25) | The name block takes its place at the top of the copy |
-| Hero bottom edge | A bottom fade: the lowest 45% of rows (22% until 2026-10-26) fade continuously to about 0 with a small per-cell jitter, and cells are removed more with depth (none in the band's top fifth, about 55% on the last rows), chosen by an ordered dither so they never clump; replaces the old CSS mask (2026-10-25) | The grid tapers into the ribbon and its cutoff can't be located. Rejected: random dropouts (black gaps), darkening that stopped at 0.18 (a visible edge), and a fade with almost no cells removed (too even) |
+| Hero bottom edge | A bottom fade anchored under the buttons: from the row holding their bottom edge the cells dim to 0 on the last row, and from the next row down about 22% of cells are removed, rising to about 68% at the bottom, chosen at random but never as a fully removed 2x2 block; replaces the old CSS mask (2026-10-25, settled 2026-10-26) | The grid tapers into the ribbon and its cutoff can't be located. Rejected: random dropouts over a 35% band (black gaps), darkening that stopped at 0.18 (a visible edge), a 45% fade with almost no removals (too even), an ordered dither (patterns), and a fade from 0.55H (empty cells too high) |
 | Hero layout and intro | The block (name, role line, buttons) is centred at 45% of the hero below the nav; the tagline is removed and the role line reads `MBA Candidate @ Wharton \| AI Engineer @ RTX \| Philadelphia, PA`; the intro starts dark (lit in the hold only if a late module finds the static name already shown) and the copy fades in at about 1.1 s (2026-10-26) | Trevor's feedback: the name sat too close to the top, and he preferred the mockup's dark start and late copy. An inline gate (`data-js-intro`) hides the static name and copy only when JS runs and motion is allowed, with a 3 s CSS safety net |
 | Matrix tech | Canvas 2D in plain TypeScript | About 5 KB, 60fps, works on phones. WebGL/Three.js would add 150 KB+ and drain phone batteries faster |
 | Framework JS | None | Every animation is plain TS in Astro `<script>` tags. No React, GSAP, or Framer Motion |
@@ -144,10 +144,10 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
   script runs and starts dark (2026-10-26), or lit in the hold if the 3 s
   safety net already showed the static name. The role line and buttons fade in
   from about 1.1 s.
-- **Bottom fade.** The lowest 45% of rows fade continuously to about 0, and
-  more cells drop out the lower they are (an even dither, never in clumps), so
-  the glow dims there too and the hero has no visible bottom edge. Name cells
-  never fade.
+- **Bottom fade.** From just under the buttons the cells dim to 0 at the
+  bottom, and more drop out the lower they are (at random, never in clumps),
+  so the glow dims there too and the hero has no visible bottom edge. Name
+  cells never fade.
 
 **Performance rules.** Runs on `requestAnimationFrame`. It used to start after the
 `load` event **(review)**; since the name in the matrix it starts when the script
