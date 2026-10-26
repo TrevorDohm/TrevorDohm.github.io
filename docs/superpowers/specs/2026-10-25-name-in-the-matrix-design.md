@@ -145,25 +145,33 @@ Where this list and the sections above disagree, this list wins.
   (153.11px with a 2-line tagline and 1-line role, 202.36px on phones), so the
   buttons end at or above 78% of the hero. The role line sits 10px below the
   tagline and the buttons 24px below the role line (were 12px and 40px).
-- **The drag (mockup parity).** The query trails its target: each frame it
-  closes 1 - exp(-4·dt) of the gap, at most 30 cells per second (half a cell
-  per 60Hz frame). The glow's temperature is 2.2 cells and cells ease at 12/s.
-  The softmax stays normalised to the nearest cell. There is no hovered row
-  and column highlight.
+- **The drag (mockup parity).** The query trails its target with the mockup's
+  plain exponential: each frame it closes 1 - exp(-4·dt) of the gap, with no
+  speed cap (6.45% of the gap per 60Hz frame; while following a pointer it
+  never moves faster than the pointer). A background cell's weight is
+  0.9 · exp(-d / 2.2) with d in cells, unnormalised, as the mockup; name cells
+  use exp(-d / 2.2) in `nameWeight`. Cells ease at 12/s. There is no hovered
+  row and column highlight.
 - **No snap back.** The query's target is the pointer while input is under
   2.5 s old, otherwise the intro or idle path; the query never jumps to either.
   A mouse leaving the hero releases it at once. Hovering or focusing a hero
-  button pulls the light onto it with the same glide.
+  button pulls the light onto it and holds it there while the pointer rests on
+  the button or focus stays in the hero.
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
   touched, and overlapping drops are capped at 0.7.
-- **Copy mask.** On each layout, the cells overlapping the bounding boxes of the
-  tagline, the role line and the button row are drawn at resting weight (0)
-  with no glow sprite, so the roaming glow cannot wash out the copy. With the
-  glow parked under the role line and the tagline at 1440×900, the brightest
-  background pixel behind either line gives 5.8:1 against the muted text. Name
-  cells are exempt. The idle path stays above the dissolve band.
+- **Copy mask.** On each layout, the mask is built from the ink of the copy:
+  one box per text line of the tagline and role line (Range client rects,
+  fragments on one line merged) and one per button. Cells overlapping a box are
+  drawn at resting weight (0) with no glow sprite; the cells around them (one
+  cell, diagonals included) are capped at 0.5 with no sprite, so the glow fades
+  out at the text instead of stopping at a hard-edged hole. With the light
+  parked on the cells beside the text (above the tagline, between the role line
+  and the buttons, right of the role line) at 1440×900 and 390×844, the
+  brightest background pixel behind either line gives at least 5.93:1 against
+  the muted text. Name cells are exempt. The idle path stays above the
+  dissolve band.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
