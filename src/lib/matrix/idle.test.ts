@@ -21,16 +21,19 @@ describe('idleQuery', () => {
   })
 
   it('stays over fully visible cells of the grid', () => {
-    const grid = layoutGrid(390, 844, 14, 24, 167)
-    const fade = fadeMap(grid)
-    for (const [x, y] of path(390, 844)) expect(fade[cellAt(grid, x, y)]).toBe(1)
+    const views = [[390, 844, 14, 24, 300], [1366, 657, 27, 230, 90], [1440, 900, 32, 350, 160], [375, 667, 14, 24, 200]]
+    for (const [w, h, pitch, ax, ay] of views) {
+      const grid = layoutGrid(w, h, pitch, ax, ay)
+      const fade = fadeMap(grid, new Int32Array(0))
+      for (const [x, y] of path(w, h)) expect(fade[cellAt(grid, x, y)]).toBe(1)
+    }
   })
 
-  it('is the mockup drift: W(0.5 + 0.34 sin(0.31t) cos(0.13t)), H(0.45 + 0.3 sin(0.23t + 1))', () => {
+  it('is the mockup drift, its y range scaled to fit above the band: W(0.5 + 0.34 sin(0.31t) cos(0.13t)), H(0.38 + 0.23 sin(0.23t + 1))', () => {
     for (const t of [0, 1.7, 12.3, 95]) {
       const [x, y] = idleQuery(t, 1366, 657)
       expect(x).toBeCloseTo(1366 * (0.5 + 0.34 * Math.sin(t * 0.31) * Math.cos(t * 0.13)), 9)
-      expect(y).toBeCloseTo(657 * (0.45 + 0.3 * Math.sin(t * 0.23 + 1)), 9)
+      expect(y).toBeCloseTo(657 * (0.38 + 0.23 * Math.sin(t * 0.23 + 1)), 9)
     }
   })
 
@@ -41,7 +44,7 @@ describe('idleQuery', () => {
     const ys = (p: [number, number][]) => p.map(([, y]) => y)
     expect(extent(xs(wide)) / 1600).toBeCloseTo(extent(xs(tall)) / 400, 6)
     expect(extent(xs(wide)) / 1600).toBeGreaterThan(0.6)
-    expect(extent(ys(wide)) / 400).toBeCloseTo(0.6, 2)
-    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.6, 2)
+    expect(extent(ys(wide)) / 400).toBeCloseTo(0.46, 2)
+    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.46, 2)
   })
 })

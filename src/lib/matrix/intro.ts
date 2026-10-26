@@ -22,14 +22,10 @@ export const INTRO_END = TIMELINE.form + TIMELINE.hold + TIMELINE.break
 /** A moment in the hold: the name is fully lit and nothing else is. */
 export const STILL_AT = TIMELINE.form + TIMELINE.hold / 2
 
-/**
- * Where the intro clock starts. If the page has already painted, the visitor
- * has seen the static name lit, so the canvas takes over in the hold (every
- * name cell is fully on at `form`) instead of sweeping in from dark.
- */
-export function introStart(painted: boolean): number {
-  return painted ? TIMELINE.form : 0
-}
+/** The intro clock always starts dark, before the name sweeps in (the mockup). */
+export const INTRO_START = 0
+/** When the role line and buttons start to fade in: as the name finishes forming. */
+export const COPY_AT = TIMELINE.form + 0.2
 
 /**
  * Grid index of each name cell (in `NAME.cells` order) when the name block's
@@ -46,12 +42,16 @@ export function nameCells(grid: Grid, anchorX: number, anchorY: number): Int32Ar
   })
 }
 
-/** Bottom dissolve visibility for every cell of the grid. */
-export function fadeMap(grid: Grid): Float32Array {
+/**
+ * Bottom dissolve visibility for every cell of the grid. Cells in `exempt`
+ * (grid indices; -1 is ignored) stay whole, so the name never dissolves.
+ */
+export function fadeMap(grid: Grid, exempt: Int32Array): Float32Array {
   const fade = new Float32Array(grid.cols * grid.rows)
   for (let i = 0; i < fade.length; i++) {
     fade[i] = bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols)
   }
+  for (const i of exempt) if (i >= 0) fade[i] = 1
   return fade
 }
 

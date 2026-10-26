@@ -46,20 +46,24 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
 <style>
   /* Width: 86% of a phone, 62% of a tablet, 52% of a wide screen (the
      mockup's shares), never wider than the text column, and capped by height
-     so the name, its one-row gap and the copy end at the dissolving bottom
-     rows (78% of the hero). The name plus that gap is 12/23 of the width.
-     --copy-reserve is what sits above and below them, measured in Chrome: the
-     hero's top padding (nav clearance) plus the copy below the gap (tagline,
-     role line, buttons and their margins). Phones: a 3-line tagline and 2-line
-     role, 202.36px. From 40rem: 2 lines and 1 line, 153.11px. The top padding
-     is 4.75rem below 48rem and 4.25rem from 48rem. The cap never goes below
-     253px (an 11px pitch), which bounds the canvas's cell count on short
-     screens; a 320px phone's text column is 272px. */
+     so the name ends above the bottom dissolve band (the lowest 35% of the
+     hero, DISSOLVE_BAND). Hero.astro centres the block (name, one-row gap,
+     copy) at 45% of the hero below the nav, so with hero height H, nav
+     clearance N, copy below the gap C and pitch p the name's bottom sits at
+     N + 0.45(H - N) - C/2 + 5p; keeping that at or above 0.65H gives
+     23p <= 4.6 (0.2H - 0.55N + 0.5C). C is the role line and the buttons with
+     their margins, measured in Chrome: 107.2px on phones (a 2-line role line),
+     87.2px from 40rem (1 line). N is 4.75rem below 48rem and 4.25rem from
+     48rem, as Hero.astro. The cap never goes below 253px (an 11px pitch),
+     which bounds the canvas's cell count on short screens; a 320px phone's
+     text column is 272px. */
   .name-mark {
-    --copy-reserve: calc(4.75rem + 12.65rem);
-    --name-cap: max(253px, (78svh - var(--copy-reserve)) * 23 / 12);
+    --nav: 4.75rem;
+    --copy-below: 107.2px;
+    --name-cap: max(253px, 4.6 * (0.2 * max(100svh, 32.5rem) - 0.55 * var(--nav) + 0.5 * var(--copy-below)));
     --name-w: min(100%, 86vw, var(--name-cap));
     display: block;
+    flex: none; /* a flex item in the hero block; never squeezed */
     width: var(--name-w);
     height: auto;
     aspect-ratio: 23 / 11;
@@ -68,13 +72,13 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
   }
   @media (min-width: 40rem) {
     .name-mark {
-      --copy-reserve: calc(4.75rem + 9.57rem);
+      --copy-below: 87.2px;
       --name-w: min(100%, 62vw, var(--name-cap));
     }
   }
   @media (min-width: 48rem) {
     .name-mark {
-      --copy-reserve: calc(4.25rem + 9.57rem);
+      --nav: 4.25rem;
     }
   }
   @media (min-width: 68.75rem) {

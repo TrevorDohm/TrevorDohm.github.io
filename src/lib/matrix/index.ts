@@ -51,9 +51,9 @@ export function init(root: HTMLElement): () => void {
   let height = 0
   // The light's centre. It glides toward the pointer or the idle path, never jumps.
   let query: [number, number] | null = null
-  // Intro clock in seconds, from now. Reduced motion holds it on the lit name.
-  const painted = performance.getEntriesByType('paint').length > 0
-  let clock = reduced ? intro.STILL_AT : intro.introStart(painted)
+  // Intro clock in seconds, from now. It always starts dark (the static name is
+  // hidden until the canvas draws); reduced motion holds it on the lit name.
+  let clock = reduced ? intro.STILL_AT : intro.INTRO_START
 
   const goal = (now: number) => goalAt(state, now, clock, centre, width, height)
 
@@ -70,6 +70,8 @@ export function init(root: HTMLElement): () => void {
     renderer.draw({ weights, boost, fade, copy })
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
+    // The copy fades in as the name finishes forming (CSS, under data-js-intro).
+    if (clock >= intro.COPY_AT) root.dataset.copyShown = ''
   }
 
   const resize = () => {
@@ -97,7 +99,7 @@ export function init(root: HTMLElement): () => void {
       target = new Float32Array(count)
       boost = new Float32Array(count)
     }
-    fade = intro.fadeMap(grid)
+    fade = intro.fadeMap(grid, cells)
     copy = copyMask(grid, m.copy, cells)
     renderer.resize(grid, width, height, window.devicePixelRatio || 1)
     updateTarget(performance.now(), 0)

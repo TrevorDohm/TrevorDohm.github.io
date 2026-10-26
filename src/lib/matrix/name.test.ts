@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hash2 } from './math'
-import { bottomFade, GLYPHS, LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
+import { bottomFade, DISSOLVE_BAND, GLYPHS, LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
 
 const mask = nameMask(NAME_LINES, LINE_GAP)
 const lit = new Set(mask.cells.map(([r, c]) => `${r},${c}`))
@@ -66,20 +66,41 @@ describe('nameWeight', () => {
 })
 
 describe('bottomFade', () => {
-  it('is 1 at the top and 0 on the last row', () => {
-    for (let c = 0; c < 30; c++) {
-      expect(bottomFade(0, 40, c)).toBe(1)
-      expect(bottomFade(39, 40, c)).toBe(0)
-    }
+  const ROWS = 60
+  const COLS = 400
+  const inBand = (r: number) => (ROWS - 1 - r) / ROWS < DISSOLVE_BAND
+  const row = (r: number) => Array.from({ length: COLS }, (_, c) => bottomFade(r, ROWS, c))
+  const mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length
+  const variance = (v: number[]) => mean(v.map((x) => (x - mean(v)) ** 2))
+  const bandRows = Array.from({ length: ROWS }, (_, r) => r).filter(inBand)
+
+  it('covers the lowest 35% of rows', () => {
+    expect(DISSOLVE_BAND).toBeCloseTo(0.35)
   })
 
-  it('stays in [0, 1] and is 1 above the band', () => {
-    for (let r = 0; r < 40; r++)
-      for (let c = 0; c < 30; c++) {
-        const f = bottomFade(r, 40, c)
-        expect(f).toBeGreaterThanOrEqual(0)
-        expect(f).toBeLessThanOrEqual(1)
-        if ((40 - 1 - r) / 40 >= 0.22) expect(f).toBe(1)
-      }
+  it('is 1 above the band and 0 on the last row', () => {
+    for (let r = 0; r < ROWS; r++) if (!inBand(r)) expect(row(r).every((f) => f === 1)).toBe(true)
+    expect(row(ROWS - 1).every((f) => f === 0)).toBe(true)
+  })
+
+  it('stays in [0, 1]', () => {
+    for (const r of bandRows) for (const f of row(r)) expect(f >= 0 && f <= 1).toBe(true)
+  })
+
+  it('thins out toward the bottom: each band row averages less than the one above', () => {
+    const avgs = bandRows.map((r) => mean(row(r)))
+    expect(avgs[0]).toBeGreaterThan(0.85)
+    expect(avgs[avgs.length - 1]).toBe(0)
+    for (let k = 1; k < avgs.length; k++) expect(avgs[k]).toBeLessThan(avgs[k - 1])
+  })
+
+  it('is scattered: cells mostly drop out whole, so a band row varies a lot', () => {
+    // The 22% band's even ramp gave a mean in-row variance of 0.017.
+    const v = mean(bandRows.slice(0, -1).map((r) => variance(row(r))))
+    expect(v).toBeGreaterThan(0.12)
+    // Most cells are fully on or fully off, not half lit.
+    const cells = bandRows.flatMap(row)
+    const whole = cells.filter((f) => f === 0 || f === 1).length / cells.length
+    expect(whole).toBeGreaterThan(0.7)
   })
 })

@@ -4,7 +4,8 @@ import {
   composeTargets,
   fadeMap,
   INTRO_END,
-  introStart,
+  INTRO_START,
+  COPY_AT,
   introQuery,
   moveName,
   NAME,
@@ -25,19 +26,20 @@ describe('timeline constants', () => {
   })
 })
 
-describe('introStart', () => {
-  it('sweeps from dark before the first paint', () => {
-    expect(introStart(false)).toBe(0)
-  })
-
-  it('starts lit, in the hold, once the static name has been painted', () => {
+describe('the intro start', () => {
+  it('always starts dark: at t = 0 no cell is lit, the name included', () => {
+    expect(INTRO_START).toBe(0)
     const grid = layoutGrid(400, 300, 10, 20, 30)
     const cells = nameCells(grid, 20, 30)
     const target = new Float32Array(grid.cols * grid.rows)
-    const t = introStart(true)
-    expect(t).toBeLessThan(TIMELINE.form + TIMELINE.hold)
-    composeTargets(target, new Float32Array(target.length), grid, cells, t)
-    for (const i of cells) expect(target[i]).toBeCloseTo(0.95)
+    composeTargets(target, new Float32Array(target.length).fill(0.5), grid, cells, INTRO_START)
+    expect(Math.max(...target)).toBe(0)
+  })
+
+  it('shows the copy at form + 0.2 s, as the mockup', () => {
+    expect(COPY_AT).toBeCloseTo(TIMELINE.form + 0.2)
+    expect(COPY_AT).toBeCloseTo(1.1)
+    expect(COPY_AT).toBeLessThan(BREAK_AT)
   })
 })
 
@@ -65,9 +67,17 @@ describe('nameCells', () => {
 })
 
 describe('fadeMap', () => {
+  it('keeps exempt cells (the name) whole, even inside the band', () => {
+    const grid = layoutGrid(50, 100, 10, 0, 0)
+    const last = grid.cols * grid.rows - 1
+    const fade = fadeMap(grid, Int32Array.from([-1, last, 3]))
+    expect(fade[last]).toBe(1)
+    expect(fade[last - 1]).toBe(0)
+  })
+
   it('is bottomFade per cell', () => {
     const grid = layoutGrid(50, 100, 10, 0, 0)
-    const fade = fadeMap(grid)
+    const fade = fadeMap(grid, new Int32Array(0))
     expect(fade[0]).toBe(1)
     const last = grid.cols * grid.rows - 1
     expect(fade[last]).toBeCloseTo(bottomFade(grid.rows - 1, grid.rows, grid.cols - 1))

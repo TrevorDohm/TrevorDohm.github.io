@@ -2,21 +2,26 @@
 import Button from '../ui/Button.astro'
 import AttentionMatrix from '../matrix/AttentionMatrix.astro'
 import NameMark from '../matrix/NameMark.astro'
+import IntroGate from '../matrix/IntroGate.astro'
 
 interface Props {
   name: string
-  tagline: string
   role: string
+  location: string
   linkedin: string
 }
 
-const { name, tagline, role, linkedin } = Astro.props
+const { name, role, location, linkedin } = Astro.props
+// One line of facts, "|"-separated; it wraps only between them.
+const facts = [...role.split(' | '), location]
 ---
+
+<IntroGate />
 
 <!-- Exactly one screen tall, so the ribbon starts at the fold. -->
 <section
   data-matrix-root
-  class="relative isolate flex h-svh min-h-[32.5rem] touch-pan-y items-center-safe overflow-hidden"
+  class="relative isolate flex h-svh min-h-[32.5rem] touch-pan-y overflow-hidden"
 >
   <!-- The CSS backdrop shows without JavaScript and fades out once the matrix
        has drawn its first frame. -->
@@ -25,15 +30,19 @@ const { name, tagline, role, linkedin } = Astro.props
     <AttentionMatrix />
   </div>
 
-  <!-- Centered between the nav and the dissolving bottom rows. The top padding
-       clears the fixed nav (73px tall on phones with the menu button, 65px
-       from md up). The matrix keeps its glow off the [data-matrix-copy] boxes. -->
-  <div class="hero-copy section-container relative w-full pt-[4.75rem] pb-[22svh] md:pt-[4.25rem]">
+  <!-- The block (name, one-row gap, role line, buttons) is centred at 45% of
+       the hero below the fixed nav: the top padding clears the nav (73px tall
+       on phones with the menu button, 65px from md up) and the bottom padding,
+       a tenth of what is left, lifts the centre from 50% to 45%. NameMark's
+       height cap uses the same numbers. The matrix keeps its glow off the
+       [data-matrix-copy] boxes. -->
+  <div class="hero-copy section-container relative flex w-full flex-col justify-center-safe">
     <h1 class="sr-only">{name}</h1>
     <NameMark />
-    <p data-matrix-copy class="tagline body-lg max-w-2xl">{tagline}</p>
-    <p data-matrix-copy class="mt-2.5 font-mono text-sm text-muted">{role}</p>
-    <div data-matrix-copy class="mt-6 flex flex-wrap gap-4">
+    <p data-matrix-copy data-intro-copy class="role font-mono text-sm text-balance text-muted">
+      {facts.map((fact, i) => <>{i > 0 && ' | '}<span class="whitespace-nowrap">{fact}</span></>)}
+    </p>
+    <div data-matrix-copy data-intro-copy class="mt-6 flex flex-wrap gap-4">
       <Button href="#contact">Get in touch</Button>
       <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
     </div>
@@ -57,15 +66,23 @@ const { name, tagline, role, linkedin } = Astro.props
     opacity: 0;
   }
 
-  /* Pull the first line's leading up so the text starts one row below DOHM. */
-  .tagline {
-    margin-top: -0.3em;
-  }
-
-  /* A halo in the page color keeps the text readable over bright cells. */
   .hero-copy {
+    --hero-nav: 4.75rem;
+    padding-top: var(--hero-nav);
+    padding-bottom: calc((max(100svh, 32.5rem) - var(--hero-nav)) / 10);
+    /* A halo in the page color keeps the text readable over bright cells. */
     text-shadow:
       0 0 18px var(--color-background),
       0 0 36px var(--color-background);
+  }
+  @media (min-width: 48rem) {
+    .hero-copy {
+      --hero-nav: 4.25rem;
+    }
+  }
+
+  /* Pull the first line's leading up so the text starts one row below DOHM. */
+  .role {
+    margin-top: -0.2em;
   }
 </style>

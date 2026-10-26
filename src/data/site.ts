@@ -5,11 +5,12 @@
 export const site = {
   name: 'Trevor Dohm',
   title: 'Trevor Dohm',
+  /** Not shown at the moment; kept in case the hero brings it back. */
   tagline: 'AI/ML engineer. I work on transformers, agentic systems, and the infrastructure that runs them.',
   description:
     'Trevor Dohm is an AI/ML engineer at RTX and an MBA candidate at Wharton. Published research on linear attention (Cottention, Best Paper, Computing Conference 2025).',
   location: 'Philadelphia, PA',
-  role: 'Software Engineer II at RTX · MBA Candidate at Wharton',
+  role: 'MBA Candidate @ Wharton | AI Engineer @ RTX',
   url: 'https://trevordohm.github.io',
 
   links: {

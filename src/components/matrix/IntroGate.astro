@@ -1,0 +1,45 @@
+---
+// The gate for the hero intro. Placed just before the hero, it marks <html>
+// with data-js-intro before the hero is parsed, so the first paint already
+// knows the intro will run: JavaScript is on and motion is allowed. Under that
+// mark the static name and the hero copy start hidden; the matrix shows them
+// (data-matrix-ready, then data-copy-shown at about 1.1 s). If the matrix
+// never takes over, CSS shows both after 3 s. Without JavaScript, or with
+// reduced motion, nothing is hidden.
+---
+
+<script is:inline>
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.setAttribute('data-js-intro', '')
+  }
+</script>
+
+<style is:global>
+  @keyframes intro-safety-net {
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* The canvas sweeps the name in from dark; the lit static name would blink. */
+  [data-js-intro] [data-name-anchor] {
+    opacity: 0;
+    animation: intro-safety-net 0s 3s forwards;
+  }
+
+  /* The role line and buttons fade in as the name finishes, as the mockup. */
+  [data-js-intro] [data-intro-copy] {
+    opacity: 0;
+    animation: intro-safety-net 0.8s 3s forwards;
+  }
+  [data-js-intro] [data-copy-shown] [data-intro-copy] {
+    opacity: 1;
+    animation: none;
+    transition: opacity 0.8s ease;
+  }
+
+  /* Opacity doesn't block focus, so a button tabbed to early must show. */
+  [data-js-intro] [data-intro-copy]:focus-within {
+    opacity: 1;
+  }
+</style>

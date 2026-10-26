@@ -3,11 +3,13 @@ import { clamp01, hash2 } from './math'
 export const NAME_LINES = ['TREVOR', 'DOHM'] as const
 export const LINE_GAP = 1
 export const TIMELINE = { form: 0.9, hold: 1.6, break: 1.4, fade: 0.5, ghost: 0.3 } as const
-export const DISSOLVE_BAND = 0.22
+export const DISSOLVE_BAND = 0.35
 
 const GLYPH_ROWS = 5
 const HOLD_WEIGHT = 0.95
 const RAMP = 0.35
+/** Depth of a cell's soft edge as it drops out of the band, as a share of the band. */
+const DROP_EDGE = 0.12
 
 /** 3x5 pixel font (M is 5 wide). */
 export const GLYPHS: Record<string, readonly string[]> = {
@@ -55,9 +57,14 @@ export function nameWeight(t: number, col: number, row: number, nameCols: number
   return Math.max(on * (held * HOLD_WEIGHT + (1 - held) * resting), attention * 0.9)
 }
 
-/** Visibility of a grid cell near the bottom edge: 1 above the band, a seeded dissolve inside it. */
+/**
+ * Visibility of a grid cell near the bottom edge: 1 above the band, and inside
+ * it each cell drops out at its own seeded depth over a short edge, so the band
+ * thins out as scattered cells rather than an even ramp. The last row is 0.
+ */
 export function bottomFade(row: number, rows: number, col: number): number {
   const fromBottom = (rows - 1 - row) / rows
   if (fromBottom >= DISSOLVE_BAND) return 1
-  return clamp01((fromBottom / DISSOLVE_BAND) * 1.6 - hash2(col, row) * 0.6)
+  const depth = fromBottom / DISSOLVE_BAND // 1 at the band's top, 0 on the last row
+  return clamp01((depth * (1 + DROP_EDGE) - hash2(col, row)) / DROP_EDGE)
 }
