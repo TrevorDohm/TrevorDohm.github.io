@@ -13,3 +13,15 @@ export function idleQuery(t: number, width: number, height: number, floor = Infi
     top + (bottom - top) * (0.5 + 0.5 * Math.sin(t * 0.23 + 1)),
   ]
 }
+
+/**
+ * An upper bound on the idle path's speed (px/s) on this canvas. d/dt of
+ * sin(0.31t)cos(0.13t) is 0.31 cos cos - 0.13 sin sin, at most
+ * sqrt(0.31^2 + 0.13^2) (Cauchy-Schwarz), and of sin(0.23t + 1) at most 0.23;
+ * the path's actual top speed is within about 10% of this.
+ */
+export function idleSpeed(width: number, height: number, floor = Infinity): number {
+  const top = 0.14 * height
+  const bottom = Math.max(top, Math.min(0.48 * height, floor))
+  return Math.hypot(0.34 * width * Math.hypot(0.31, 0.13), 0.5 * (bottom - top) * 0.23)
+}

@@ -8,7 +8,7 @@ import { fadeRows, type FadeRows } from './dissolve'
 import { createLoop } from './loop'
 import { copyMask } from './mask'
 import { measure } from './measure'
-import { goalAt, isSettled, smoothQuery } from './query'
+import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
@@ -51,7 +51,7 @@ export function init(root: HTMLElement): () => void {
   let width = 0
   let height = 0
   let at: FadeRows | null = null // where the bottom fade starts; the idle path stays above it
-  let query: [number, number] | null = null // the light's centre; it glides, never jumps
+  const light = createLight() // the light's centre (light.q); it glides, never jumps
   // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
   let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
@@ -61,8 +61,7 @@ export function init(root: HTMLElement): () => void {
 
   const updateTarget = (now: number, dt: number) => {
     if (!grid) return
-    const [gx, gy] = goal(now)
-    query = query ? smoothQuery(query, [gx, gy], dt) : [gx, gy]
+    const query = stepLight(light, goal(now), isFollowing(state, now), dt, cruiseSpeed(width, height, at?.floor))
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
     intro.composeTargets(target, attention, grid, cells, clock)
@@ -135,8 +134,8 @@ export function init(root: HTMLElement): () => void {
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
   const settled = () => {
     const now = performance.now()
-    if (!grid || !query || clock < intro.INTRO_END || !isIdle(state, now)) return false
-    return isSettled(query, goal(now), grid.pitch)
+    if (!grid || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
+    return isSettled(light.q, goal(now), grid.pitch)
   }
   const loop = createLoop(root, tick, settled)
   const unbind = bindInput(root, canvas, state)
