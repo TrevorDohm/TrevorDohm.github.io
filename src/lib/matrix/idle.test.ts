@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { cellAt, layoutGrid } from './geometry'
 import { idleQuery } from './idle'
 import { fadeMap } from './intro'
-import { DISSOLVE_BAND } from './name'
+import { DISSOLVE_BAND } from './dissolve'
 
 // Ten minutes of the loop at 30 fps covers many cycles of both sines.
 const path = (w: number, h: number) => Array.from({ length: 18000 }, (_, i) => idleQuery(i / 30, w, h))

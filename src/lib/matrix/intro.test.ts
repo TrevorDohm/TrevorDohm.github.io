@@ -9,7 +9,8 @@ import {
   NAME,
   nameCells,
 } from './intro'
-import { bottomFade, TIMELINE } from './name'
+import { bottomFade, dropoutMap } from './dissolve'
+import { TIMELINE } from './name'
 
 describe('nameCells', () => {
   it('puts the name block with its top-left cell at the anchor', () => {
@@ -43,13 +44,16 @@ describe('fadeMap', () => {
     expect(fade[last - 1]).toBeLessThan(1)
   })
 
-  it('is bottomFade per cell', () => {
-    const grid = layoutGrid(50, 100, 10, 0, 0)
+  it('is bottomFade per cell, or 0 where dropoutMap removes the cell', () => {
+    const grid = layoutGrid(300, 400, 10, 0, 0)
     const fade = fadeMap(grid, new Int32Array(0))
+    const drop = dropoutMap(grid.cols, grid.rows)
     expect(fade[0]).toBe(1)
-    const last = grid.cols * grid.rows - 1
-    expect(fade[last]).toBeCloseTo(bottomFade(grid.rows - 1, grid.rows, grid.cols - 1))
-    expect(fade[last]).toBeLessThan(1)
+    expect(drop.some((d) => d === 1)).toBe(true)
+    fade.forEach((f, i) => {
+      const expected = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols)
+      expect(f).toBeCloseTo(expected)
+    })
   })
 })
 
