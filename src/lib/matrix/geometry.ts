@@ -16,6 +16,8 @@ export interface Grid {
 
 /** Share of the pitch a cell covers; the rest is the gap between cells. */
 export const CELL_FILL = 0.78
+/** Corner radius as a share of the drawn cell size. */
+export const CELL_RADIUS = 0.22
 
 /**
  * A grid covering [0, width] x [0, height] edge to edge, with a cell boundary

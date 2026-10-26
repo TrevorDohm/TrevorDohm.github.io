@@ -1,6 +1,5 @@
-import { introAlpha } from './effects'
-import type { Grid } from './geometry'
-import { rampColor, type Rgb } from './color'
+import { CELL_RADIUS, type Grid } from './geometry'
+import { mix, rampColor, type Rgb } from './color'
 
 export interface Palette {
   line: Rgb
@@ -13,8 +12,8 @@ export interface Frame {
   weights: Float32Array
   /** Extra brightness from hover and ripples, added on top. */
   boost: Float32Array
-  /** Load-in wave progress, 0 to 1. */
-  intro: number
+  /** Per-cell visibility, 0 to 1 (the bottom dissolve). Scales weight and opacity. */
+  fade: Float32Array
 }
 
 export interface Renderer {
@@ -48,7 +47,8 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
   const context = canvas.getContext('2d')
   if (!context) throw new Error('2D canvas is unavailable')
   const ctx = context
-  const sprite = makeGlowSprite(palette.accent)
+  // The glow sits between the two accents, like the top of the ramp.
+  const sprite = makeGlowSprite(mix(palette.accent, palette.accent2, 0.5))
   let grid: Grid | null = null
   let cssWidth = 0
   let cssHeight = 0
@@ -63,30 +63,31 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   }
 
-  function draw({ weights, boost, intro }: Frame): void {
+  function draw({ weights, boost, fade }: Frame): void {
     if (!grid) return
     const { cols, rows, cell, centers } = grid
     const half = cell / 2
+    const radius = cell * CELL_RADIUS
     const glowSize = cell * GLOW_SCALE
     ctx.clearRect(0, 0, cssWidth, cssHeight)
 
     for (let i = 0; i < cols * rows; i++) {
-      const appear = introAlpha(intro, Math.floor(i / cols), i % cols, rows, cols)
+      const appear = fade[i]
       if (appear <= 0) continue
-      const w = Math.min(1, weights[i] + boost[i])
+      const w = Math.min(1, weights[i] + boost[i]) * appear
       const [r, g, b] = rampColor(w, palette.line, palette.accent, palette.accent2)
       ctx.globalAlpha = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
       ctx.fillStyle = `rgb(${r},${g},${b})`
       ctx.beginPath()
-      ctx.roundRect(centers[i * 2] - half, centers[i * 2 + 1] - half, cell, cell, cell * 0.22)
+      ctx.roundRect(centers[i * 2] - half, centers[i * 2 + 1] - half, cell, cell, radius)
       ctx.fill()
     }
 
     ctx.globalCompositeOperation = 'lighter'
     for (let i = 0; i < cols * rows; i++) {
-      const w = Math.min(1, weights[i] + boost[i])
+      const appear = fade[i]
+      const w = Math.min(1, weights[i] + boost[i]) * appear
       if (w <= GLOW_THRESHOLD) continue
-      const appear = introAlpha(intro, Math.floor(i / cols), i % cols, rows, cols)
       ctx.globalAlpha = appear * ((w - GLOW_THRESHOLD) / (1 - GLOW_THRESHOLD)) * 0.55
       ctx.drawImage(sprite, centers[i * 2] - glowSize / 2, centers[i * 2 + 1] - glowSize / 2, glowSize, glowSize)
     }

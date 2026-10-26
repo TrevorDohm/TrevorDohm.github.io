@@ -1,0 +1,82 @@
+---
+// The name as cells, drawn at build time. One SVG unit is one grid pitch. It
+// shows without JavaScript; with it, the matrix reads this box to lay out its
+// grid (pitch = width / 23) and the live name replaces it in place.
+import { CELL_FILL, CELL_RADIUS } from '../../lib/matrix/geometry'
+import { NAME } from '../../lib/matrix/intro'
+import { levelPaths, num } from '../../lib/patterns/frame'
+
+// levelPaths takes a square n x n grid; the name only uses its top rows.
+const n = NAME.cols
+const lit = new Float32Array(n * n)
+for (const [row, col] of NAME.cells) lit[row * n + col] = 1
+
+// A square stroked with round joins is a rounded square: the stroke is twice the
+// corner radius, and the outer size matches the canvas cell.
+const radius = CELL_FILL * CELL_RADIUS
+const stroke = 2 * radius
+const offset = (1 - CELL_FILL) / 2 + radius
+const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
+---
+
+<svg
+  data-name-anchor
+  viewBox={`0 0 ${NAME.cols} ${NAME.rows}`}
+  aria-hidden="true"
+  focusable="false"
+  class="name-mark"
+>
+  <path
+    transform={`translate(${num(offset)} ${num(offset)})`}
+    d={d}
+    stroke-width={num(stroke)}
+    stroke-linejoin="round"
+  />
+</svg>
+
+<style>
+  /* Width: about 86% of a phone, 62% of a tablet, 52% of a wide screen, never
+     wider than the text column, and capped by height so the name, copy and
+     buttons fit between the nav and the dissolving bottom rows (78% of the
+     hero). The name block plus its one-row margin is 12/23 of the width. */
+  .name-mark {
+    --name-cap: max(12rem, (78svh - 18rem) * 23 / 12);
+    --name-w: min(100%, 86vw, var(--name-cap));
+    display: block;
+    width: var(--name-w);
+    height: auto;
+    aspect-ratio: 23 / 11;
+    margin-bottom: calc(var(--name-w) / 23);
+  }
+  @media (min-width: 40rem) {
+    .name-mark {
+      --name-w: min(100%, 62vw, var(--name-cap));
+    }
+  }
+  @media (min-width: 68.75rem) {
+    .name-mark {
+      --name-w: min(100%, 52vw, var(--name-cap));
+    }
+  }
+  /* Whole-pixel pitch keeps the cells crisp. */
+  @supports (width: round(down, 10px, 1px)) {
+    .name-mark {
+      width: round(down, var(--name-w), 23px);
+      margin-bottom: calc(round(down, var(--name-w), 23px) / 23);
+    }
+  }
+
+  /* The held state of the live name: weight 0.95 on the ramp, which is
+     accent-2 mixed 12.5% toward accent, at the canvas's opacity for it. */
+  path {
+    --name-fill: color-mix(in srgb, var(--color-accent-2) 87.5%, var(--color-accent));
+    fill: var(--name-fill);
+    stroke: var(--name-fill);
+    opacity: 0.98;
+  }
+
+  /* Hidden, still in flow, once the canvas has drawn the name. */
+  :global([data-matrix-ready]) .name-mark {
+    visibility: hidden;
+  }
+</style>

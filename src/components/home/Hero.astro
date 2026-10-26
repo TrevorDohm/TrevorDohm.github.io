@@ -1,21 +1,22 @@
 ---
 import Button from '../ui/Button.astro'
 import AttentionMatrix from '../matrix/AttentionMatrix.astro'
+import NameMark from '../matrix/NameMark.astro'
 
 interface Props {
   name: string
   tagline: string
   role: string
-  location: string
   linkedin: string
 }
 
-const { name, tagline, role, location, linkedin } = Astro.props
+const { name, tagline, role, linkedin } = Astro.props
 ---
 
+<!-- Exactly one screen tall, so the ribbon starts at the fold. -->
 <section
   data-matrix-root
-  class="relative isolate flex min-h-svh touch-pan-y items-center overflow-hidden"
+  class="relative isolate flex h-svh min-h-[32.5rem] touch-pan-y items-center-safe overflow-hidden"
 >
   <!-- The CSS backdrop shows without JavaScript and dims once the matrix
        has drawn its first frame. -->
@@ -24,17 +25,13 @@ const { name, tagline, role, location, linkedin } = Astro.props
     <AttentionMatrix />
   </div>
 
-  <div class="hero-copy section-container relative w-full pt-16">
-    <p class="eyebrow mb-6 animate-rise">{location}</p>
-    <!-- The h1 is the LCP element, so it is visible from the first paint. -->
-    <h1 class="heading-xl max-w-3xl">{name}</h1>
-    <p class="body-lg mt-6 max-w-2xl animate-rise" style="animation-delay: 0.15s">
-      {tagline}
-    </p>
-    <p class="mt-3 font-mono text-sm text-muted animate-rise" style="animation-delay: 0.25s">
-      {role}
-    </p>
-    <div class="mt-10 flex flex-wrap gap-4 animate-rise" style="animation-delay: 0.35s">
+  <!-- Centered between the nav and the dissolving bottom rows. -->
+  <div class="hero-copy section-container relative w-full pt-16 pb-[22svh]">
+    <h1 class="sr-only">{name}</h1>
+    <NameMark />
+    <p data-reveal="0" class="tagline body-lg max-w-2xl">{tagline}</p>
+    <p data-reveal="1" class="mt-3 font-mono text-sm text-muted">{role}</p>
+    <div data-reveal="2" class="mt-10 flex flex-wrap gap-4">
       <Button href="#contact">Get in touch</Button>
       <Button href={linkedin} variant="secondary" external>View LinkedIn</Button>
     </div>
@@ -56,17 +53,30 @@ const { name, tagline, role, location, linkedin } = Astro.props
     opacity: 0.35;
   }
 
-  /* The canvas is rendered by AttentionMatrix, so reach it with :global. */
-  .matrix-layer :global(canvas) {
-    opacity: 0.55;
+  /* Pull the first line's leading up so the text starts one row below DOHM. */
+  .tagline {
+    margin-top: -0.3em;
   }
-  @media (min-width: 768px) {
-    .matrix-layer :global(canvas) {
-      opacity: 1;
-      /* The grid emerges from behind the text column instead of sitting under it. */
-      mask-image: linear-gradient(to right, transparent 35%, black 70%);
-    }
+
+  /* With the script running, the copy is hidden at once, then fades in as the
+     name finishes forming. data-intro is never set under reduced motion or
+     without JS, so the copy is simply visible there. */
+  [data-intro='pending'] [data-reveal] {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  [data-intro='shown'] [data-reveal] {
+    transition:
+      opacity 0.8s ease,
+      transform 0.8s ease;
+  }
+  [data-intro='shown'] [data-reveal='1'] {
+    transition-delay: 0.1s;
+  }
+  [data-intro='shown'] [data-reveal='2'] {
+    transition-delay: 0.2s;
+  }
+
   /* A halo in the page color keeps the text readable over bright cells. */
   .hero-copy {
     text-shadow:
