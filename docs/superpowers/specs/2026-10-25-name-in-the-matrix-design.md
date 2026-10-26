@@ -155,22 +155,26 @@ Where this list and the sections above disagree, this list wins.
 - **No snap back.** The query's target is the pointer while input is under
   2.5 s old, otherwise the intro or idle path; the query never jumps to either.
   A mouse leaving the hero releases it at once. Hovering or focusing a hero
-  button pulls the light onto it and holds it there while the pointer rests on
-  the button or focus stays in the hero.
+  button pulls the light onto it with the same glide; like any resting pointer
+  it lets go after 2.5 s, as the mockup. Focus leaving the hero releases it at
+  once. The idle path is the mockup's drift: x = W(0.5 + 0.34 sin(0.31t)
+  cos(0.13t)), y = H(0.45 + 0.3 sin(0.23t + 1)), t seconds since the break, so
+  y stays within 0.15H to 0.75H, above the dissolve band.
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
   touched, and overlapping drops are capped at 0.7.
 - **Copy mask.** On each layout, the mask is built from the ink of the copy:
   one box per text line of the tagline and role line (Range client rects,
-  fragments on one line merged) and one per button. Cells overlapping a box are
-  drawn at resting weight (0) with no glow sprite; the cells around them (one
-  cell, diagonals included) are capped at 0.5 with no sprite, so the glow fades
-  out at the text instead of stopping at a hard-edged hole. With the light
-  parked on the cells beside the text (above the tagline, between the role line
-  and the buttons, right of the role line) at 1440×900 and 390×844, the
-  brightest background pixel behind either line gives at least 5.93:1 against
-  the muted text. Name cells are exempt. The idle path stays above the
+  fragments merged only when they overlap by more than half the shorter one)
+  and one per button. Cells overlapping a box keep 0.2 of their weight and the
+  cells around them (one cell, diagonals included) keep 0.6; neither gets a
+  glow sprite. Dimming by a factor keeps the glow's shape across the copy. 0.2
+  is the largest factor that keeps the copy at 4.5:1: with the light parked on
+  the tagline, on the role line, above the tagline, between the role line and
+  the buttons, right of the role line and right of the buttons, at 1440×900 and
+  390×844, the brightest background pixel behind either line gives at least
+  4.62:1 against the muted text (0.25 gives 4.27:1). Name cells are exempt. The idle path stays above the
   dissolve band.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
