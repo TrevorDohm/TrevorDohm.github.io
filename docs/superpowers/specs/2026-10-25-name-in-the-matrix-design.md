@@ -135,11 +135,34 @@ Where this list and the sections above disagree, this list wins.
 - **No copy fade-in.** The tagline, role line and buttons are visible from first
   paint and never start at `opacity: 0`. The tagline is the LCP element.
 - **Measured pitches** (the name's width / 23, after the pitch floor below):
-  32px at 1440×900, 18px at 1366×657 and 14px at 390×844, not the ~38px at
-  1440px estimated under Grid.
+  24px at 1366×657, 32px at 1440×790, 32px at 1440×900 and 14px at 390×844
+  (18, 27, 32 and 14 before the mockup-parity round), not the ~38px at 1440px
+  estimated under Grid.
+- **Name size (mockup parity).** The name's width share is the mockup's: 86vw
+  below 40rem, 62vw below 68.75rem, 52vw above, never wider than the text
+  column. Its height cap reserves only what the copy measures in Chrome: the
+  hero's top padding (nav clearance) plus the copy below the name's one-row gap
+  (153.11px with a 2-line tagline and 1-line role, 202.36px on phones), so the
+  buttons end at or above 78% of the hero. The role line sits 10px below the
+  tagline and the buttons 24px below the role line (were 12px and 40px).
+- **The drag (mockup parity).** The query trails its target: each frame it
+  closes 1 - exp(-4·dt) of the gap, at most 30 cells per second (half a cell
+  per 60Hz frame). The glow's temperature is 2.2 cells and cells ease at 12/s.
+  The softmax stays normalised to the nearest cell. There is no hovered row
+  and column highlight.
+- **No snap back.** The query's target is the pointer while input is under
+  2.5 s old, otherwise the intro or idle path; the query never jumps to either.
+  A mouse leaving the hero releases it at once. Hovering or focusing a hero
+  button pulls the light onto it with the same glide.
+- **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
+  flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
+  cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
+  touched, and overlapping drops are capped at 0.7.
 - **Copy mask.** On each layout, the cells overlapping the bounding boxes of the
-  tagline, the role line and the button row are drawn at weight 0.35 at most
-  and get no glow sprite, so the roaming glow cannot wash out the copy. Name
+  tagline, the role line and the button row are drawn at resting weight (0)
+  with no glow sprite, so the roaming glow cannot wash out the copy. With the
+  glow parked under the role line and the tagline at 1440×900, the brightest
+  background pixel behind either line gives 5.8:1 against the muted text. Name
   cells are exempt. The idle path stays above the dissolve band.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
