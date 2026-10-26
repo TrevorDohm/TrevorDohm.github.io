@@ -29,11 +29,11 @@ describe('idleQuery', () => {
     }
   })
 
-  it('is the mockup drift, its y range scaled to fit above the band: W(0.5 + 0.34 sin(0.31t) cos(0.13t)), H(0.38 + 0.23 sin(0.23t + 1))', () => {
+  it('is the mockup drift, its y range scaled to fit above the band: W(0.5 + 0.34 sin(0.31t) cos(0.13t)), H(0.31 + 0.17 sin(0.23t + 1))', () => {
     for (const t of [0, 1.7, 12.3, 95]) {
       const [x, y] = idleQuery(t, 1366, 657)
       expect(x).toBeCloseTo(1366 * (0.5 + 0.34 * Math.sin(t * 0.31) * Math.cos(t * 0.13)), 9)
-      expect(y).toBeCloseTo(657 * (0.38 + 0.23 * Math.sin(t * 0.23 + 1)), 9)
+      expect(y).toBeCloseTo(657 * (0.31 + 0.17 * Math.sin(t * 0.23 + 1)), 9)
     }
   })
 
@@ -44,7 +44,7 @@ describe('idleQuery', () => {
     const ys = (p: [number, number][]) => p.map(([, y]) => y)
     expect(extent(xs(wide)) / 1600).toBeCloseTo(extent(xs(tall)) / 400, 6)
     expect(extent(xs(wide)) / 1600).toBeGreaterThan(0.6)
-    expect(extent(ys(wide)) / 400).toBeCloseTo(0.46, 2)
-    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.46, 2)
+    expect(extent(ys(wide)) / 400).toBeCloseTo(0.34, 2)
+    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.34, 2)
   })
 })

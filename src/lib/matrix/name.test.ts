@@ -66,7 +66,7 @@ describe('nameWeight', () => {
 })
 
 describe('bottomFade', () => {
-  // A tall grid: 90 rows, so the band has 31 rows.
+  // A tall grid: 90 rows, so the band has about 40 rows.
   const ROWS = 90
   const COLS = 400
   const inBand = (r: number) => (ROWS - 1 - r) / ROWS < DISSOLVE_BAND
@@ -74,34 +74,40 @@ describe('bottomFade', () => {
   const mean = (v: number[]) => v.reduce((s, x) => s + x, 0) / v.length
   const bandRows = Array.from({ length: ROWS }, (_, r) => r).filter(inBand)
   const means = bandRows.map((r) => mean(row(r)))
+  const third = Math.ceil(bandRows.length / 3)
+  const fifth = Math.ceil(bandRows.length / 5)
 
-  it('covers the lowest 35% of rows and is 1 above it', () => {
-    expect(DISSOLVE_BAND).toBeCloseTo(0.35)
+  it('covers the lowest 40 to 50% of rows and is 1 above it', () => {
+    expect(DISSOLVE_BAND).toBeGreaterThanOrEqual(0.4)
+    expect(DISSOLVE_BAND).toBeLessThanOrEqual(0.5)
     for (let r = 0; r < ROWS; r++) if (!inBand(r)) expect(row(r).every((f) => f === 1)).toBe(true)
     for (const r of bandRows) for (const f of row(r)) expect(f >= 0 && f <= 1).toBe(true)
   })
 
-  it('darkens gradually: row means fall every row, never by more than 0.08 at once', () => {
+  it('fades continuously: row means fall every row, never by more than 0.05 at once', () => {
     let prev = 1
     for (const m of means) {
       expect(m).toBeLessThan(prev)
-      expect(prev - m).toBeLessThanOrEqual(0.08)
+      expect(prev - m).toBeLessThanOrEqual(0.05)
       prev = m
     }
   })
 
-  it('leaves the last row dim, not gone: its mean is between 0.12 and 0.22', () => {
-    expect(means[means.length - 1]).toBeGreaterThanOrEqual(0.12)
-    expect(means[means.length - 1]).toBeLessThanOrEqual(0.22)
+  it('reaches about 0 at the bottom, so the hero has no visible edge', () => {
+    expect(means[means.length - 1]).toBeLessThanOrEqual(0.03)
+    // The last three rows are uniformly dim: no stray bright cell at the edge.
+    for (const r of bandRows.slice(-3)) expect(Math.max(...row(r))).toBeLessThanOrEqual(0.12)
+    // The jitter has shrunk away there: the last row varies by under 5% of its mean.
+    const last = row(bandRows[bandRows.length - 1])
+    expect((Math.max(...last) - Math.min(...last)) / mean(last)).toBeLessThan(0.05)
   })
 
-  it('drops few cells fully: at most 8% of the band, none in its top third', () => {
+  it('drops very few cells fully: at most 3% of the band, none in its top third or bottom fifth', () => {
     const off = (r: number) => row(r).filter((f) => f === 0).length
     const total = bandRows.reduce((s, r) => s + off(r), 0)
-    expect(total / (bandRows.length * COLS)).toBeLessThanOrEqual(0.08)
+    expect(total / (bandRows.length * COLS)).toBeLessThanOrEqual(0.03)
     expect(total).toBeGreaterThan(0)
-    const third = Math.ceil(bandRows.length / 3)
-    for (const r of bandRows.slice(0, third)) expect(off(r)).toBe(0)
+    for (const r of [...bandRows.slice(0, third), ...bandRows.slice(-fifth)]) expect(off(r)).toBe(0)
   })
 
   it('has no holes: no fully-off cell touches more than one other fully-off cell', () => {
@@ -116,9 +122,8 @@ describe('bottomFade', () => {
     }
   })
 
-  it('varies from cell to cell within a row (a jitter, not a flat gradient)', () => {
-    const r = bandRows[Math.floor(bandRows.length / 2)]
-    const lit = row(r).filter((f) => f > 0)
-    expect(Math.max(...lit) - Math.min(...lit)).toBeGreaterThan(0.1)
+  it('varies from cell to cell in the upper band (a jitter, not a flat gradient)', () => {
+    const lit = row(bandRows[Math.floor(bandRows.length / 3)]).filter((f) => f > 0)
+    expect(Math.max(...lit) - Math.min(...lit)).toBeGreaterThan(0.08)
   })
 })
