@@ -59,7 +59,9 @@ A change is done when `npm test` and `npm run build` both pass with 0 errors.
 - Fonts are Geist and Geist Mono, self-hosted through `astro.config.mjs`. Don't
   add Google Fonts `@import`s.
 - Every animation respects `prefers-reduced-motion`.
-- The hero `<h1>` is the LCP element and must never start at `opacity: 0`.
+- The hero `<h1>` is visually hidden (`sr-only`); the tagline is the LCP element.
+  The hero copy (tagline, role line, buttons) must be visible from first paint
+  and never start at `opacity: 0`.
 - Content must stay visible if JavaScript fails to load.
 
 ## Writing

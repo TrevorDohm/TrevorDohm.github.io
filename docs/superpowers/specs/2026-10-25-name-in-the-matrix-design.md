@@ -123,3 +123,25 @@ This replaces the current CSS mask on the canvas.
 - Glow colour for the name (the mockup used the top of the existing ramp).
 - How the name weights plug into the existing renderer (an extra layer or a
   `base` array added before drawing), provided files stay under ~150 lines.
+
+## Superseded by build rulings (2026-10-25)
+
+Where this list and the sections above disagree, this list wins.
+
+- **Intro start.** The canvas and the intro clock start when the script runs,
+  not at `load`. If the page has already painted (so the visitor has seen the
+  static name lit), the intro starts lit, in the hold, instead of sweeping in
+  from dark.
+- **No copy fade-in.** The tagline, role line and buttons are visible from first
+  paint and never start at `opacity: 0`. The tagline is the LCP element.
+- **Measured pitches** (the name's width / 23, after the pitch floor below):
+  32px at 1440×900, 18px at 1366×657 and 14px at 390×844, not the ~38px at
+  1440px estimated under Grid.
+- **Copy mask.** On each layout, the cells overlapping the bounding boxes of the
+  tagline, the role line and the button row are drawn at weight 0.35 at most
+  and get no glow sprite, so the roaming glow cannot wash out the copy. Name
+  cells are exempt. The idle path stays above the dissolve band.
+- **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
+  short viewport cannot multiply the cell count (844×390 had an 8px pitch and
+  about 7,000 cells before the floor). A 320px phone's text column is 272px, so
+  the floor still fits it.

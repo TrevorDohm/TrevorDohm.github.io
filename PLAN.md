@@ -284,16 +284,19 @@ reading, and none is needed to reach the goal.
 ### Technical notes
 
 - **JS budget.** The total target is under 15 KB gzipped, all first-party.
-  Without `<ClientRouter />` this has plenty of room. Measured 2026-10-25 after
-  the ribbon and gallery: `gzip -c dist/_astro/*.js | wc -c` gives 7,399 bytes
-  for the five bundled scripts (hero matrix, marquee, gallery, a shared palette
-  and loop chunk, reduced-motion helper). `dist/index.html` has one inline
-  script, the nav menu, at 253 bytes gzipped. Total about 7.7 KB. After the name
-  in the matrix (2026-10-25), by the same method: `gzip -c dist/_astro/*.js | wc -c`
-  (the five bundle files concatenated, then gzipped once) gives 8,676 bytes, plus
-  the 253-byte inline nav script, 8,929 bytes in all. That is comparable to the
-  earlier 7,399 + 253 because the method is the same. Gzipping each file
-  separately at `-9` and summing gives 8,438 bytes instead.
+  Without `<ClientRouter />` this has plenty of room. Method (2026-10-25): gzip
+  each `dist/_astro/*.js` file on its own at level 9 (Node `zlib.gzipSync`, no
+  file name in the header), sum the sizes, and add the inline `<script>` in
+  `dist/index.html` gzipped the same way. Each file is its own response, so
+  per-file gzip is what the browser transfers. (An earlier note here described
+  `gzip -c dist/_astro/*.js | wc -c` as concatenating the files and gzipping
+  once; it actually gzips each file and concatenates the gzip members, each with
+  its own header holding the file name, so it overstated the total slightly.)
+  By this method: 7,425 bytes of bundles plus the 253-byte inline nav script,
+  7,678 bytes in all, at `81dee26` (after the ribbon and gallery, before the
+  name in the matrix); 8,889 + 253 = 9,142 bytes after the name in the matrix
+  and its review fixes. Five bundles in both: hero matrix, marquee, gallery, a
+  shared chunk (palette, loop and maths helpers) and the reduced-motion helper.
 - **New files.** See Code structure for the full layout. Beyond it:
   `public/og.png` and a Vitest config.
 - **Why not `<ClientRouter />`.** **(review)** It would add ~8.6 KB gzipped and two
