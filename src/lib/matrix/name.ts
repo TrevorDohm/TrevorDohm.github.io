@@ -16,8 +16,13 @@ const HOLD_WEIGHT = 0.95
 const RAMP = 0.35
 /** Per-cell brightness jitter at the band's top, as a share either way; it shrinks to 0 at the bottom. */
 const JITTER = 0.1
-/** Peak chance that an eligible cell drops out fully, at the band's middle. */
-const DROP_CHANCE = 0.3
+/** Share of cells removed on the band's last rows; none in its top fifth. */
+const DROP_MAX = 0.55
+/** Where removal starts, as a share of the band from its top. */
+const DROP_START = 0.2
+/** The R2 sequence's steps (1/g and 1/g^2, g the plastic number): an ordered dither. */
+const R2_COL = 0.7548776662
+const R2_ROW = 0.5698402910
 
 /** 3x5 pixel font (M is 5 wide). */
 export const GLYPHS: Record<string, readonly string[]> = {
@@ -70,20 +75,22 @@ export function nameWeight(t: number, col: number, row: number, nameCols: number
  * an eased fade from 1 at the band's top to about 0 on the last row (half
  * linear, half smoothstep: it stays bright longer at the top and settles
  * gently at the bottom), times a seeded per-cell jitter that shrinks toward
- * the bottom, so the last rows are uniformly near 0 and the hero has no edge.
- * A few cells drop out fully, only in the middle of the band; only cells on a
- * sparse lattice ((col + 2 row) mod 5 = 0) may drop, and no two of those
- * touch, so the dropouts never join into holes.
+ * the bottom. Cells are also removed, more with depth: none in the band's top
+ * fifth, rising on a smoothstep to DROP_MAX on the last rows, so the edge
+ * tapers away. Which cells go is an ordered dither, the R2 sequence (plus a
+ * little seeded noise): every row gets its share evenly, and any 2x2 block's
+ * four thresholds spread over at least 0.675 of [0, 1), so at DROP_MAX 0.55 no
+ * block is ever fully removed and no black holes form.
  */
 export function bottomFade(row: number, rows: number, col: number): number {
   const fromBottom = (rows - 1 - row) / rows
   if (fromBottom >= DISSOLVE_BAND) return 1
   // 1 at the band's top, near 0 on the last row (measured at the cell's centre).
   const depth = Math.min(1, (fromBottom + 0.5 / rows) / DISSOLVE_BAND)
-  const eligible = (((col + 2 * row) % 5) + 5) % 5 === 0
-  // The chance rises and falls across the band's middle (0 above 0.6, below 0.25).
-  const middle = Math.max(0, 1 - Math.abs(depth - 0.425) / 0.175)
-  if (eligible && hash2(row, col) < DROP_CHANCE * middle) return 0
+  const ramp = Math.max(0, (1 - depth - DROP_START) / (1 - DROP_START))
+  const dropChance = DROP_MAX * ramp * ramp * (3 - 2 * ramp)
+  const dither = (R2_COL * col + R2_ROW * row + 0.04 * (hash2(row + 7, col) - 0.5)) % 1
+  if (dither < dropChance) return 0
   const eased = 0.5 * depth + 0.5 * depth * depth * (3 - 2 * depth)
   return clamp01(eased * (1 + JITTER * depth * (2 * hash2(col, row) - 1)))
 }

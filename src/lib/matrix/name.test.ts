@@ -97,27 +97,32 @@ describe('bottomFade', () => {
     expect(means[means.length - 1]).toBeLessThanOrEqual(0.03)
     // The last three rows are uniformly dim: no stray bright cell at the edge.
     for (const r of bandRows.slice(-3)) expect(Math.max(...row(r))).toBeLessThanOrEqual(0.12)
-    // The jitter has shrunk away there: the last row varies by under 5% of its mean.
-    const last = row(bandRows[bandRows.length - 1])
+    // The jitter has shrunk away there: the cells left on the last row vary by under 5% of their mean.
+    const last = row(bandRows[bandRows.length - 1]).filter((f) => f > 0)
     expect((Math.max(...last) - Math.min(...last)) / mean(last)).toBeLessThan(0.05)
   })
 
-  it('drops very few cells fully: at most 3% of the band, none in its top third or bottom fifth', () => {
-    const off = (r: number) => row(r).filter((f) => f === 0).length
-    const total = bandRows.reduce((s, r) => s + off(r), 0)
-    expect(total / (bandRows.length * COLS)).toBeLessThanOrEqual(0.03)
-    expect(total).toBeGreaterThan(0)
-    for (const r of [...bandRows.slice(0, third), ...bandRows.slice(-fifth)]) expect(off(r)).toBe(0)
+  const offShare = (r: number) => row(r).filter((f) => f === 0).length / COLS
+
+  it('removes no cells in the top fifth of the band', () => {
+    for (const r of bandRows.slice(0, fifth)) expect(offShare(r)).toBe(0)
   })
 
-  it('has no holes: no fully-off cell touches more than one other fully-off cell', () => {
-    const off = (r: number, c: number) => r >= 0 && r < ROWS && c >= 0 && c < COLS && bottomFade(r, ROWS, c) === 0
-    for (const r of bandRows) {
-      for (let c = 0; c < COLS; c++) {
-        if (!off(r, c)) continue
-        let n = 0
-        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if ((dr || dc) && off(r + dr, c + dc)) n++
-        expect(n).toBeLessThanOrEqual(1)
+  it('removes more cells with depth, about half on the last rows', () => {
+    const shares = bandRows.map(offShare)
+    // Non-decreasing row to row, allowing a little dither noise.
+    for (let k = 1; k < shares.length; k++) expect(shares[k]).toBeGreaterThanOrEqual(shares[k - 1] - 0.03)
+    for (const share of shares.slice(-3)) {
+      expect(share).toBeGreaterThanOrEqual(0.4)
+      expect(share).toBeLessThanOrEqual(0.65)
+    }
+  })
+
+  it('never clumps: no 2x2 block of cells is fully removed anywhere in the band', () => {
+    const off = (r: number, c: number) => bottomFade(r, ROWS, c) === 0
+    for (const r of bandRows.slice(0, -1)) {
+      for (let c = 0; c < COLS - 1; c++) {
+        expect(off(r, c) && off(r, c + 1) && off(r + 1, c) && off(r + 1, c + 1)).toBe(false)
       }
     }
   })
