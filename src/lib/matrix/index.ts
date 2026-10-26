@@ -12,6 +12,7 @@ import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } f
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
+import { watchLayout } from './watch'
 
 /** Softmax temperature in cells. Higher spreads the glow wider (the mockup's 2.2). */
 const TEMPERATURE = 2.2
@@ -24,8 +25,9 @@ const EASE_RATE = 12
  * the glow is kept off the copy (`[data-matrix-copy]`). Returns cleanup.
  */
 export function init(root: HTMLElement): () => void {
+  const showCopy = () => root.toggleAttribute('data-copy-shown', true)
   const canvas = root.querySelector<HTMLCanvasElement>('canvas[data-matrix-canvas]')
-  if (!canvas) return () => {}
+  if (!canvas) { showCopy(); return () => {} }
   const anchor = root.querySelector<SVGElement>('[data-name-anchor]')
   const copyEls = [...root.querySelectorAll('[data-matrix-copy]')]
 
@@ -33,7 +35,8 @@ export function init(root: HTMLElement): () => void {
   try {
     renderer = createRenderer(canvas, readPalette(root))
   } catch {
-    return () => {} // no canvas support or unreadable tokens: the static name stays
+    showCopy() // no canvas support or unreadable tokens: the static name stays
+    return () => {}
   }
 
   const reduced = prefersReducedMotion()
@@ -72,7 +75,7 @@ export function init(root: HTMLElement): () => void {
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
     // The copy fades in as the name finishes forming (CSS, under data-js-intro).
-    if (!copyShown && clock >= intro.COPY_AT) copyShown = root.toggleAttribute('data-copy-shown', true)
+    if (!copyShown && clock >= intro.COPY_AT) copyShown = showCopy()
   }
 
   const resize = () => {
@@ -121,14 +124,12 @@ export function init(root: HTMLElement): () => void {
     draw()
   }
 
-  const resizeObserver = new ResizeObserver(resize)
-  resizeObserver.observe(canvas)
-  // Font loading can reflow the copy and move the name without resizing the canvas.
-  if (anchor?.parentElement) resizeObserver.observe(anchor.parentElement)
+  const stopWatching = watchLayout(canvas, copyEls, resize)
   resize()
+  if (!grid) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
 
   if (reduced) {
-    return () => resizeObserver.disconnect()
+    return stopWatching
   }
 
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
@@ -144,6 +145,6 @@ export function init(root: HTMLElement): () => void {
   return () => {
     loop.stop()
     unbind()
-    resizeObserver.disconnect()
+    stopWatching()
   }
 }

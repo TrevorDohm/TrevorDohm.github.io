@@ -5,7 +5,9 @@
 // mark the static name and the hero copy start hidden; the matrix shows them
 // (data-matrix-ready, then data-copy-shown at about 1.1 s). If the matrix
 // never takes over, CSS shows both after 3 s. Without JavaScript, or with
-// reduced motion, nothing is hidden.
+// reduced motion, nothing is hidden. If the matrix bails out early (no 2D
+// context, no layout, unreadable palette) it sets data-copy-shown itself, so the
+// copy shows at once rather than at the 3 s net.
 ---
 
 <script is:inline>

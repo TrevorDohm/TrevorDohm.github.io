@@ -53,8 +53,8 @@ export function fadeRows(grid: Grid, buttonBottom: number | null): FadeRows {
 }
 
 /**
- * Visibility of a grid cell near the bottom edge: 1 above `dimStart`; from
- * it, an eased fade from 1 to 0 on the last row, however few rows that is (half linear, half
+ * Visibility of a grid cell near the bottom edge: 1 above and on `dimStart`; from
+ * the next row, an eased fade from 1 to 0 on the last row, however few rows that is (half linear, half
  * smoothstep: it stays bright longer at the top and settles gently at the
  * bottom), times a seeded per-cell jitter that shrinks toward the bottom, so
  * the last rows are uniformly near 0.
@@ -63,6 +63,7 @@ export function bottomFade(row: number, rows: number, col: number, dimStart: num
   if (row < dimStart) return 1
   const depth = (rows - 1 - row) / Math.max(1, rows - 1 - dimStart) // 1 at the start, 0 on the last row
   const eased = 0.5 * depth + 0.5 * depth * depth * (3 - 2 * depth)
+  if (row === dimStart) return 1 // beside the buttons: full brightness, no jitter
   return clamp01(eased * (1 + JITTER * depth * (2 * hash2(col, row) - 1)))
 }
 

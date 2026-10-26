@@ -30,9 +30,9 @@ ignores reduced-motion settings.
 - The grid is `cols × rows`, no longer a square `n × n`. Columns and rows cover
   the hero edge to edge, aligned so the name's cells land exactly on grid cells.
 - Everything the matrix does today keeps working on the larger grid: cursor
-  softmax glow, trailing ease, hovered row and column axis, click ripple,
+  softmax glow, trailing ease, hovered row and column axis (superseded, see below), click ripple,
   buttons pulling the glow, idle drift (now wandering the whole hero), pause
-  offscreen and in hidden tabs, ~30fps when idle, start after `load`.
+  offscreen and in hidden tabs, ~30fps when idle, start after `load` (superseded, see below: the intro starts when the script runs).
 
 ### The name
 
@@ -82,7 +82,7 @@ cells then sit exactly where the static ones were.
 
 ### Bottom dissolve
 
-The bottom ~22% of rows fade out in steps, per cell, using a seeded threshold so
+The bottom ~22% of rows fade out in steps (superseded, see below: Bottom fade), per cell, using a seeded threshold so
 the edge looks broken up rather than a straight gradient **(my call; mockup)**.
 This replaces the current CSS mask on the canvas.
 
@@ -90,7 +90,7 @@ This replaces the current CSS mask on the canvas.
 
 - The `<h1>` stays in the DOM with the full name, visually hidden (`sr-only`).
   The SVG and canvas are `aria-hidden`.
-- LCP becomes the tagline or the SVG; the canvas still starts after `load`.
+- LCP becomes the tagline or the SVG; the canvas still starts after `load`. (Superseded, see below: the LCP is the role line, and the canvas starts when the script runs.)
 - Cell count: about 38×21 = 800 at 1440×800 and about 27×55 = 1,500 on a phone,
   versus 576 today. Glow sprites are drawn only for bright cells, as now. If a
   phone trace shows dropped frames, raise the minimum pitch.
@@ -109,7 +109,7 @@ This replaces the current CSS mask on the canvas.
   name mask, timeline weights, bottom dissolve, rectangular grid layout) have
   tests that can fail.
 - The name is legible at every phase in Chrome at 375, 768, 1440 and 2560px
-  wide, and never overlaps the nav, tagline or buttons.
+  wide, and never overlaps the nav, tagline or buttons (superseded, see below: the tagline is removed; nav, role line or buttons).
 - The ribbon's top is at or below the fold on load at those widths.
 - Static SVG and first canvas frame line up (no visible jump, layout shift 0).
 - JS off: the SVG name shows. Reduced motion: the name is shown still and

@@ -14,15 +14,14 @@ describe('bottomFade (the dimming)', () => {
   const row = (r: number) => Array.from({ length: COLS }, (_, c) => bottomFade(r, ROWS, c, DIM))
   const means = fadeRowsList.map((r) => mean(row(r)))
 
-  it('is 1 above its start row, about 1 on it, and in [0, 1] below it', () => {
-    for (let r = 0; r < DIM; r++) expect(row(r).every((f) => f === 1)).toBe(true)
-    expect(Math.min(...row(DIM))).toBeGreaterThanOrEqual(0.9)
+  it('is exactly 1 above and on its start row (no jitter beside the buttons), and in [0, 1] below it', () => {
+    for (let r = 0; r <= DIM; r++) expect(row(r).every((f) => f === 1)).toBe(true)
     for (const r of fadeRowsList) for (const f of row(r)) expect(f >= 0 && f <= 1).toBe(true)
   })
 
   it('dims continuously: row means fall every row, never by more than 0.05 at once', () => {
-    let prev = 1
-    for (const m of means) {
+    let prev = means[0] // the start row itself is exactly 1
+    for (const m of means.slice(1)) {
       expect(m).toBeLessThan(prev)
       expect(prev - m).toBeLessThanOrEqual(0.05)
       prev = m

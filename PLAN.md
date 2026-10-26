@@ -188,8 +188,11 @@ decorative.
    full name and any per-letter spans are `aria-hidden`, so screen readers say
    the name once. **(review)**
 2. **Matrix fades on scroll (phase 3). Superseded 2026-10-25 by the name in the
-   matrix:** the bottom dissolve (lowest 22% of rows) now erodes the grid's lower
-   edge in place of a mask. The original plan, kept for reference: Cells dissolve bottom-row-up as the hero
+   matrix:** the bottom fade now erodes the grid's lower
+   edge in place of a mask: a button-anchored fade that dims from the row
+   holding the buttons' bottom edge to about 0 at the last row, with random
+   scattered missing cells from the next row (about 0.2 rising to 0.7, no 2x2
+   holes). The original plan, kept for reference: Cells dissolve bottom-row-up as the hero
    scrolls away, an `outroAlpha` mirror of the intro wave, so the grid erodes
    instead of being clipped by the hero's edge. Browsers without scroll-driven
    animations, and anyone with reduced motion, get a plain opacity and blur fade

@@ -10,6 +10,7 @@ export const site = {
   description:
     'Trevor Dohm is an AI/ML engineer at RTX and an MBA candidate at Wharton. Published research on linear attention (Cottention, Best Paper, Computing Conference 2025).',
   location: 'Philadelphia, PA',
+  // The ' | ' separators are required: the hero splits on them and wraps only there.
   role: 'MBA Candidate @ Wharton | AI Engineer @ RTX',
   url: 'https://trevordohm.github.io',
 
