@@ -197,22 +197,39 @@ in place.
   same shape is squeezed between 0.14H and one row above the fade's start.
   **Gliding back (2026-10-26, Trevor: the light snapped back too fast).** The
   light uses the exponential drag above while it follows the pointer, and in
-  the intro and its break (the approved look; a glide there capped the
-  break's speed at half the blend's 313 px/s and drifted 1.7 cells off it).
-  Once it lets go of the pointer (the pointer leaves or goes idle, or focus
-  leaves the hero) it glides until the pointer steers it again: straight at
-  the current path point, no faster than a cruise speed of 1.1 times the
-  path's actual top speed (sampled from its derivative every 0.05 s over 20
-  minutes, once per layout: 153.9 px/s at 1440×900, so cruise 169 px/s). It
-  sets off from rest, reaches cruise over 0.3 s, and once a step reaches the
-  path it rides it exactly, so there is no jump at the handover. Measured at
-  1440×900: after a swipe to the far corner and out into the nav, the first
-  steps are 0.08, 0.24 and 0.39 px, no step is faster than cruise, and the
-  light is back on the path in 0.82 s (123 px away); after holding still in
-  the corner past the 2.5 s timeout, 4.25 s (570 px away). The exponential
-  would have set off at 4 × the gap per second, about 2,300 px/s from 570 px.
-  The drag at 800 px/s is unchanged: q trails the pointer by 186.9 px (the
-  mockup, 186.9 px).
+  the intro and its break unless a pointer has steered it (the approved look;
+  a glide there capped the break's speed at half the blend's 313 px/s and
+  drifted 1.7 cells off it; a release during the intro does glide it). Once
+  it lets go of the pointer (the pointer leaves or goes idle, or focus leaves
+  the hero) it glides until the pointer steers it again. Gliding, it steers
+  its velocity toward the path point's own velocity plus a closing speed:
+  cruise when far, falling in proportion within an approach zone, so it eases
+  onto the path and rides it without overshooting. Its velocity changes by at
+  most cruise / 0.3 s per second, and it never goes faster than cruise, which
+  is 1.1 times the path's actual top speed. That top speed is sampled from
+  the path's derivative every 0.05 s over 20 minutes, once per layout: 153.9
+  px/s at 1440×900, so cruise is 169 px/s. The approach zone is a pitch, or
+  longer if it takes longer to brake from cruise (cruise × 0.3 s, 51 px at
+  1440×900). When it lets go, it carries on at its own speed capped at
+  cruise and turns toward the path, so it never stops dead. Measured at
+  1440×900 per frame:
+  - Swiping to the far corner and out into the nav: the light was moving at
+    1,620 px/s, carries on at 166 px/s and turns back. It never exceeds
+    cruise, and it is within a quarter cell (8 px) of the path after 1.3 s
+    (124 px away).
+  - Holding still in the corner past the 2.5 s timeout: within 8 px after
+    4.6 s (570 px away).
+  - Releasing 300 px behind the path while the path moves at 151 px/s (98%
+    of its top speed): within 8 px after 4.8 s.
+  - Its largest acceleration in all three, arrival included, is the 564
+    px/s² limit; the old hard catch dropped from cruise to the path's pace
+    in one frame.
+  - On the path it settles 2 to 4 px behind (an eighth of a cell, from the
+    path's velocity being read over the last frame at the 30 fps idle rate).
+  In simulation at 60 fps over 240 releases (6 points, 40 path phases),
+  rejoining to within 2 px takes 6.1 s at the median and 13.3 s at worst,
+  from 921 px away with the path heading away. The drag at 800 px/s is
+  unchanged: q trails the pointer by 186.7 px (the mockup, 186.6 px).
 - **Click or tap: a drop.** Replaces the full-page ring. The pressed cell
   flashes (peak 0.7 extra), a soft ring travels out and slows to a stop at 3
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
