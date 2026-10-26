@@ -7,6 +7,7 @@
 | Astro rebuild | Shipped 2026-09-17 (`9a4b0e8`) |
 | Design overhaul | **In progress.** Phases 1 (dark foundation) and 2 (attention matrix) are merged to `master` and live |
 | Ribbon and gallery | **Done** 2026-10-25 on branch `ribbon-gallery`. Ribbon and gallery both verified in Chrome only; Safari, Firefox and VoiceOver are unchecked. Not yet merged to `master` |
+| Name in the matrix | **Done** 2026-10-25 on branch `ribbon-gallery`. The hero's centerpiece is now the name, spelled in matrix cells. Verified in Chrome only; Safari, Firefox, VoiceOver and real touch are unchecked. Not yet merged to `master`. See the [design spec](docs/superpowers/specs/2026-10-25-name-in-the-matrix-design.md) |
 
 ---
 
@@ -41,11 +42,25 @@ be just as easy to read as it is now.
 | Decision | Choice | Why |
 |---|---|---|
 | Theme | Dark base with bright accents | The matrix glow depends on a dark background |
-| Hero centerpiece | Interactive attention matrix that glows around the cursor | Trevor's pick. Purely visual, with no explainer about the research |
+| Hero centerpiece | The name in the matrix: `TREVOR` and `DOHM` spelled in cells of the interactive attention matrix, which forms, holds, then breaks into a ghost the cursor glow brightens (changed 2026-10-25) | Trevor's pick. Purely visual, with no explainer about the research. The name was the hero's real focal point, so it now lives in the grid instead of beside it |
+| Hero grid | Full-screen, sized by the name: the pitch is the name's width over 23 columns, and the grid fills the whole `100svh` hero (2026-10-25) | The name lands exactly on grid cells, and the hero reads as one surface |
+| Hero eyebrow | Removed ("Philadelphia, PA") (2026-10-25) | The name block takes its place at the top of the copy |
+| Hero bottom edge | A bottom dissolve: the lowest 22% of rows fade out cell by cell on a seeded threshold, replacing the old CSS mask (2026-10-25) | The grid erodes into the ribbon instead of fading as a sheet |
 | Matrix tech | Canvas 2D in plain TypeScript | About 5 KB, 60fps, works on phones. WebGL/Three.js would add 150 KB+ and drain phone batteries faster |
 | Framework JS | None | Every animation is plain TS in Astro `<script>` tags. No React, GSAP, or Framer Motion |
 | Page transitions | Browser-native cross-document view transitions, not Astro's `<ClientRouter />` **(review)** | Zero JS instead of ~8.6 KB gzipped (measured), and it avoids the two lifecycle bugs described under Technical notes |
 | Word ribbon and attention gallery | Two drifting rows of interest words under the hero, and a gallery of attention-map cards. Page order: Hero, stats strip, Ribbon, Selected Work, Gallery, Contact. See the [design spec](docs/superpowers/specs/2026-10-22-ribbon-and-gallery-design.md) | The stats strip keeps the matrix and the ribbon, both glowing and moving, from sitting next to each other. Until phase 3 adds it, the ribbon sits directly under the hero |
+
+**Name in the matrix, verified 2026-10-25 in Chrome only** (headless Chrome on
+`npm run preview`): the name is legible in every phase at 375x812, 375x667,
+768x1024, 1366x768, 1440x900 and 2560x1440, never overlaps the nav, tagline or
+buttons, and the ribbon's top sits exactly at the fold. On a fast load the canvas
+draws before first paint and sweeps the name in; on Slow 4G with 4x CPU the static
+SVG paints first and the canvas takes over lit, with name cells within 8/255 per
+channel of the SVG and layout shift 0. Lighthouse mobile: Performance 100,
+Accessibility 100, CLS 0, LCP 1.5 s. Moto G Power profile at 4x CPU: 60fps while
+dragging, about 22 draws a second while idle. Safari, Firefox, VoiceOver and real
+touch are unchecked.
 
 ### Look
 
@@ -75,13 +90,22 @@ behind the hero. Both are static CSS or SVG, no JS.
 
 ### The attention matrix (hero)
 
-A grid of rounded cells drawn on a full-width `<canvas>` behind the name and tagline.
+*Updated 2026-10-25 for the name in the matrix; see that row in Decisions so far
+and the [design spec](docs/superpowers/specs/2026-10-25-name-in-the-matrix-design.md).*
+
+A grid of rounded cells drawn on a full-screen `<canvas>` behind the tagline. The
+name is spelled in the grid's own cells (3x5 pixel letters, `TREVOR` over `DOHM`, a
+23 by 11 cell block). A static SVG of the same cells shows first, and without JS;
+the canvas reads the SVG's box to size its grid and takes over in place. The
+`<h1>` keeps the full name, visually hidden, so screen readers say it once.
 The hero is `100svh` tall, which doesn't change when the mobile address bar shows
 or hides, so the canvas re-lays out on every real resize. *(An earlier revision
 ignored small height-only resizes; the phase 2 final review found that stretched
 the canvas on desktop and guarded nothing on phones, so it was removed.)*
 
-- **Size.** About 24×24 cells on desktop, 14×14 on phones.
+- **Size.** Rectangular and full-screen. The pitch comes from the name's width
+  (14px on a 375px phone, 32px at 1440, 41px at 2560); the rows and columns are
+  whatever fills the hero.
 - **Cursor as query.** Each cell's weight is a softmax over its negative distance
   to the cursor. Weight sets brightness and shifts color from dim `line` through
   `accent` to `accent-2`.
@@ -104,17 +128,23 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
   plan no longer promises drag-anywhere on phones. **(review)**
 - **Input target.** Pointer listeners go on the hero `<section>`, not the canvas,
   because the name and buttons sit on top of the canvas. **(review)**
-- **Intro.** On load, cells fade in as a diagonal wave.
+- **Intro.** The name forms (0.9 s), holds lit (1.6 s), then breaks (1.4 s)
+  into a ghost at weight 0.30 that the glow brightens. The clock starts when the
+  script runs. If the page has already painted, the static name was seen lit, so
+  the canvas starts in the hold instead of sweeping in from dark.
+- **Bottom dissolve.** The lowest 22% of rows fade out cell by cell, so the glow
+  dims there too.
 
-**Performance rules.** Runs on `requestAnimationFrame`, starting after the `load`
-event so it doesn't compete with first paint. **(review)** Pauses when the hero
+**Performance rules.** Runs on `requestAnimationFrame`. It used to start after the
+`load` event **(review)**; since the name in the matrix it starts when the script
+runs, because the static name is hidden as soon as the canvas draws. Pauses when the hero
 scrolls offscreen or the tab is hidden. Device pixel ratio capped at 2. Cell
 positions are computed once per resize, not every frame. Target: 60fps on a
 2020-era laptop, under 8 KB gzipped.
 
-**Fallbacks.** With `prefers-reduced-motion`, it draws one static frame, with no idle
-drift and no ripple. Without JS, a static CSS gradient shows instead, and the name and
-tagline render normally either way. The canvas is `aria-hidden` because it is
+**Fallbacks.** With `prefers-reduced-motion`, it draws one static frame with the
+name lit, with no idle drift and no ripple. Without JS, a static CSS gradient and the
+SVG name show instead, and the tagline renders normally either way. The canvas is `aria-hidden` because it is
 decorative.
 
 ### Motion across the site
@@ -249,7 +279,9 @@ reading, and none is needed to reach the goal.
   the ribbon and gallery: `gzip -c dist/_astro/*.js | wc -c` gives 7,399 bytes
   for the five bundled scripts (hero matrix, marquee, gallery, a shared palette
   and loop chunk, reduced-motion helper). `dist/index.html` has one inline
-  script, the nav menu, at 253 bytes gzipped. Total about 7.7 KB.
+  script, the nav menu, at 253 bytes gzipped. Total about 7.7 KB. After the name
+  in the matrix (2026-10-25): 8,676 bytes for the same five scripts plus the
+  253-byte inline script, about 8.9 KB.
 - **New files.** See Code structure for the full layout. Beyond it:
   `public/og.png` and a Vitest config.
 - **Why not `<ClientRouter />`.** **(review)** It would add ~8.6 KB gzipped and two
