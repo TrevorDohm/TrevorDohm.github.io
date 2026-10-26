@@ -22,8 +22,18 @@ export const INTRO_END = TIMELINE.form + TIMELINE.hold + TIMELINE.break
 /** A moment in the hold: the name is fully lit and nothing else is. */
 export const STILL_AT = TIMELINE.form + TIMELINE.hold / 2
 
-/** The intro clock always starts dark, before the name sweeps in (the mockup). */
+/** The intro clock starts dark, before the name sweeps in (the mockup). */
 export const INTRO_START = 0
+
+/**
+ * Where the intro clock starts. Normally dark (the static name is hidden until
+ * the canvas draws). If the static name is already showing, because the CSS
+ * safety net revealed it before this module ran, start lit in the hold so the
+ * name never goes lit, dark, lit.
+ */
+export function introStart(shown: boolean): number {
+  return shown ? TIMELINE.form : INTRO_START
+}
 /** When the role line and buttons start to fade in: as the name finishes forming. */
 export const COPY_AT = TIMELINE.form + 0.2
 

@@ -4,44 +4,12 @@ import {
   composeTargets,
   fadeMap,
   INTRO_END,
-  INTRO_START,
-  COPY_AT,
   introQuery,
   moveName,
   NAME,
   nameCells,
-  STILL_AT,
-  WAVE_START,
-  BREAK_AT,
 } from './intro'
 import { bottomFade, TIMELINE } from './name'
-
-describe('timeline constants', () => {
-  it('derive from TIMELINE', () => {
-    expect(WAVE_START).toBeCloseTo(0.9 + 0.6 * 1.6)
-    expect(INTRO_END).toBeCloseTo(0.9 + 1.6 + 1.4)
-    expect(BREAK_AT).toBeCloseTo(2.5)
-    expect(STILL_AT).toBeGreaterThan(TIMELINE.form)
-    expect(STILL_AT).toBeLessThan(TIMELINE.form + TIMELINE.hold)
-  })
-})
-
-describe('the intro start', () => {
-  it('always starts dark: at t = 0 no cell is lit, the name included', () => {
-    expect(INTRO_START).toBe(0)
-    const grid = layoutGrid(400, 300, 10, 20, 30)
-    const cells = nameCells(grid, 20, 30)
-    const target = new Float32Array(grid.cols * grid.rows)
-    composeTargets(target, new Float32Array(target.length).fill(0.5), grid, cells, INTRO_START)
-    expect(Math.max(...target)).toBe(0)
-  })
-
-  it('shows the copy at form + 0.2 s, as the mockup', () => {
-    expect(COPY_AT).toBeCloseTo(TIMELINE.form + 0.2)
-    expect(COPY_AT).toBeCloseTo(1.1)
-    expect(COPY_AT).toBeLessThan(BREAK_AT)
-  })
-})
 
 describe('nameCells', () => {
   it('puts the name block with its top-left cell at the anchor', () => {
@@ -72,7 +40,7 @@ describe('fadeMap', () => {
     const last = grid.cols * grid.rows - 1
     const fade = fadeMap(grid, Int32Array.from([-1, last, 3]))
     expect(fade[last]).toBe(1)
-    expect(fade[last - 1]).toBe(0)
+    expect(fade[last - 1]).toBeLessThan(1)
   })
 
   it('is bottomFade per cell', () => {

@@ -51,9 +51,11 @@ export function init(root: HTMLElement): () => void {
   let height = 0
   // The light's centre. It glides toward the pointer or the idle path, never jumps.
   let query: [number, number] | null = null
-  // Intro clock in seconds, from now. It always starts dark (the static name is
-  // hidden until the canvas draws); reduced motion holds it on the lit name.
-  let clock = reduced ? intro.STILL_AT : intro.INTRO_START
+  // Intro clock in seconds, from now: dark, or lit in the hold if the CSS safety
+  // net already showed the static name (a late module). Reduced motion: still.
+  const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
+  let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
+  let copyShown = false
 
   const goal = (now: number) => goalAt(state, now, clock, centre, width, height)
 
@@ -71,7 +73,7 @@ export function init(root: HTMLElement): () => void {
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
     // The copy fades in as the name finishes forming (CSS, under data-js-intro).
-    if (clock >= intro.COPY_AT) root.dataset.copyShown = ''
+    if (!copyShown && clock >= intro.COPY_AT) copyShown = root.toggleAttribute('data-copy-shown', true)
   }
 
   const resize = () => {
