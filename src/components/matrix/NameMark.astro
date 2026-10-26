@@ -47,9 +47,11 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
   /* Width: about 86% of a phone, 62% of a tablet, 52% of a wide screen, never
      wider than the text column, and capped by height so the name, copy and
      buttons fit between the nav and the dissolving bottom rows (78% of the
-     hero). The name block plus its one-row margin is 12/23 of the width. */
+     hero). The name block plus its one-row margin is 12/23 of the width. The
+     cap never goes below 253px (an 11px pitch), which bounds the canvas's
+     cell count on short screens; a 320px phone's text column is 272px. */
   .name-mark {
-    --name-cap: max(12rem, (78svh - 18rem) * 23 / 12);
+    --name-cap: max(253px, (78svh - 18rem) * 23 / 12);
     --name-w: min(100%, 86vw, var(--name-cap));
     display: block;
     width: var(--name-w);

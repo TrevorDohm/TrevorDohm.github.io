@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RAMP_SPLIT, mix, parseHex, rampColor, type Rgb } from './color'
+import { RAMP_SPLIT, mix, parseHex, rampColor, rampTable, type Rgb } from './color'
 
 describe('parseHex', () => {
   it('parses six-digit hex with surrounding whitespace, as CSS variables return it', () => {
@@ -51,5 +51,21 @@ describe('rampColor', () => {
   it('clamps weights outside [0, 1]', () => {
     expect(rampColor(-1, line, accent, accent2)).toEqual(line)
     expect(rampColor(5, line, accent, accent2)).toEqual(accent2)
+  })
+})
+
+describe('rampTable', () => {
+  const line: Rgb = [30, 30, 42]
+  const accent: Rgb = [124, 156, 255]
+  const accent2: Rgb = [177, 140, 255]
+  const css = ([r, g, b]: Rgb) => `rgb(${r},${g},${b})`
+
+  it('holds the ramp as CSS colours at evenly spaced weights', () => {
+    const table = rampTable(101, line, accent, accent2)
+    expect(table).toHaveLength(101)
+    expect(table[0]).toBe(css(line))
+    expect(table[60]).toBe(css(rampColor(0.6, line, accent, accent2)))
+    expect(table[37]).toBe(css(rampColor(0.37, line, accent, accent2)))
+    expect(table[100]).toBe(css(accent2))
   })
 })

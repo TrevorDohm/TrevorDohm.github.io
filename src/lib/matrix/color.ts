@@ -30,3 +30,14 @@ export function rampColor(w: number, line: Rgb, accent: Rgb, accent2: Rgb): Rgb 
     ? mix(line, accent, t / RAMP_SPLIT)
     : mix(accent, accent2, (t - RAMP_SPLIT) / (1 - RAMP_SPLIT))
 }
+
+/**
+ * The ramp as `steps` CSS colour strings, entry k at weight k / (steps - 1).
+ * Built once per palette so drawing a cell allocates nothing.
+ */
+export function rampTable(steps: number, line: Rgb, accent: Rgb, accent2: Rgb): string[] {
+  return Array.from({ length: steps }, (_, k) => {
+    const [r, g, b] = rampColor(k / (steps - 1), line, accent, accent2)
+    return `rgb(${r},${g},${b})`
+  })
+}

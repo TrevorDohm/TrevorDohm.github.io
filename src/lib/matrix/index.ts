@@ -1,10 +1,13 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { attentionWeights, easeToward } from './attention'
-import { applyBoost, idlePoint, RIPPLE } from './effects'
+import { applyBoost, RIPPLE } from './effects'
 import { layoutGrid, type Grid } from './geometry'
+import { idleQuery } from './idle'
 import { bindInput } from './input'
 import * as intro from './intro'
 import { createLoop } from './loop'
+import { copyMask } from './mask'
+import { measure } from './measure'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { createState, isIdle, pruneRipples } from './state'
@@ -15,19 +18,17 @@ const TEMPERATURE = 1.6
 const EASE_RATE = 7
 /** Brightness added to the hovered cell's row and column. */
 const AXIS_BOOST = 0.12
-/** Fallback pitch when the name anchor is missing: phones, then wider screens. */
-const FALLBACK_PITCH = [22, 40] as const
-const MOBILE_BREAKPOINT = 768
 
 /**
  * Mounts the attention matrix on the canvas inside `root`. The grid is laid out
- * from the static name (`[data-name-anchor]`) so the live name lands on it.
- * Returns cleanup.
+ * from the static name (`[data-name-anchor]`) so the live name lands on it, and
+ * the glow is kept off the copy (`[data-matrix-copy]`). Returns cleanup.
  */
 export function init(root: HTMLElement): () => void {
   const canvas = root.querySelector<HTMLCanvasElement>('canvas[data-matrix-canvas]')
   if (!canvas) return () => {}
   const anchor = root.querySelector<SVGElement>('[data-name-anchor]')
+  const copyEls = [...root.querySelectorAll('[data-matrix-copy]')]
 
   let renderer: Renderer
   try {
@@ -46,6 +47,7 @@ export function init(root: HTMLElement): () => void {
   let target = new Float32Array(0)
   let boost = new Float32Array(0)
   let fade: Float32Array = new Float32Array(0)
+  let copy: Uint8Array = new Uint8Array(0)
   let layoutKey = ''
   let width = 0
   let height = 0
@@ -56,7 +58,7 @@ export function init(root: HTMLElement): () => void {
   const updateTarget = (now: number) => {
     if (!grid) return
     if (isIdle(state, now) || !state.hasQuery) {
-      const idle = idlePoint(Math.max(0, clock - intro.BREAK_AT), 0, 0, width, height)
+      const idle = idleQuery(Math.max(0, clock - intro.BREAK_AT), width, height)
       ;[state.query.x, state.query.y] = intro.introQuery(clock, centre, idle)
     }
     attentionWeights(grid.centers, grid.pitch, state.query.x, state.query.y, TEMPERATURE, attention)
@@ -65,41 +67,38 @@ export function init(root: HTMLElement): () => void {
   }
 
   const draw = () => {
-    renderer.draw({ weights, boost, fade })
+    renderer.draw({ weights, boost, fade, copy })
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
   }
 
   const resize = () => {
-    const rect = canvas.getBoundingClientRect()
-    if (rect.width === 0 || rect.height === 0) return // not laid out yet, or hidden
-    const box = anchor?.getBoundingClientRect()
-    const named = !!box && box.width > 0 && box.height > 0
-    const pitch = named ? box.width / intro.NAME.cols : FALLBACK_PITCH[rect.width < MOBILE_BREAKPOINT ? 0 : 1]
-    const ax = named ? box.left - rect.left : 0
-    const ay = named ? box.top - rect.top : 0
-    const key = [rect.width, rect.height, pitch, ax, ay].map((v) => v.toFixed(2)).join()
-    if (key === layoutKey) return
-    layoutKey = key
-    width = rect.width
-    height = rect.height
+    const m = measure(canvas, anchor, copyEls)
+    if (!m || m.key === layoutKey) return
+    layoutKey = m.key
+    width = m.width
+    height = m.height
+    const { pitch, ax, ay, named } = m
 
     const saved = Float32Array.from(cells, (i) => (i >= 0 ? weights[i] : NaN))
     const oldCells = cells
+    const old = grid
     grid = layoutGrid(width, height, pitch, ax, ay)
     cells = named ? intro.nameCells(grid, ax, ay) : new Int32Array(0)
     centre = named
       ? [ax + (pitch * intro.NAME.cols) / 2, ay + (pitch * intro.NAME.rows) / 2]
       : [width / 2, height / 2]
-    const count = grid.cols * grid.rows
-    const fresh = count !== weights.length
+    // Same shape keeps the arrays (and every cell's index); any change starts fresh.
+    const fresh = !old || old.cols !== grid.cols || old.rows !== grid.rows
     if (fresh) {
+      const count = grid.cols * grid.rows
       weights = new Float32Array(count)
       attention = new Float32Array(count)
       target = new Float32Array(count)
       boost = new Float32Array(count)
     }
     fade = intro.fadeMap(grid)
+    copy = copyMask(grid, m.copy, cells)
     renderer.resize(grid, width, height, window.devicePixelRatio || 1)
     updateTarget(performance.now())
     // New arrays start from the targets; either way the name keeps its eased state.
