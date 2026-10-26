@@ -132,13 +132,17 @@ copy fade, the name size and the dissolve band; the replaced rulings are noted
 in place.
 
 - **Intro start (2026-10-26).** The canvas and the intro clock start when the
-  script runs, not at `load`, and the intro always starts dark: the name sweeps
+  script runs, not at `load`, and the intro starts dark: the name sweeps
   in (form), holds, then breaks into the ghost, as the mockup. (This replaces
   the 2026-10-25 ruling that started lit, in the hold, once the page had
   painted.) The lit static name never shows first: a tiny inline script just
   before the hero sets `data-js-intro` on `<html>` when motion is allowed, and
   CSS hides the static name under it until the canvas draws. If the matrix
-  never takes over, a CSS animation shows the static name after 3 s. Without
+  never takes over, a CSS animation shows the static name after 3 s; a module
+  that runs after that starts lit, in the hold (`introStart(shown)` reads the
+  static name's opacity), so the name never goes lit, dark, lit. Measured with
+  the module held until 4 s: the static name shows at 3.06 s and the canvas
+  takes over at 4.03 s with the name at full brightness. Without
   JavaScript, or with reduced motion, the static name shows at once (reduced
   motion: lit and still, and the canvas takes over in place).
 - **Copy fade-in (2026-10-26).** The role line and buttons start at opacity 0
@@ -194,25 +198,34 @@ in place.
   cells, and everything is gone after 0.7 s. No cell 4 or more cells away is
   touched, and overlapping drops are capped at 0.7.
 - **Copy mask.** On each layout, the mask is built from the ink of the copy:
-  one box per text line of the copy (the role line since 2026-10-26; Range client rects,
-  fragments merged only when they overlap by more than half the shorter one)
-  and one per button. Cells overlapping a box keep 0.2 of their weight and the
-  cells around them (one cell, diagonals included) keep 0.6; neither gets a
-  glow sprite. Dimming by a factor keeps the glow's shape across the copy. 0.2
-  is the largest factor that keeps the copy at 4.5:1: with the light parked on
-  the tagline, on the role line, above the tagline, between the role line and
-  the buttons, right of the role line and right of the buttons, at 1440×900 and
-  390×844, the brightest background pixel behind either line gives at least
-  4.62:1 against the muted text (0.25 gives 4.27:1). Name cells are exempt. The idle path stays above the
-  dissolve band.
+  one box per text line of the role line (Range client rects, fragments merged
+  only when they overlap by more than half the shorter one) and one per
+  button. Cells overlapping a box keep 0.2 of their weight and the cells
+  around them (one cell, diagonals included) keep 0.6; neither gets a glow
+  sprite. Dimming by a factor keeps the glow's shape across the copy. 0.2 was
+  chosen as the largest factor that kept the copy at 4.5:1 (0.25 gave 4.27:1
+  with the tagline). Re-measured 2026-10-26 after the gradual band, with the
+  light parked on the role line, above it, between it and the buttons, right
+  of it, right of the buttons and below the buttons, at 1440×900, 1366×657 and
+  390×844: the brightest background pixel behind the role line gives at least
+  4.88:1 against the muted text. Name cells are exempt. The idle path stays
+  above the dissolve band.
 - **Pitch floor.** The name is never narrower than 253px, an 11px pitch, so a
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
   the floor still fits it.
-- **Bottom dissolve (2026-10-26).** The band is the lowest 35% of rows (was
-  22%) and scattered: each cell drops out at its own seeded depth over a short
-  edge (12% of the band), so the band thins out as cells dropping out instead
-  of an even ramp. Row averages fall from 0.98 at the band top to 0 on the last
-  row; the mean in-row variance is 0.14 (0.017 for the old ramp) and 89% of band
-  cells are fully on or fully off. The buttons can sit over the band's upper
-  part; their solid backgrounds and the copy dimming keep them legible.
+- **Bottom dissolve (2026-10-26, revised after Trevor's review).** The band
+  is the lowest 35% of rows (was 22%). The first version scattered cells out
+  at seeded depths and left big black gaps, which Trevor didn't like; it now
+  darkens gradually. Each cell's visibility eases from 1 at the band top to
+  0.18 on the last row (`d(1.4 - 0.4d)`, steeper toward the bottom), times a
+  seeded ±12% jitter. A few cells drop out fully: only cells on a sparse
+  lattice ((col + 2 row) mod 5 = 0, no two touching) can drop, with a chance
+  rising from 0 at two thirds up the band to 75% on the last row, about 5% of
+  band cells overall, so dropouts never join into holes. Measured from the
+  canvas: row means fall from about 0.95 to 0.15-0.16 on the last row, 4.8% to
+  5.7% of band cells are dark, none in the band's top third, and no dark cell
+  touches more than one other. On desktop the band is only 9 to 11 rows, so a
+  row-to-row step reaches 0.13 there; on a 390×844 phone (22 rows) it is at
+  most 0.08. The buttons can sit over the band's upper part; their solid
+  backgrounds and the copy dimming keep them legible.

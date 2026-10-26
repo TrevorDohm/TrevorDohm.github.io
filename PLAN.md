@@ -45,8 +45,8 @@ be just as easy to read as it is now.
 | Hero centerpiece | The name in the matrix: `TREVOR` and `DOHM` spelled in cells of the interactive attention matrix, which forms, holds, then breaks into a ghost the cursor glow brightens (changed 2026-10-25) | Trevor's pick. Purely visual, with no explainer about the research. The name was the hero's real focal point, so it now lives in the grid instead of beside it |
 | Hero grid | Full-screen, sized by the name: the pitch is the name's width over 23 columns, and the grid fills the whole `100svh` hero (2026-10-25) | The name lands exactly on grid cells, and the hero reads as one surface |
 | Hero eyebrow | Removed ("Philadelphia, PA") (2026-10-25) | The name block takes its place at the top of the copy |
-| Hero bottom edge | A bottom dissolve: the lowest 35% of rows (22% until 2026-10-26) drop out cell by cell, each at its own seeded depth, replacing the old CSS mask (2026-10-25) | The grid erodes into the ribbon instead of fading as a sheet. Trevor asked for it to start higher and look more sporadic |
-| Hero layout and intro | The block (name, role line, buttons) is centred at 45% of the hero below the nav; the tagline is removed and the role line reads `MBA Candidate @ Wharton \| AI Engineer @ RTX \| Philadelphia, PA`; the intro always starts dark and the copy fades in at about 1.1 s (2026-10-26) | Trevor's feedback: the name sat too close to the top, and he preferred the mockup's dark start and late copy. An inline gate (`data-js-intro`) hides the static name and copy only when JS runs and motion is allowed, with a 3 s CSS safety net |
+| Hero bottom edge | A bottom dissolve: the lowest 35% of rows (22% until 2026-10-26) darken gradually to about 0.18, with a small per-cell jitter and about 5% of cells, never touching, fully dark, replacing the old CSS mask (2026-10-25) | The grid fades into the ribbon instead of fading as a sheet. Trevor asked for it to start higher; a scattered dropout version left black gaps he didn't like, so it darkens gradually instead |
+| Hero layout and intro | The block (name, role line, buttons) is centred at 45% of the hero below the nav; the tagline is removed and the role line reads `MBA Candidate @ Wharton \| AI Engineer @ RTX \| Philadelphia, PA`; the intro starts dark (lit in the hold only if a late module finds the static name already shown) and the copy fades in at about 1.1 s (2026-10-26) | Trevor's feedback: the name sat too close to the top, and he preferred the mockup's dark start and late copy. An inline gate (`data-js-intro`) hides the static name and copy only when JS runs and motion is allowed, with a 3 s CSS safety net |
 | Matrix tech | Canvas 2D in plain TypeScript | About 5 KB, 60fps, works on phones. WebGL/Three.js would add 150 KB+ and drain phone batteries faster |
 | Framework JS | None | Every animation is plain TS in Astro `<script>` tags. No React, GSAP, or Framer Motion |
 | Page transitions | Browser-native cross-document view transitions, not Astro's `<ClientRouter />` **(review)** | Zero JS instead of ~8.6 KB gzipped (measured), and it avoids the two lifecycle bugs described under Technical notes |
@@ -58,14 +58,14 @@ name is lit at the hold (contrast against the cells around it about 12:1 or
 more). After the break the ghost is deliberately quiet, about 1.6 to 2.2:1 at
 weight 0.30 (Trevor's choice), and brightens under the glow. The name never overlaps the nav, role line or
 buttons, and the ribbon's top sits exactly at the fold. On a fast load the canvas
-draws before first paint and sweeps the name in; on Slow 4G with 4x CPU the static
-SVG paints first and the canvas takes over lit, with name cells within 8/255 per
-channel of the SVG and layout shift 0. Lighthouse mobile: Performance 100,
-Accessibility 100, CLS 0, LCP 1.5 s. *(2026-10-26: the intro always starts
-dark and the static name stays hidden until the canvas draws, so Slow 4G shows
-the dark backdrop, then the sweep, with no lit frame first; the copy fades in
-at about 1.1 s, which moves LCP to the role line at 2.1 s in Lighthouse mobile,
-Performance 98, CLS 0.)* Moto G Power profile at 4x CPU: 60fps while
+draws before first paint and sweeps the name in. Since 2026-10-26 the static
+name stays hidden until the canvas draws, so on Slow 4G with 4x CPU the dark
+backdrop paints first (1.67 s), then the canvas sweeps the name in from dark
+(2.36 s), with no lit frame first and layout shift 0. If the module arrives
+after the 3 s safety net has shown the static name, the canvas takes over lit
+(measured with the module held until 4 s). The copy fades in at about 1.1 s,
+so the LCP element is the role line: Lighthouse mobile Performance 97 to 98,
+Accessibility 100, CLS 0, LCP 2.1 s (1.5 s before the copy fade). Moto G Power profile at 4x CPU: 60fps while
 dragging. While idle the loop is capped at about 30fps; at 60 Hz it draws about
 22 times a second, because a gap of just under 33 ms waits one more frame. Safari, Firefox, VoiceOver and real
 touch are unchecked.
@@ -141,10 +141,12 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
   because the name and buttons sit on top of the canvas. **(review)**
 - **Intro.** The name forms (0.9 s), holds lit (1.6 s), then breaks (1.4 s)
   into a ghost at weight 0.30 that the glow brightens. The clock starts when the
-  script runs and always starts dark (2026-10-26). The role line and buttons
-  fade in from about 1.1 s.
-- **Bottom dissolve.** The lowest 35% of rows drop out cell by cell, scattered,
-  so the glow dims there too. Name cells never dissolve.
+  script runs and starts dark (2026-10-26), or lit in the hold if the 3 s
+  safety net already showed the static name. The role line and buttons fade in
+  from about 1.1 s.
+- **Bottom dissolve.** The lowest 35% of rows darken gradually, with a few
+  isolated cells fully dark, so the glow dims there too. Name cells never
+  dissolve.
 
 **Performance rules.** Runs on `requestAnimationFrame`. It used to start after the
 `load` event **(review)**; since the name in the matrix it starts when the script
