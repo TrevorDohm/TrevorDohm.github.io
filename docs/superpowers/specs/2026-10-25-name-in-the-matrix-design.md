@@ -215,24 +215,33 @@ in place.
   short viewport cannot multiply the cell count (844×390 had an 8px pitch and
   about 7,000 cells before the floor). A 320px phone's text column is 272px, so
   the floor still fits it.
-- **Bottom fade (2026-10-26, revised twice after Trevor's review).** The band
-  is the lowest 45% of rows (22% before this round). A scattered-dropout
-  version left big black gaps, and a version that only darkened to 0.18 left a
-  visible cutoff where the hero ends; Trevor wanted neither. It now fades
-  continuously to about 0: each cell's visibility goes from 1 at the band top
-  to about 0 on the last row along half a straight line and half a smoothstep
-  (bright longer at the top, settling gently at the bottom), times a seeded
-  ±10% jitter that shrinks to nothing toward the bottom. A few isolated cells
-  drop out fully, only in the band's middle: cells on a sparse lattice
-  ((col + 2 row) mod 5 = 0, no two touching), with a chance peaking at 30% at
-  the band's middle and 0 in its top third and bottom fifth, about 1% of band
-  cells. Measured from the canvas at 1440×900, 1366×657 and 390×844: last-row
-  means 0.021, 0.029 and 0.007; dropouts 0.9% to 1.3%; no dark cell touches
-  another dark cell more than once. Desktop bands are 12 to 14 rows, so a
-  row-to-row step reaches 0.12 there; the 390×844 band (28 rows) steps at most
-  0.07. With the hero's bottom scrolled to mid-screen there is no visible line
-  where it meets the ribbon. The band's top (0.55 of the hero) now sits above
-  the name's lower rows on desktop; name cells are exempt and the band is
-  still above 0.9 there. The role line and buttons sit in the band's upper
-  half (about 0.6 to 0.8 visibility); their solid backgrounds and the copy
-  dimming keep them legible.
+- **Bottom fade (2026-10-26, revised three times after Trevor's review).**
+  The band is the lowest 45% of rows (22% before this round). Rejected along
+  the way: scattered random dropouts (big black gaps), darkening that stopped
+  at 0.18 (a visible cutoff), and a continuous fade with only about 1% of
+  cells removed (too few). Now each cell's visibility goes from 1 at the band
+  top to about 0 on the last row along half a straight line and half a
+  smoothstep, times a seeded ±10% jitter that shrinks toward the bottom. On
+  top of that, cells are removed more with depth: none in the band's top
+  fifth, then a smoothstep ramp to 55% of cells on the last rows, so the edge
+  tapers away and the cutoff can't be located. Which cells go is an ordered
+  dither, the R2 low-discrepancy sequence frac(0.7549 col + 0.5698 row) plus a
+  ±0.02 seeded jitter. A 4x4 Bayer matrix was the suggestion, but its rows
+  hold different threshold sets (at a 20% removal one Bayer row loses half its
+  cells and the next none), which would stripe; R2 gives every row its share.
+  Any 2x2 block's four R2 thresholds span at least 0.675 of [0, 1), so at 55%
+  no 2x2 block is ever fully removed. Measured from the canvas (row by row,
+  top to bottom of the band):
+  - 1440×900: removed 0, 0, 0, 0, 0.05, 0.05, 0.14, 0.18, 0.23, 0.34, 0.41,
+    0.50, 0.52, 0.55; last-row mean 0.010.
+  - 1366×657: removed 0, 0, 0, 0, 0.04, 0.10, 0.18, 0.30, 0.38, 0.46, 0.48,
+    0.56; last-row mean 0.013.
+  - 390×844: 0 for 8 rows, then rising to 0.48-0.56 on the last rows (27
+    cells a row, so steps of 0.037); last-row mean 0.003.
+  - No fully removed 2x2 block at any size.
+  With the hero's bottom scrolled to mid-screen there is no visible line where
+  it meets the ribbon. The band's top (0.55 of the hero) sits above the
+  name's lower rows on desktop; name cells are exempt and the band is still
+  above 0.9 there. The role line and buttons sit in the band's upper half,
+  where removal is light; their solid backgrounds and the copy dimming keep
+  them legible.
