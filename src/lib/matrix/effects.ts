@@ -21,20 +21,6 @@ export function dropAt(distance: number, age: number): number {
   return peak * falloff * life * Math.max(ring, flash)
 }
 
-/** A slow looping path inside the rectangle at (x, y) of size width x height. `t` is in seconds. */
-export function idlePoint(
-  t: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): [number, number] {
-  return [
-    x + width / 2 + width * 0.38 * Math.sin(t * 0.31),
-    y + height / 2 + height * 0.38 * Math.sin(t * 0.23 + Math.PI / 2),
-  ]
-}
-
 /** Visibility of a cell during the load-in wave, which sweeps from the top-left corner. */
 export function introAlpha(
   progress: number,

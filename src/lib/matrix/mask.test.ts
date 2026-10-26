@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { layoutGrid } from './geometry'
-import { copyMask, EDGE, lineRects, MASKED } from './mask'
+import { copyMask, EDGE, EDGE_DIM, lineRects, MASK_DIM, MASKED, maskedWeight } from './mask'
 
 // 10 x 10 cells of 10 px, origin at (0, 0).
 const grid = layoutGrid(100, 100, 10, 0, 0)
@@ -65,6 +65,17 @@ describe('copyMask', () => {
   })
 })
 
+describe('maskedWeight', () => {
+  it('dims masked and edge cells by a factor, keeping the shape of the glow', () => {
+    expect(maskedWeight(0.8, 0)).toBe(0.8)
+    expect(maskedWeight(0.8, MASKED)).toBeCloseTo(0.8 * MASK_DIM)
+    expect(maskedWeight(0.8, EDGE)).toBeCloseTo(0.8 * EDGE_DIM)
+    expect(maskedWeight(0.4, EDGE) / maskedWeight(0.8, EDGE)).toBeCloseTo(0.5) // proportional, not a flat cap
+    expect(MASK_DIM).toBeLessThan(EDGE_DIM)
+    expect(EDGE_DIM).toBeLessThan(1)
+  })
+})
+
 describe('lineRects', () => {
   it('merges fragments that share a line and keeps lines apart', () => {
     const merged = lineRects([
@@ -76,6 +87,14 @@ describe('lineRects', () => {
       { left: 10, top: 0, right: 90, bottom: 20 },
       { left: 10, top: 29, right: 60, bottom: 49 },
     ])
+  })
+
+  it('keeps lines apart when they only overlap a little (tight leading)', () => {
+    const lines = [
+      { left: 10, top: 0, right: 90, bottom: 22 },
+      { left: 10, top: 18, right: 60, bottom: 40 }, // 4px overlap, under half of 22
+    ]
+    expect(lineRects(lines)).toEqual(lines)
   })
 
   it('drops empty fragments', () => {

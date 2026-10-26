@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { idleQuery } from './idle'
 import { INTRO_END, introQuery } from './intro'
-import { GLIDE_CELLS, goalAt, isSettled, QUERY_RATE, queryTarget, smoothQuery } from './query'
-import { clearPointer, createState, IDLE_AFTER_MS, setPointer } from './state'
+import { GLIDE_CELLS, goalAt, isSettled, type Point, QUERY_RATE, queryTarget, smoothQuery } from './query'
+import { clearPointer, createState, IDLE_AFTER_MS, isIdle, setPointer } from './state'
 
 const pitch = 24
 
@@ -84,7 +84,7 @@ describe('query over a scripted visit', () => {
 
   // A 1366 x 657 hero at 60fps, after the intro: the pointer sweeps in, stops
   // (and goes idle), sweeps again, then leaves. It moves 10px a frame at most.
-  it('never jumps: each frame covers k of the gap, and no more than the pointer once caught up', () => {
+  it('never jumps: no step beyond k times the gap at the last target switch or the own step of the target', () => {
     const s = createState()
     let clock = INTRO_END
     let now = 0
@@ -92,6 +92,10 @@ describe('query over a scripted visit', () => {
     let q: [number, number] = [...goalAt(s, now, clock, centre, width, height)]
     let worst = 0
     let worstFollowing = 0
+    let lastSource = ''
+    let switchGap = 0
+    let fastestTarget = 0
+    let lastGoal: Point | null = null
     const trail: number[] = []
     const frame = (move: [number, number] | null, following = false) => {
       clock += dt
@@ -101,10 +105,21 @@ describe('query over a scripted visit', () => {
         setPointer(s, pointer[0], pointer[1], now)
       }
       const goal = goalAt(s, now, clock, centre, width, height)
-      const gap = Math.hypot(goal[0] - q[0], goal[1] - q[1])
+      const source = isIdle(s, now) ? 'path' : 'pointer'
+      if (source !== lastSource) {
+        // The target switched: the stationary-target bound restarts from this gap.
+        switchGap = Math.hypot(goal[0] - q[0], goal[1] - q[1])
+        fastestTarget = 0
+        lastSource = source
+      } else if (lastGoal) {
+        fastestTarget = Math.max(fastestTarget, Math.hypot(goal[0] - lastGoal[0], goal[1] - lastGoal[1]))
+      }
+      lastGoal = goal
       const next = smoothQuery(q, goal, dt)
       const step = Math.hypot(next[0] - q[0], next[1] - q[1])
-      expect(step).toBeLessThanOrEqual(k * gap + 1e-9) // a glide, by construction
+      // Between switches the gap never exceeds max(switchGap, s / k) for a target
+      // moving s a frame, so a step is at most k * switchGap or the target's own step.
+      expect(step).toBeLessThanOrEqual(Math.max(k * switchGap, fastestTarget) + 1e-9)
       worst = Math.max(worst, step)
       if (following) worstFollowing = Math.max(worstFollowing, step)
       q = next

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyBoost, DROP, dropAt, idlePoint, introAlpha } from './effects'
+import { applyBoost, DROP, dropAt, introAlpha } from './effects'
 import { layoutGrid } from './geometry'
 
 describe('dropAt', () => {
@@ -37,19 +37,6 @@ describe('dropAt', () => {
   it('peaks lower the farther a cell is from the click', () => {
     const most = (d: number) => Math.max(...ages.map((age) => dropAt(d, age)))
     for (let d = 0.5; d < 4; d += 0.5) expect(most(d)).toBeLessThan(most(d - 0.5))
-  })
-})
-
-describe('idlePoint', () => {
-  it('stays inside the rectangle over a minute and moves over time', () => {
-    const points = Array.from({ length: 600 }, (_, i) => idlePoint(i * 0.1, 100, 50, 1200, 700))
-    for (const [x, y] of points) {
-      expect(x).toBeGreaterThanOrEqual(100)
-      expect(x).toBeLessThanOrEqual(1300)
-      expect(y).toBeGreaterThanOrEqual(50)
-      expect(y).toBeLessThanOrEqual(750)
-    }
-    expect(points[0]).not.toEqual(points[100])
   })
 })
 

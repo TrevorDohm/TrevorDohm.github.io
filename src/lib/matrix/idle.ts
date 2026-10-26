@@ -1,11 +1,12 @@
-import { idlePoint } from './effects'
-import { DISSOLVE_BAND } from './name'
-
 /**
  * The query's idle path, `t` seconds after the break, on a canvas of
- * width x height: a loop over the area above the bottom dissolve band, so the
- * glow never drifts into the rows that are fading out.
+ * width x height: the mockup's drift. x spans 0.16 to 0.84 of the width and y
+ * 0.15 to 0.75 of the height, so the glow stays above the bottom dissolve band
+ * (the lowest 22% of rows).
  */
 export function idleQuery(t: number, width: number, height: number): [number, number] {
-  return idlePoint(t, 0, 0, width, height * (1 - DISSOLVE_BAND))
+  return [
+    width * (0.5 + 0.34 * Math.sin(t * 0.31) * Math.cos(t * 0.13)),
+    height * (0.45 + 0.3 * Math.sin(t * 0.23 + 1)),
+  ]
 }

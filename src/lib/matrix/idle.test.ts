@@ -26,14 +26,22 @@ describe('idleQuery', () => {
     for (const [x, y] of path(390, 844)) expect(fade[cellAt(grid, x, y)]).toBe(1)
   })
 
+  it('is the mockup drift: W(0.5 + 0.34 sin(0.31t) cos(0.13t)), H(0.45 + 0.3 sin(0.23t + 1))', () => {
+    for (const t of [0, 1.7, 12.3, 95]) {
+      const [x, y] = idleQuery(t, 1366, 657)
+      expect(x).toBeCloseTo(1366 * (0.5 + 0.34 * Math.sin(t * 0.31) * Math.cos(t * 0.13)), 9)
+      expect(y).toBeCloseTo(657 * (0.45 + 0.3 * Math.sin(t * 0.23 + 1)), 9)
+    }
+  })
+
   it('scales its x extent with the width and its y extent with the height', () => {
     const wide = path(1600, 400)
     const tall = path(400, 1600)
     const xs = (p: [number, number][]) => p.map(([x]) => x)
     const ys = (p: [number, number][]) => p.map(([, y]) => y)
-    expect(extent(xs(wide)) / 1600).toBeCloseTo(0.76, 2)
-    expect(extent(xs(tall)) / 400).toBeCloseTo(0.76, 2)
-    expect(extent(ys(wide)) / 400).toBeCloseTo(0.76 * (1 - DISSOLVE_BAND), 2)
-    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.76 * (1 - DISSOLVE_BAND), 2)
+    expect(extent(xs(wide)) / 1600).toBeCloseTo(extent(xs(tall)) / 400, 6)
+    expect(extent(xs(wide)) / 1600).toBeGreaterThan(0.6)
+    expect(extent(ys(wide)) / 400).toBeCloseTo(0.6, 2)
+    expect(extent(ys(tall)) / 1600).toBeCloseTo(0.6, 2)
   })
 })

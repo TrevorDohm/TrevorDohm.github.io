@@ -11,8 +11,18 @@ export interface Rect {
 /** Mask values: a cell under the copy (drawn at rest), and a cell beside one (capped, no glow). */
 export const MASKED = 1
 export const EDGE = 2
-/** Highest weight an EDGE cell is drawn at: halfway between rest (0) and full (1). */
-export const EDGE_CAP = 0.5
+/**
+ * Brightness kept by a MASKED and an EDGE cell. Multiplying (not capping) keeps
+ * the glow's shape across the copy; the factors are the largest that keep the
+ * copy at 4.5:1 or better with the light parked on or beside it.
+ */
+export const MASK_DIM = 0.2
+export const EDGE_DIM = 0.6
+
+/** A cell's drawn weight given its copyMask value. */
+export function maskedWeight(weight: number, mask: number): number {
+  return mask === MASKED ? weight * MASK_DIM : mask === EDGE ? weight * EDGE_DIM : weight
+}
 
 /**
  * MASKED for each grid cell whose square overlaps one of `rects` (touching an
@@ -49,13 +59,16 @@ export function copyMask(grid: Grid, rects: readonly Rect[], exempt: Int32Array)
 
 /**
  * Text line boxes from a Range's client rects: drops empty fragments and
- * merges fragments whose vertical spans overlap (one line, several spans).
+ * merges fragments that overlap vertically by more than half the shorter one
+ * (one line, several spans); tightly leaded lines that just touch stay apart.
  */
 export function lineRects(fragments: readonly Rect[]): Rect[] {
   const lines: Rect[] = []
   for (const f of fragments) {
     if (f.right <= f.left || f.bottom <= f.top) continue
-    const line = lines.find((l) => f.top < l.bottom && f.bottom > l.top)
+    const sameLine = (l: Rect) =>
+      Math.min(f.bottom, l.bottom) - Math.max(f.top, l.top) > Math.min(f.bottom - f.top, l.bottom - l.top) / 2
+    const line = lines.find(sameLine)
     if (!line) {
       lines.push({ ...f })
       continue

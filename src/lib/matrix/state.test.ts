@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { IDLE_AFTER_MS, MAX_RIPPLES, addRipple, clearPointer, createState, holdPointer, isIdle, pruneRipples, setPointer } from './state'
+import { IDLE_AFTER_MS, MAX_RIPPLES, addRipple, clearPointer, createState, isIdle, pruneRipples, setPointer } from './state'
 
 describe('matrix state', () => {
   it('starts idle, with no pointer or ripples', () => {
@@ -26,16 +26,12 @@ describe('matrix state', () => {
     expect(isIdle(s, 1001)).toBe(true)
   })
 
-  it('never goes idle while held on a button, and lets go when released or moved', () => {
+  it('lets a resting pointer go after 2.5 s even with it still set, as the mockup', () => {
     const s = createState()
-    holdPointer(s, 50, 60, 1000)
+    setPointer(s, 50, 60, 1000) // e.g. pulled onto a button
+    expect(Object.keys(s).sort()).toEqual(['lastInput', 'pointer', 'ripples'])
+    expect(isIdle(s, 1000 + IDLE_AFTER_MS + 1)).toBe(true)
     expect(s.pointer).toEqual({ x: 50, y: 60 })
-    expect(isIdle(s, 1000 + 60_000)).toBe(false)
-    setPointer(s, 10, 20, 2000) // moved off the button
-    expect(isIdle(s, 2000 + IDLE_AFTER_MS + 1)).toBe(true)
-    holdPointer(s, 50, 60, 3000)
-    clearPointer(s) // left the hero, or focus left it
-    expect(isIdle(s, 3001)).toBe(true)
   })
 
   it('keeps at most MAX_RIPPLES, dropping the oldest', () => {
