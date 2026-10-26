@@ -44,14 +44,20 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
 </svg>
 
 <style>
-  /* Width: about 86% of a phone, 62% of a tablet, 52% of a wide screen, never
-     wider than the text column, and capped by height so the name, copy and
-     buttons fit between the nav and the dissolving bottom rows (78% of the
-     hero). The name block plus its one-row margin is 12/23 of the width. The
-     cap never goes below 253px (an 11px pitch), which bounds the canvas's
-     cell count on short screens; a 320px phone's text column is 272px. */
+  /* Width: 86% of a phone, 62% of a tablet, 52% of a wide screen (the
+     mockup's shares), never wider than the text column, and capped by height
+     so the name, its one-row gap and the copy end at the dissolving bottom
+     rows (78% of the hero). The name plus that gap is 12/23 of the width.
+     --copy-reserve is what sits above and below them, measured in Chrome: the
+     hero's top padding (nav clearance) plus the copy below the gap (tagline,
+     role line, buttons and their margins). Phones: a 3-line tagline and 2-line
+     role, 202.36px. From 40rem: 2 lines and 1 line, 153.11px. The top padding
+     is 4.75rem below 48rem and 4.25rem from 48rem. The cap never goes below
+     253px (an 11px pitch), which bounds the canvas's cell count on short
+     screens; a 320px phone's text column is 272px. */
   .name-mark {
-    --name-cap: max(253px, (78svh - 18rem) * 23 / 12);
+    --copy-reserve: calc(4.75rem + 12.65rem);
+    --name-cap: max(253px, (78svh - var(--copy-reserve)) * 23 / 12);
     --name-w: min(100%, 86vw, var(--name-cap));
     display: block;
     width: var(--name-w);
@@ -62,7 +68,13 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
   }
   @media (min-width: 40rem) {
     .name-mark {
+      --copy-reserve: calc(4.75rem + 9.57rem);
       --name-w: min(100%, 62vw, var(--name-cap));
+    }
+  }
+  @media (min-width: 48rem) {
+    .name-mark {
+      --copy-reserve: calc(4.25rem + 9.57rem);
     }
   }
   @media (min-width: 68.75rem) {
