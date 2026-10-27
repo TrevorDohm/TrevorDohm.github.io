@@ -4,6 +4,8 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     color-scheme: dark;
+    /* Anchor jumps clear the nav's extra height under a phone's status bar. */
+    scroll-padding-top: env(safe-area-inset-top);
   }
 
   body {

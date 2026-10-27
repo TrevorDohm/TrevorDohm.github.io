@@ -9,7 +9,7 @@ const year = new Date().getFullYear()
 ---
 
 <footer class="mt-24 border-t border-line">
-  <div class="section-container flex flex-col gap-4 py-10 sm:flex-row sm:items-center sm:justify-between">
+  <div class="section-container flex flex-col gap-4 pt-10 pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between">
     <p class="font-mono text-xs text-muted">© {year} {name}</p>
     <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
       {links.map((link) => (

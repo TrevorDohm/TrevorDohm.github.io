@@ -11,9 +11,11 @@ const { siteName, items, pathname } = Astro.props
 const links = items.map((item) => ({ ...item, active: isActivePath(pathname, item.href) }))
 ---
 
+<!-- The top padding runs the glass under a phone's status bar (viewport-fit=cover);
+     section-container keeps the content clear of side notches in landscape. -->
 <header
   data-nav
-  class="fixed inset-x-0 top-0 z-50 border-b border-line/80 bg-background/70 backdrop-blur-md"
+  class="fixed inset-x-0 top-0 z-50 border-b border-line/80 bg-background/70 pt-[env(safe-area-inset-top)] backdrop-blur-md"
 >
   <nav class="section-container py-4" aria-label="Main">
     <div class="flex items-center justify-between">

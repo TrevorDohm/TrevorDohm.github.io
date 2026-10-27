@@ -34,7 +34,8 @@ const facts = [...role.split(' | '), location]
        auto block margins, which centre it in the free space without feature
        detection and never push it above the padding when it overflows. It is
        centred at 45% of the hero below the fixed nav: the top padding clears
-       the nav (73px tall on phones with the menu button, 65px from md up) and
+       the nav (73px tall on phones with the menu button, 65px from md up, plus
+       the status bar on notched phones) and
        the bottom padding, a tenth of what is left, lifts the centre from 50%
        to 45%. NameMark's
        height cap uses the same numbers. The matrix keeps its glow off the
@@ -72,7 +73,8 @@ const facts = [...role.split(' | '), location]
   }
 
   .hero-copy {
-    --hero-nav: 4.75rem;
+    /* The nav grows by the status bar on notched phones. */
+    --hero-nav: calc(4.75rem + env(safe-area-inset-top));
     padding-top: var(--hero-nav);
     padding-bottom: calc((max(100svh, 32.5rem) - var(--hero-nav)) / 10);
     /* A halo in the page color keeps the text readable over bright cells. */
@@ -82,7 +84,7 @@ const facts = [...role.split(' | '), location]
   }
   @media (min-width: 48rem) {
     .hero-copy {
-      --hero-nav: 4.25rem;
+      --hero-nav: calc(4.25rem + env(safe-area-inset-top));
     }
   }
 
