@@ -8,11 +8,22 @@
 // reduced motion, nothing is hidden. If the matrix bails out early (no 2D
 // context, no layout, unreadable palette) it sets data-copy-shown itself, so the
 // copy shows at once rather than at the 3 s net.
+//
+// The intro plays in full once per tab session. Once it has (SEEN_KEY in
+// sessionStorage), the gate also marks data-intro-seen and nothing is hidden:
+// the name and copy paint lit, and the matrix starts lit in the hold to match.
+import { SEEN_KEY } from '../../lib/matrix/visit'
 ---
 
-<script is:inline>
+<script is:inline define:vars={{ seenKey: SEEN_KEY }}>
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.documentElement.setAttribute('data-js-intro', '')
+    const html = document.documentElement
+    html.setAttribute('data-js-intro', '')
+    try {
+      if (sessionStorage.getItem(seenKey) === '1') html.setAttribute('data-intro-seen', '')
+    } catch {
+      // Storage unavailable: a first visit.
+    }
   }
 </script>
 
@@ -24,13 +35,13 @@
   }
 
   /* The canvas sweeps the name in from dark; the lit static name would blink. */
-  [data-js-intro] [data-name-anchor] {
+  [data-js-intro]:not([data-intro-seen]) [data-name-anchor] {
     opacity: 0;
     animation: intro-safety-net 0s 3s forwards;
   }
 
   /* The role line and buttons fade in as the name finishes, as the mockup. */
-  [data-js-intro] [data-intro-copy] {
+  [data-js-intro]:not([data-intro-seen]) [data-intro-copy] {
     opacity: 0;
     animation: intro-safety-net 0.8s 3s forwards;
   }

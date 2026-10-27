@@ -9,7 +9,9 @@ import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } f
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
 import { carryName, layoutScene, type Scene } from './scene'
+import { markSeen, readSeen } from './seen'
 import { createState, isIdle, pruneRipples } from './state'
+import { introPlan, seenBy } from './visit'
 import { watchLayout } from './watch'
 
 /** Softmax temperature in cells. Higher spreads the glow wider (the mockup's 2.2). */
@@ -45,10 +47,14 @@ export function init(root: HTMLElement): () => void {
   let scene: Scene | null = null
   let layoutKey = ''
   const light = createLight() // the light's centre (light.q); it glides, never jumps
-  // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
+  // Intro clock (s): dark, or lit in the hold if the intro played earlier this
+  // session or the CSS safety net showed the static name.
+  const seen = readSeen()
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
-  let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
-  let copyShown = false
+  const plan = introPlan({ still: reduced, shown, seen })
+  let clock = plan.clock
+  let copyShown = plan.copyNow && showCopy()
+  let marked = seen
 
   const goal = (s: Scene, now: number) => goalAt(state, now, clock, s.centre, s.width, s.height, s.at.floor, s.at.ceiling)
 
@@ -85,6 +91,10 @@ export function init(root: HTMLElement): () => void {
   const tick = (dt: number, now: number) => {
     if (!scene) return
     clock += dt
+    if (!marked && seenBy(clock)) {
+      marked = true
+      markSeen()
+    }
     updateTarget(scene, now, dt)
     easeToward(scene.weights, scene.target, EASE_RATE, dt)
     pruneRipples(state, now, DROP.lifetime * 1000)
