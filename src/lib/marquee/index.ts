@@ -4,7 +4,7 @@ import { approach } from './math'
 import { layoutRow, resetRow } from './timing'
 
 /** Playback rate while the pointer is over a row. */
-const HOVER_RATE = 0.25
+const HOVER_RATE = 0.5
 /** How quickly the rate eases toward its target, per second. */
 const EASE_RATE = 4
 /** Longest step fed to the easing, so a stalled frame doesn't jump. */

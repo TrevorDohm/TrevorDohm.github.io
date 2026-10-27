@@ -14,10 +14,10 @@ const rows = itemsByRow(Astro.props.items, 2, ['ml', 'bake', 'mba', 'hike'])
 
 <section data-marquee-root aria-label="Things I work on and love" class="ribbon">
   <button type="button" data-marquee-toggle hidden class="toggle"><span data-marquee-label>Pause</span><span class="sr-only"> ribbon</span></button>
-  <MarqueeRow speed={22} label="Interests, first row">
+  <MarqueeRow speed={33} label="Interests, first row">
     {rows[0].map((item, i) => <RibbonItem item={item} outlined={i % 2 === 1} />)}
   </MarqueeRow>
-  <MarqueeRow speed={30} reverse label="Interests, second row">
+  <MarqueeRow speed={45} reverse label="Interests, second row">
     {rows[1].map((item, i) => <RibbonItem item={item} outlined={i % 2 === 1} />)}
   </MarqueeRow>
 </section>

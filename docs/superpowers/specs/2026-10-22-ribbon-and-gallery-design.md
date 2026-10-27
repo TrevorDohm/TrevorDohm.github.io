@@ -105,9 +105,9 @@ at about 7.7:1.
 
 ### Motion
 
-- Row 1 drifts left at **22 px/s**, row 2 right at **30 px/s** (computed:
+- Row 1 drifts left at **22 px/s**, row 2 right at **30 px/s** (Trevor raised these to 33 and 45 px/s on 2026-10-26) (computed:
   duration = track width ÷ speed, so speed stays constant whatever the content).
-- Hovering the ribbon eases playback rate to **0.25** and back, via
+- Hovering the ribbon eases playback rate to **0.25** (raised to 0.5 on 2026-10-26) and back, via
   `getAnimations()` and `updatePlaybackRate`, lerped each frame.
 - A visible **Pause / Play** button, first in tab order inside the section.
   Paused means paused until the user presses Play.
@@ -175,7 +175,7 @@ Where it is displayed beyond the ribbon is left open.
 ### What it is **(Trevor approved the mockup as shown)**
 
 A section titled **"Ways to pay attention"**, with a mono eyebrow, then a
-strip of six cards drifting left at **18 px/s**, slower than the ribbon because
+strip of six cards drifting left at **18 px/s** (raised to 26 px/s on 2026-10-26), slower than the ribbon because
 the cards carry detail.
 
 Each card is a `surface` panel, about 240px wide, laid out top to bottom:
@@ -218,7 +218,7 @@ same static frame serves reduced motion.
 - A highlighted query row sweeps down each map at about 1.6 rows per second,
   and cell brightness eases toward its target, as the hero's weights do.
 - Hovering a card makes the cursor's vertical position the query row, echoing
-  the hero. The card lifts about 4px, and the strip eases to quarter speed.
+  the hero. The card lifts about 4px, and the strip eases to quarter speed (half speed since 2026-10-26).
 - It uses the same marquee module as the ribbon, with a pause button, offscreen
   pause, reduced motion and JS-off behavior identical to Part 1.
 - All cards share **one** rAF loop capped at 30fps, and only cards
@@ -266,7 +266,7 @@ gallery card.
 ## Done means
 
 - `npm test` and `npm run build` pass with 0 errors.
-- Measured speeds are within ±10% of 22, 30 and 18 px/s.
+- Measured speeds are within ±10% of 22, 30 and 18 px/s (33, 45 and 26 px/s since 2026-10-26).
 - Pause stops all motion and stays stopped. Hover eases rather than snaps.
 - Reduced motion and JS off: no motion, all items readable, the row is
   keyboard-scrollable, and the pause button is hidden.

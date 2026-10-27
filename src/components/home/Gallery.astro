@@ -20,7 +20,7 @@ const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(le
     <SectionHeading id="gallery-heading" eyebrow="How models look at text" title="Ways to pay attention" />
     <button type="button" data-marquee-toggle hidden class="toggle"><span data-marquee-label>Pause</span><span class="sr-only"> gallery</span></button>
   </div>
-  <MarqueeRow speed={18} label="Attention patterns" gap="1.25rem">
+  <MarqueeRow speed={26} label="Attention patterns" gap="1.25rem">
     {cards.map((card) => <PatternCard card={card} />)}
   </MarqueeRow>
 </section>
