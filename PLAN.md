@@ -46,7 +46,10 @@ be just as easy to read as it is now.
 | Hero grid | Full-screen, sized by the name: the pitch is the name's width over 23 columns, and the grid fills the whole `100svh` hero (2026-10-25) | The name lands exactly on grid cells, and the hero reads as one surface |
 | Hero eyebrow | Removed ("Philadelphia, PA") (2026-10-25) | The name block takes its place at the top of the copy |
 | Hero bottom edge | A bottom fade anchored under the buttons: from the row holding their bottom edge the cells dim to 0 on the last row, and from the next row down about 22% of cells are removed, rising to about 68% at the bottom, chosen at random but never as a fully removed 2x2 block; replaces the old CSS mask (2026-10-25, settled 2026-10-26) | The grid tapers into the ribbon and its cutoff can't be located. Rejected: random dropouts over a 35% band (black gaps), darkening that stopped at 0.18 (a visible edge), a 45% fade with almost no removals (too even), an ordered dither (patterns), and a fade from 0.55H (empty cells too high) |
-| Hero layout and intro | The block (name, role line, buttons) is centred at 45% of the hero below the nav; the tagline is removed and the role line reads `MBA Candidate @ Wharton \| AI Engineer @ RTX \| Philadelphia, PA`; the intro starts dark (lit in the hold only if a late module finds the static name already shown) and the copy fades in at about 1.1 s (2026-10-26) | Trevor's feedback: the name sat too close to the top, and he preferred the mockup's dark start and late copy. An inline gate (`data-js-intro`) hides the static name and copy only when JS runs and motion is allowed, with a 3 s CSS safety net |
+| Hero layout and intro | The block (name, role line, buttons) is centred at 45% of the hero below the nav; the tagline is removed and the role line reads `MBA Candidate @ Wharton \| AI Engineer @ RTX \| Philadelphia, PA`; the intro starts dark (lit in the hold only if a late module finds the static name already shown) and the copy fades in at about 1.1 s (2026-10-26) | Trevor's feedback: the name sat too close to the top, and he preferred the mockup's dark start and late copy. An inline gate (`data-js-intro`) hides the static name and copy only when JS runs and motion is allowed, with a 3 s CSS safety net. Since 2026-10-27 the full intro plays once per tab session: a reload in the same tab starts lit with the copy shown, and the name then breaks as usual (the flag is set in `sessionStorage` once the intro passes the break, so an interrupted first intro plays again) |
+| Hero top edge | A top fade mirroring the bottom one: cells dim from full on the row above the name to 0 on the top row, with random dropouts, and the idle glow roams no higher than the middle of that fade (2026-10-27) | On iOS the overscroll area above the page shows only the root background colour, so a matrix bleeding above the hero showed about 5 rows and then stopped. Trevor suggested the fade instead |
+| Nav | Opaque `bg-background`, padded by `env(safe-area-inset-top)` with `viewport-fit=cover`, under no blur; the grain layer sits under it at z-40 and is absolute, not fixed (2026-10-27) | iOS 26 Safari tints the status bar from a fixed element at the top edge, so a translucent nav or a fixed grain layer above it left the status bar unfilled or a different shade. Replaces the glass nav below |
+| Carousels | Ribbon rows drift at 33 and 45 px/s and the gallery at 26 px/s, at half speed under the pointer; mouse and pen can drag them, touch can swipe them (including diagonal swipes that lean horizontal) with a coast after release (2026-10-27) | Trevor wanted them faster and wanted to scroll through them quickly |
 | Matrix tech | Canvas 2D in plain TypeScript | About 5 KB, 60fps, works on phones. WebGL/Three.js would add 150 KB+ and drain phone batteries faster |
 | Framework JS | None | Every animation is plain TS in Astro `<script>` tags. No React, GSAP, or Framer Motion |
 | Page transitions | Browser-native cross-document view transitions, not Astro's `<ClientRouter />` **(review)** | Zero JS instead of ~8.6 KB gzipped (measured), and it avoids the two lifecycle bugs described under Technical notes |
@@ -148,7 +151,9 @@ the canvas on desktop and guarded nothing on phones, so it was removed.)*
   into a ghost at weight 0.30 that the glow brightens. The clock starts when the
   script runs and starts dark (2026-10-26), or lit in the hold if the 3 s
   safety net already showed the static name. The role line and buttons fade in
-  from about 1.1 s.
+  from about 1.1 s. Later loads in the same tab session start lit with the copy
+  shown (2026-10-27). Turning on reduced motion mid-visit stops on the still
+  frame with the name lit; turning it off resumes.
 - **Bottom fade.** From just under the buttons the cells dim to 0 at the
   bottom, and more drop out the lower they are (at random, never in clumps),
   so the glow dims there too and the hero has no visible bottom edge. Name
@@ -217,7 +222,8 @@ decorative.
    `animation-timeline` is declared after the `animation` shorthand, because the
    shorthand resets it. **(review)** Supported in Chromium 115+ and Safari 26;
    check Firefox's current status on caniuse before relying on it.
-7. **Nav.** On the home page, transparent over the hero, turning to blurred glass
+7. **Nav. Superseded 2026-10-27 by the opaque nav (see Decisions).** On the
+   home page, transparent over the hero, turning to blurred glass
    once you scroll past it. On every other page, glass from the start, since there
    is no hero behind it. **(review)** The active page gets a highlighted pill.
 8. **Page transitions.** `@view-transition { navigation: auto; }` in CSS cross-fades
