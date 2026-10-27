@@ -32,10 +32,16 @@
   }
 }
 
-/* Film grain over the whole page: static SVG noise, no JS. */
+/* Film grain over the whole page: static SVG noise, no JS. Absolute over the
+   document rather than fixed to the viewport: iOS 26 Safari tints the status
+   bar from a fixed element at the top edge, and this mostly transparent layer
+   (which sits above the nav) would otherwise be the one it samples. */
+body {
+  position: relative;
+}
 body::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 100;
   pointer-events: none;
