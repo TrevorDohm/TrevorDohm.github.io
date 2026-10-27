@@ -9,6 +9,8 @@
   }
 
   body {
+    /* Repeated on body: iOS 26 Safari reportedly tints the status bar from it. */
+    background-color: var(--color-background);
     @apply antialiased;
   }
 
