@@ -46,7 +46,10 @@ if (clearance) rows.push({ label: 'Clearance', value: clearance })
             <dt class="w-24 shrink-0 font-mono text-xs uppercase tracking-wider text-muted leading-6">
               {row.label}
             </dt>
-            <dd>
+            <!-- The LinkedIn URL is wider than this column on a 320px phone:
+                 it breaks after a slash, and anything else may break anywhere
+                 rather than widen the page. -->
+            <dd class="wrap-anywhere">
               {row.href ? (
                 <a
                   href={row.href}
@@ -54,7 +57,7 @@ if (clearance) rows.push({ label: 'Clearance', value: clearance })
                   rel={row.external ? 'noopener noreferrer' : undefined}
                   class="link-underline hover:text-accent"
                 >
-                  {row.value}
+                  {row.value.split('/').map((part, i) => <>{i > 0 && <>/<wbr /></>}{part}</>)}
                 </a>
               ) : (
                 row.value
