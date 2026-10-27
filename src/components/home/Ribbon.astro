@@ -2,6 +2,7 @@
 import type { Interest } from '../../data/interests'
 import { itemsByRow } from '../../lib/marquee/rows'
 import MarqueeRow from '../ui/MarqueeRow.astro'
+import MarqueeToggle from '../ui/MarqueeToggle.astro'
 import RibbonItem from './RibbonItem.astro'
 
 interface Props {
@@ -13,7 +14,7 @@ const rows = itemsByRow(Astro.props.items, 2, ['ml', 'bake', 'mba', 'hike'])
 ---
 
 <section data-marquee-root aria-label="Things I work on and love" class="ribbon">
-  <button type="button" data-marquee-toggle hidden class="toggle"><span data-marquee-label>Pause</span><span class="sr-only"> ribbon</span></button>
+  <MarqueeToggle label="ribbon" placement="ribbon" />
   <MarqueeRow speed={33} label="Interests, first row">
     {rows[0].map((item, i) => <RibbonItem item={item} outlined={i % 2 === 1} />)}
   </MarqueeRow>
@@ -33,25 +34,4 @@ const rows = itemsByRow(Astro.props.items, 2, ['ml', 'bake', 'mba', 'hike'])
     margin-top: 10px;
   }
 
-  .toggle {
-    position: absolute;
-    top: 1.5rem;
-    right: max(1rem, env(safe-area-inset-right)); /* clear of a landscape notch */
-    z-index: 1;
-    padding: 6px 12px;
-    border: 1px solid var(--color-line);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--color-muted);
-    font: 500 12px var(--font-mono);
-    cursor: pointer;
-  }
-
-  .toggle[hidden] {
-    display: none;
-  }
-
-  .toggle:hover {
-    color: var(--color-foreground);
-  }
 </style>
