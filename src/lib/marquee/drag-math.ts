@@ -41,16 +41,36 @@ export function dragIntent(dx: number, dy: number, threshold: number): 'x' | 'y'
 }
 
 /**
- * Pointer velocity in px/s over the samples in the last `windowMs` before
- * `now` (times in ms). 0 if the pointer had stopped or there is too little data.
+ * Pointer velocity in px/s: the least-squares slope of x over time for the
+ * move samples in the last `windowMs` before `now` (times in ms). A fit over
+ * every sample, rather than the first and last, keeps one jittery reading
+ * from dominating. If the last move is more than `stopMs` before `now`, the
+ * pointer had stopped, so it is 0 (as Android's VelocityTracker assumes).
  */
-export function releaseVelocity(samples: readonly { t: number; x: number }[], now: number, windowMs: number): number {
+export function fitVelocity(
+  samples: readonly { t: number; x: number }[],
+  now: number,
+  windowMs: number,
+  stopMs: number,
+): number {
   const recent = samples.filter((s) => now - s.t <= windowMs)
-  if (recent.length < 2) return 0
-  const first = recent[0]
-  const last = recent[recent.length - 1]
-  const dt = last.t - first.t
-  return dt > 0 ? ((last.x - first.x) / dt) * 1000 : 0
+  if (recent.length < 2 || now - recent[recent.length - 1].t > stopMs) return 0
+  const tMean = recent.reduce((a, s) => a + s.t, 0) / recent.length
+  const xMean = recent.reduce((a, s) => a + s.x, 0) / recent.length
+  let num = 0, den = 0
+  for (const s of recent) {
+    num += (s.t - tMean) * (s.x - xMean)
+    den += (s.t - tMean) ** 2
+  }
+  return den > 0 ? (num / den) * 1000 : 0
+}
+
+/** Above this speed (px/s), a press that catches a coasting row is a catch, not a tap. */
+const CATCH_PX_S = 50
+
+/** Whether the tap that stops a row coasting at `v` px/s should be swallowed, as native scroll views do. */
+export function catchSwallowsTap(v: number): boolean {
+  return Math.abs(v) > CATCH_PX_S
 }
 
 /** Content velocity in px/s of a row drifting at `speed` px/s and playback `rate`. */

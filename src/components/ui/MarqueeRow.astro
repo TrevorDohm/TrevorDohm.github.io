@@ -81,6 +81,7 @@ const items = await Astro.slots.render('default')
     cursor: grab;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-touch-callout: none; /* no iOS link preview on a long press mid-swipe */
   }
 
   :global([data-marquee-ready]) .row[data-dragging],

@@ -1,7 +1,8 @@
 import { whileMotionAllowed } from '../motion/while-motion-allowed'
-import { dragRows, rowAnims } from './drag'
+import { dragRows } from './drag'
 import { focusHold } from './focus'
 import { approach } from './math'
+import { rowAnims } from './scrub'
 import { layoutRow, resetRow } from './timing'
 
 /** Playback rate while the pointer is over a row. */

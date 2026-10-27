@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { coast, dragIntent, driftVelocity, releaseVelocity, scrubDelta, wrapTime } from './drag-math'
+import { catchSwallowsTap, coast, dragIntent, driftVelocity, fitVelocity, scrubDelta, wrapTime } from './drag-math'
 
 describe('scrubDelta', () => {
   // A 2000px track that loops in 40s: 50px/s, so 1px is 20ms.
@@ -58,22 +58,42 @@ describe('dragIntent', () => {
   it('measures the distance, not each axis', () => expect(dragIntent(5, 5, 7)).toBe('y'))
 })
 
-describe('releaseVelocity', () => {
-  it('is distance over time across the recent samples', () => {
-    const samples = [{ t: 0, x: 0 }, { t: 50, x: 40 }, { t: 100, x: 100 }]
-    expect(releaseVelocity(samples, 100, 100)).toBe(1000)
+describe('fitVelocity', () => {
+  // Samples every `dt` ms at `v` px/s, ending at `end`.
+  const steady = (v: number, dt: number, end: number, n: number) =>
+    Array.from({ length: n }, (_, k) => ({ t: end - (n - 1 - k) * dt, x: (v * (end - (n - 1 - k) * dt)) / 1000 }))
+
+  it('gives the speed of constant-speed samples at 120 Hz', () =>
+    expect(fitVelocity(steady(1500, 8.33, 1000, 30), 1008, 100, 50)).toBeCloseTo(1500, 6))
+  it('gives the speed of constant-speed samples at 60 Hz, leftward', () =>
+    expect(fitVelocity(steady(-900, 16.7, 500, 12), 510, 100, 50)).toBeCloseTo(-900, 6))
+  it('does not let jittery end samples dominate', () => {
+    const samples = steady(1000, 8, 1000, 13) // 96 ms of samples
+    samples[0] = { ...samples[0], x: samples[0].x - 4 }
+    samples[12] = { ...samples[12], x: samples[12].x + 4 }
+    // First-to-last would read 1083 px/s; the fit reads 1033.
+    expect(fitVelocity(samples, 1000, 100, 50)).toBeCloseTo(1000 + (8 * 48 * 1000) / (64 * 182), 6)
   })
-  it('ignores samples older than the window', () => {
-    const samples = [{ t: 0, x: 0 }, { t: 400, x: 10 }, { t: 450, x: 60 }]
-    expect(releaseVelocity(samples, 450, 100)).toBe(1000)
+  it('is 0 when the pointer stopped more than stopMs before release', () => {
+    expect(fitVelocity(steady(1200, 8, 400, 20), 455, 100, 50)).toBe(0)
+    expect(fitVelocity(steady(1200, 8, 400, 20), 520, 100, 50)).toBe(0) // a 120 ms pause: nothing in the window
   })
-  it('is 0 when the pointer stopped before release', () => {
-    const samples = [{ t: 0, x: 0 }, { t: 50, x: 100 }]
-    expect(releaseVelocity(samples, 400, 100)).toBe(0)
+  it('keeps the full speed for a release just after the last move', () =>
+    expect(fitVelocity(steady(1200, 8, 400, 20), 440, 100, 50)).toBeCloseTo(1200, 6))
+  it('is 0 with fewer than two samples or no spread in time', () => {
+    expect(fitVelocity([{ t: 10, x: 5 }], 10, 100, 50)).toBe(0)
+    expect(fitVelocity([{ t: 10, x: 5 }, { t: 10, x: 9 }], 10, 100, 50)).toBe(0)
   })
-  it('is 0 with fewer than two samples or no elapsed time', () => {
-    expect(releaseVelocity([{ t: 10, x: 5 }], 10, 100)).toBe(0)
-    expect(releaseVelocity([{ t: 10, x: 5 }, { t: 10, x: 9 }], 10, 100)).toBe(0)
+})
+
+describe('catchSwallowsTap', () => {
+  it('swallows the tap that catches a row moving faster than 50 px/s', () => {
+    expect(catchSwallowsTap(400)).toBe(true)
+    expect(catchSwallowsTap(-51)).toBe(true)
+  })
+  it('lets a tap through on a slow or resting row', () => {
+    expect(catchSwallowsTap(50)).toBe(false)
+    expect(catchSwallowsTap(0)).toBe(false)
   })
 })
 
