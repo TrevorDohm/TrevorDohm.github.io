@@ -68,8 +68,11 @@ export function createGesture(root: HTMLElement, hooks: GestureHooks) {
       scrub(g.row, x - lastX)
       lastX = x
     },
-    /** Ends the press. A drag coasts at the release velocity if `release`, else stops. */
-    finish(now: number, release: boolean) {
+    /**
+     * Ends the press. A drag coasts at the release velocity if `release`, else
+     * stops, and swallows the click that follows unless it was a `tap`.
+     */
+    finish(now: number, release: boolean, tap = false) {
       const r = g.row, wasDragging = g.dragging
       g.row = null
       g.dragging = false
@@ -78,7 +81,7 @@ export function createGesture(root: HTMLElement, hooks: GestureHooks) {
         hooks.onHold()
         const v = release ? fitVelocity(samples, now, VELOCITY_WINDOW_MS, STOPPED_MS) : 0
         startCoast(r, Math.max(-MAX_PX_S, Math.min(MAX_PX_S, v)))
-        swallow = true // the click that follows this release must not open a link
+        if (!tap) swallow = true // the click that follows this release must not open a link
       }
       armSwallow()
     },

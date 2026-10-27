@@ -54,6 +54,26 @@ export function swipeIntent(dx: number, dy: number, threshold: number): 'x' | 'y
 }
 
 /**
+ * What a touch's move means for the carousel: 'wait' below `threshold`,
+ * 'scrub' for a swipe the page hasn't claimed, 'yield' for a page scroll. A
+ * touchmove that is not `cancelable` means the browser is already scrolling,
+ * so even a horizontal swipe yields rather than moving both.
+ */
+export function touchDecision(move: { dx: number; dy: number; cancelable: boolean }, threshold: number) {
+  const intent = swipeIntent(move.dx, move.dy, threshold)
+  if (intent === null) return 'wait'
+  return intent === 'x' && move.cancelable ? 'scrub' : 'yield'
+}
+
+/** A touch that never travels this far from its start is a tap, even if it nudged the row. */
+const TAP_SLOP_PX = 8
+
+/** Whether a touch whose furthest travel from its start was `maxTravelPx` counts as a tap. */
+export function isTap(maxTravelPx: number): boolean {
+  return maxTravelPx < TAP_SLOP_PX
+}
+
+/**
  * Pointer velocity in px/s: the least-squares slope of x over time for the
  * move samples in the last `windowMs` before `now` (times in ms). A fit over
  * every sample, rather than the first and last, keeps one jittery reading

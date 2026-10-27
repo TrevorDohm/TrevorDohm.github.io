@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catchSwallowsTap, coast, dragIntent, swipeIntent, driftVelocity, fitVelocity, scrubDelta, wrapTime } from './drag-math'
+import { catchSwallowsTap, coast, dragIntent, isTap, swipeIntent, touchDecision, driftVelocity, fitVelocity, scrubDelta, wrapTime } from './drag-math'
 
 describe('scrubDelta', () => {
   // A 2000px track that loops in 40s: 50px/s, so 1px is 20ms.
@@ -73,9 +73,39 @@ describe('swipeIntent', () => {
     expect(swipeIntent(6, 10, 4)).toBe('x')
     expect(swipeIntent(5.9, 10, 4)).toBe('y')
   })
+  it('decides on a first move that overshoots the threshold', () => {
+    expect(swipeIntent(9, 1, 4)).toBe('x')
+    expect(swipeIntent(1, -9, 4)).toBe('y')
+  })
   it('takes a straight swipe either way', () => {
     expect(swipeIntent(5, 0, 4)).toBe('x')
     expect(swipeIntent(0, -5, 4)).toBe('y')
+  })
+})
+
+describe('touchDecision', () => {
+  it('waits below the threshold', () => expect(touchDecision({ dx: 2, dy: 1, cancelable: true }, 4)).toBe('wait'))
+  it('scrubs a horizontal swipe the page has not claimed', () =>
+    expect(touchDecision({ dx: 6, dy: 3, cancelable: true }, 4)).toBe('scrub'))
+  it('yields a horizontal swipe once the browser is scrolling (touchmove not cancelable)', () =>
+    expect(touchDecision({ dx: 6, dy: 3, cancelable: false }, 4)).toBe('yield'))
+  it('yields a vertical swipe either way', () => {
+    expect(touchDecision({ dx: 1, dy: 8, cancelable: true }, 4)).toBe('yield')
+    expect(touchDecision({ dx: 1, dy: 8, cancelable: false }, 4)).toBe('yield')
+  })
+  it('keeps waiting below the threshold even when not cancelable', () =>
+    expect(touchDecision({ dx: 1, dy: 1, cancelable: false }, 4)).toBe('wait'))
+})
+
+describe('isTap', () => {
+  it('is a tap while the touch travelled under 8 px in all', () => {
+    expect(isTap(0)).toBe(true)
+    expect(isTap(5)).toBe(true)
+    expect(isTap(7.9)).toBe(true)
+  })
+  it('is a swipe from 8 px', () => {
+    expect(isTap(8)).toBe(false)
+    expect(isTap(40)).toBe(false)
   })
 })
 

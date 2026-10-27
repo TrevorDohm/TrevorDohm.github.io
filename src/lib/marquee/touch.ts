@@ -1,7 +1,7 @@
-import { swipeIntent } from './drag-math'
+import { isTap, touchDecision } from './drag-math'
 import type { Gesture } from './gesture'
 
-/** Movement before a touch picks a direction. Below iOS's own scroll slop, so the choice comes first. */
+/** Movement before a touch picks a direction, kept small so the choice comes before the browser starts scrolling. */
 const DECIDE_PX = 4
 
 /**
@@ -11,17 +11,19 @@ const DECIDE_PX = 4
  * touchmove picks the direction once the touch has moved DECIDE_PX; a swipe
  * within about 59 degrees of horizontal is the carousel's, and every later
  * touchmove of it is prevented so the page holds still. A steeper one is left
- * to scroll. A second finger ends the drag so pinch zoom works.
+ * to scroll, as is a swipe the browser had already started scrolling. A
+ * touch that stays within a few px is a tap and still clicks. A second
+ * finger ends the drag so pinch zoom works.
  */
 export function touchInput(rows: HTMLElement[], g: Gesture): () => void {
   let id = -1
-  let decided: 'x' | 'y' | null = null
+  let decided = false, travel = 0
 
   const ours = (event: TouchEvent) => Array.from(event.changedTouches).find((t) => t.identifier === id)
   const stop = (event: TouchEvent, release: boolean) => {
     if (id === -1) return
     id = -1
-    g.finish(event.timeStamp, release)
+    g.finish(event.timeStamp, release, isTap(travel))
   }
 
   const onStart = (event: TouchEvent) => {
@@ -29,7 +31,8 @@ export function touchInput(rows: HTMLElement[], g: Gesture): () => void {
     const t = event.changedTouches[0]
     if (g.press(event.currentTarget as HTMLElement, t.clientX, t.clientY, event.timeStamp)) {
       id = t.identifier
-      decided = null
+      decided = false
+      travel = 0
     }
   }
 
@@ -37,10 +40,13 @@ export function touchInput(rows: HTMLElement[], g: Gesture): () => void {
     const t = ours(event)
     if (!t || !g.row) return
     g.track([{ t: event.timeStamp, x: t.clientX }], event.timeStamp)
-    if (decided === null) {
-      decided = swipeIntent(t.clientX - g.startX, t.clientY - g.startY, DECIDE_PX)
-      if (decided === null) return
-      if (decided === 'y') return stop(event, false) // the page scrolls; this touch is done here
+    const dx = t.clientX - g.startX, dy = t.clientY - g.startY
+    travel = Math.max(travel, Math.hypot(dx, dy))
+    if (!decided) {
+      const decision = touchDecision({ dx, dy, cancelable: event.cancelable }, DECIDE_PX)
+      if (decision === 'wait') return
+      if (decision === 'yield') return stop(event, false) // the page scrolls; this touch is done here
+      decided = true
       g.begin()
     }
     if (event.cancelable) event.preventDefault()
