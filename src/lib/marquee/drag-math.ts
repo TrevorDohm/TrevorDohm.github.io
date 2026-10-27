@@ -40,6 +40,19 @@ export function dragIntent(dx: number, dy: number, threshold: number): 'x' | 'y'
   return Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
 }
 
+/** A touch swipe is the carousel's while |dx| >= SWIPE_BIAS |dy|, so within about 59 degrees of horizontal. */
+const SWIPE_BIAS = 0.6
+
+/**
+ * Which way a touch is moving once it has gone `threshold` px. Biased toward
+ * the carousel ('x'), since a thumb's sideways swipe is rarely level; a
+ * steeper one is a page scroll ('y'). null until then.
+ */
+export function swipeIntent(dx: number, dy: number, threshold: number): 'x' | 'y' | null {
+  if (Math.hypot(dx, dy) < threshold) return null
+  return Math.abs(dx) >= SWIPE_BIAS * Math.abs(dy) ? 'x' : 'y'
+}
+
 /**
  * Pointer velocity in px/s: the least-squares slope of x over time for the
  * move samples in the last `windowMs` before `now` (times in ms). A fit over

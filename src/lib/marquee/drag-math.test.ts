@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catchSwallowsTap, coast, dragIntent, driftVelocity, fitVelocity, scrubDelta, wrapTime } from './drag-math'
+import { catchSwallowsTap, coast, dragIntent, swipeIntent, driftVelocity, fitVelocity, scrubDelta, wrapTime } from './drag-math'
 
 describe('scrubDelta', () => {
   // A 2000px track that loops in 40s: 50px/s, so 1px is 20ms.
@@ -56,6 +56,27 @@ describe('dragIntent', () => {
     expect(dragIntent(6, 6, 7)).toBe('y')
   })
   it('measures the distance, not each axis', () => expect(dragIntent(5, 5, 7)).toBe('y'))
+})
+
+describe('swipeIntent', () => {
+  const at = (deg: number, r = 10) => [r * Math.cos((deg * Math.PI) / 180), r * Math.sin((deg * Math.PI) / 180)] as const
+  it('is undecided below the threshold', () => expect(swipeIntent(2, 3, 4)).toBe(null))
+  it('takes a 45 degree diagonal as a swipe', () => {
+    expect(swipeIntent(...at(45), 4)).toBe('x')
+    expect(swipeIntent(-5, -5, 4)).toBe('x')
+  })
+  it('takes a 70 degree swipe as a page scroll', () => {
+    expect(swipeIntent(...at(70), 4)).toBe('y')
+    expect(swipeIntent(-3.42, -9.4, 4)).toBe('y') // 110 degrees, upward
+  })
+  it('puts the boundary near 59 degrees (|dx| >= 0.6 |dy|)', () => {
+    expect(swipeIntent(6, 10, 4)).toBe('x')
+    expect(swipeIntent(5.9, 10, 4)).toBe('y')
+  })
+  it('takes a straight swipe either way', () => {
+    expect(swipeIntent(5, 0, 4)).toBe('x')
+    expect(swipeIntent(0, -5, 4)).toBe('y')
+  })
 })
 
 describe('fitVelocity', () => {
