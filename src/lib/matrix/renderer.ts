@@ -26,7 +26,10 @@ export interface Layer {
 }
 
 export interface Renderer {
-  /** `top`: CSS px of canvas above the hero's top edge (the bleed); layers are in hero coordinates. */
+  /**
+   * `height`: the canvas's measured CSS height; `top`: how much of it sits
+   * above the hero's top edge (the bleed). Layers are in hero coordinates.
+   */
   resize(width: number, height: number, top: number, pixelRatio: number): void
   draw(layers: readonly Layer[]): void
 }
@@ -72,23 +75,32 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
     cssTop = top
     const dpr = Math.min(pixelRatio, 2)
     canvas.width = Math.round(width * dpr)
-    canvas.height = Math.round((height + top) * dpr)
+    canvas.height = Math.round(height * dpr)
     ctx.setTransform(dpr, 0, 0, dpr, 0, top * dpr)
   }
 
   function cells({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
     const half = cell / 2
     const radius = cell * CELL_RADIUS
+    // Runs of cells with the same opacity and colour share one fill (resting
+    // cells, mostly); cells never overlap, so it draws the same pixels.
+    let alpha = NaN
+    let style = ''
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (appear <= 0) continue
       const w = maskedWeight(Math.min(1, weights[i] + boost[i]), copy[i]) * appear
-      ctx.globalAlpha = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
-      ctx.fillStyle = ramp[Math.round(w * (RAMP_STEPS - 1))]
-      ctx.beginPath()
+      const a = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
+      const fill = ramp[Math.round(w * (RAMP_STEPS - 1))]
+      if (a !== alpha || fill !== style) {
+        if (style) ctx.fill()
+        ctx.globalAlpha = alpha = a
+        ctx.fillStyle = style = fill
+        ctx.beginPath()
+      }
       ctx.roundRect(centers[i * 2] - half, centers[i * 2 + 1] - half, cell, cell, radius)
-      ctx.fill()
     }
+    if (style) ctx.fill()
   }
 
   function glow({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
@@ -104,7 +116,7 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
   }
 
   function draw(layers: readonly Layer[]): void {
-    ctx.clearRect(0, -cssTop, cssWidth, cssHeight + cssTop)
+    ctx.clearRect(0, -cssTop, cssWidth, cssHeight)
     for (const { grid, frame } of layers) cells(grid, frame)
     ctx.globalCompositeOperation = 'lighter'
     for (const { grid, frame } of layers) glow(grid, frame)

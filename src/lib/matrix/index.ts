@@ -1,17 +1,15 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
-import { layoutGrid, type Grid } from './geometry'
 import { bindInput } from './input'
 import * as intro from './intro'
-import { fadeRows, type FadeRows } from './dissolve'
 import { createLoop } from './loop'
-import { copyMask } from './mask'
 import { measure } from './measure'
 import { createBleedLayer } from './overscroll'
 import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
+import { carryName, layoutScene, type Scene } from './scene'
 import { createState, isIdle, pruneRipples } from './state'
 import { watchLayout } from './watch'
 
@@ -23,55 +21,55 @@ const EASE_RATE = 12
 /**
  * Mounts the attention matrix on the canvas inside `root`. The grid is laid out
  * from the static name (`[data-name-anchor]`) so the live name lands on it, and
- * the glow is kept off the copy (`[data-matrix-copy]`). Returns cleanup.
+ * the glow is kept off the copy (`[data-matrix-copy]`). The canvas may reach
+ * above the hero (the bleed, for the iOS top overscroll); the grid stays in
+ * hero coordinates. Returns cleanup.
  */
 export function init(root: HTMLElement): () => void {
   const showCopy = () => root.toggleAttribute('data-copy-shown', true)
   const canvas = root.querySelector<HTMLCanvasElement>('canvas[data-matrix-canvas]')
-  if (!canvas) { showCopy(); return () => {} }
+  if (!canvas) {
+    showCopy()
+    return () => {}
+  }
   const anchor = root.querySelector<SVGElement>('[data-name-anchor]')
   const copyEls = [...root.querySelectorAll('[data-matrix-copy]')]
 
   let renderer: Renderer
-  try { renderer = createRenderer(canvas, readPalette(root)) } catch {
+  try {
+    renderer = createRenderer(canvas, readPalette(root))
+  } catch {
     showCopy() // no canvas support or unreadable tokens: the static name stays
     return () => {}
   }
 
   const reduced = prefersReducedMotion()
   const state = createState()
-  let grid: Grid | null = null
-  let cells: Int32Array = new Int32Array(0)
-  let centre: [number, number] = [0, 0]
-  let weights = new Float32Array(0)
-  let attention = new Float32Array(0)
-  let target = new Float32Array(0)
-  let boost = new Float32Array(0)
-  let fade: Float32Array = new Float32Array(0)
-  let copy: Uint8Array = new Uint8Array(0)
-  let [layoutKey, width, height] = ['', 0, 0]
-  let at: FadeRows | null = null // where the bottom fade starts; the idle path stays above it
+  let scene: Scene | null = null
+  let layoutKey = ''
   const light = createLight() // the light's centre (light.q); it glides, never jumps
-  const bleed = createBleedLayer(TEMPERATURE, EASE_RATE) // rows above the hero, for the iOS top overscroll
+  const bleed = createBleedLayer(TEMPERATURE, EASE_RATE) // the rows above the hero
   // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
   let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
   let copyShown = false
 
-  const goal = (now: number) => goalAt(state, now, clock, centre, width, height, at?.floor)
+  const goal = (s: Scene, now: number) => goalAt(state, now, clock, s.centre, s.width, s.height, s.at.floor)
 
-  const updateTarget = (now: number, dt: number) => {
-    if (!grid) return
-    const query = stepLight(light, goal(now), isFollowing(state, now), dt, cruiseSpeed(width, height, at?.floor), grid.pitch)
+  const updateTarget = (s: Scene, now: number, dt: number) => {
+    const { grid, attention } = s
+    const cruise = cruiseSpeed(s.width, s.height, s.at.floor)
+    const query = stepLight(light, goal(s, now), isFollowing(state, now), dt, cruise, grid.pitch)
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
-    intro.composeTargets(target, attention, grid, cells, clock)
+    intro.composeTargets(s.target, attention, grid, s.cells, clock)
   }
 
-  const draw = (dt = 0) => {
-    if (!grid) return
+  const draw = (s: Scene, dt: number) => {
+    const { grid, weights, boost, fade, copy } = s
+    const hero = { grid, frame: { weights, boost, fade, copy } }
     const above = bleed.layer(light.q, clock, reduced, dt)
-    renderer.draw([...(above ? [above] : []), { grid, frame: { weights, boost, fade, copy } }])
+    renderer.draw(above ? [above, hero] : [hero])
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
     // The copy fades in as the name finishes forming (CSS, under data-js-intro).
@@ -81,51 +79,30 @@ export function init(root: HTMLElement): () => void {
   const resize = () => {
     const m = measure(root, canvas, anchor, copyEls)
     if (!m || m.key === layoutKey) return
-    ;[layoutKey, width, height] = [m.key, m.width, m.height]
-    const { pitch, ax, ay, named } = m
-
-    const saved = Float32Array.from(cells, (i) => (i >= 0 ? weights[i] : NaN))
-    const oldCells = cells
-    const old = grid
-    grid = layoutGrid(width, height, pitch, ax, ay)
-    cells = named ? intro.nameCells(grid, ax, ay) : new Int32Array(0)
-    centre = named
-      ? [ax + (pitch * intro.NAME.cols) / 2, ay + (pitch * intro.NAME.rows) / 2]
-      : [width / 2, height / 2]
-    // Same shape keeps the arrays (and every cell's index); any change starts fresh.
-    const fresh = !old || old.cols !== grid.cols || old.rows !== grid.rows
-    if (fresh) {
-      const count = grid.cols * grid.rows
-      weights = new Float32Array(count)
-      attention = new Float32Array(count)
-      target = new Float32Array(count)
-      boost = new Float32Array(count)
-    }
-    at = fadeRows(grid, m.buttonBottom)
-    fade = intro.fadeMap(grid, cells, at)
-    copy = copyMask(grid, m.copy, cells)
-    bleed.layout(grid, m.top)
-    renderer.resize(width, height, m.top, window.devicePixelRatio || 1)
-    updateTarget(performance.now(), 0)
-    // New arrays start from the targets; either way the name keeps its eased state.
-    if (fresh || reduced) weights.set(target)
-    intro.moveName(weights, fresh ? new Int32Array(0) : oldCells, cells, saved, target)
-    draw()
+    layoutKey = m.key
+    const prev = scene
+    const s = layoutScene(m, prev)
+    scene = s
+    bleed.layout(s.grid, m.top)
+    renderer.resize(m.width, m.canvasHeight, m.top, window.devicePixelRatio || 1)
+    updateTarget(s, performance.now(), 0)
+    carryName(s, prev, reduced)
+    draw(s, 0)
   }
 
   const tick = (dt: number, now: number) => {
-    if (!grid) return
+    if (!scene) return
     clock += dt
-    updateTarget(now, dt)
-    easeToward(weights, target, EASE_RATE, dt)
+    updateTarget(scene, now, dt)
+    easeToward(scene.weights, scene.target, EASE_RATE, dt)
     pruneRipples(state, now, DROP.lifetime * 1000)
-    applyBoost(boost, grid, state.ripples, now)
-    draw(dt)
+    applyBoost(scene.boost, scene.grid, state.ripples, now)
+    draw(scene, dt)
   }
 
   const stopWatching = watchLayout(canvas, copyEls, resize)
   resize()
-  if (!grid) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
+  if (!scene) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
 
   if (reduced) {
     return stopWatching
@@ -134,8 +111,8 @@ export function init(root: HTMLElement): () => void {
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
   const settled = () => {
     const now = performance.now()
-    if (!grid || !light.q || clock < intro.INTRO_END || !isIdle(state, now) || bleed.overscrolled()) return false
-    return isSettled(light.q, goal(now), grid.pitch)
+    if (!scene || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
+    return isSettled(light.q, goal(scene, now), scene.grid.pitch)
   }
   const loop = createLoop(root, tick, settled)
   const unbind = bindInput(root, state)

@@ -59,7 +59,7 @@ export function swipeIntent(dx: number, dy: number, threshold: number): 'x' | 'y
  * touchmove that is not `cancelable` means the browser is already scrolling,
  * so even a horizontal swipe yields rather than moving both.
  */
-export function touchDecision(move: { dx: number; dy: number; cancelable: boolean }, threshold: number) {
+export function touchDecision(move: { dx: number; dy: number; cancelable: boolean }, threshold: number): 'wait' | 'scrub' | 'yield' {
   const intent = swipeIntent(move.dx, move.dy, threshold)
   if (intent === null) return 'wait'
   return intent === 'x' && move.cancelable ? 'scrub' : 'yield'

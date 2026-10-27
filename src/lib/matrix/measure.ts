@@ -1,4 +1,4 @@
-import { bleedOffset } from './bleed'
+import { measuredBleed } from './bleed'
 import { NAME } from './intro'
 import { lineRects, type Rect } from './mask'
 
@@ -15,6 +15,8 @@ export interface Layout {
   height: number
   /** The bleed: how far the canvas reaches above the hero. */
   top: number
+  /** The canvas's CSS height: the bleed plus the hero. */
+  canvasHeight: number
   pitch: number
   /** Top-left corner of the name block (0, 0 without an anchor). */
   ax: number
@@ -31,7 +33,7 @@ export interface Layout {
 /**
  * Reads the layout from the hero (`frame`), the canvas, the static name
  * (`anchor`, whose width is 23 pitches) and the copy elements. Null while the
- * canvas isn't laid out.
+ * canvas isn't laid out, or doesn't cover the hero (see measuredBleed).
  */
 export function measure(
   frame: Element,
@@ -42,7 +44,8 @@ export function measure(
   const rect = frame.getBoundingClientRect()
   const area = canvas.getBoundingClientRect()
   if (rect.width === 0 || rect.height === 0 || area.width === 0) return null // not laid out yet, or hidden
-  const top = bleedOffset(rect.top, area.top)
+  const top = measuredBleed(rect, area)
+  if (top === null) return null
   const box = anchor?.getBoundingClientRect()
   const named = !!box && box.width > 0 && box.height > 0
   const pitch = named ? box.width / NAME.cols : FALLBACK_PITCH[rect.width < MOBILE_BREAKPOINT ? 0 : 1]
@@ -62,11 +65,12 @@ export function measure(
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
   })
-  const values = [rect.width, rect.height, top, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
+  const values = [rect.width, rect.height, top, area.height, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,
     height: rect.height,
     top,
+    canvasHeight: area.height,
     pitch,
     ax,
     ay,

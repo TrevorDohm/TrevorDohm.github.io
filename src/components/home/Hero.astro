@@ -24,10 +24,12 @@ const facts = [...role.split(' | '), location]
   class="hero relative isolate flex h-svh min-h-[32.5rem] touch-pan-y"
 >
   <!-- The CSS backdrop shows without JavaScript and fades out once the matrix
-       has drawn its first frame. Both reach up past the hero's top (the
-       bleed), so the iOS top rubber band reveals grid, not flat page. -->
-  <div aria-hidden="true" class="matrix-layer absolute inset-x-0 bottom-0 -z-10">
-    <div class="hero-backdrop absolute inset-0"></div>
+       has drawn its first frame. The matrix and the backdrop's grid lines
+       also reach a screen above the hero (the bleed), so the iOS top rubber
+       band reveals grid, not flat page. -->
+  <div aria-hidden="true" class="hero-backdrop absolute inset-0 -z-10"></div>
+  <div aria-hidden="true" class="hero-backdrop hero-bleed absolute inset-x-0 bottom-full -z-10"></div>
+  <div aria-hidden="true" class="matrix-layer absolute inset-0 -z-10">
     <AttentionMatrix />
   </div>
 
@@ -56,37 +58,53 @@ const facts = [...role.split(' | '), location]
 </section>
 
 <style>
+  /* Only the sides are clipped: the matrix layer ends at the hero's bottom
+     and nothing else in the hero reaches past it, while the bleed sits above
+     its top, where it adds no scroll. */
   .hero {
-    /* The bleed: how far the matrix reaches above the hero, in whole pixels so
-       the canvas sits on the pixel grid. Above the document's top it adds no
-       scroll; the clip keeps the sides and bottom as overflow: hidden did. */
-    --hero-bleed: 50svh;
-    --hero-h: max(100svh, 32.5rem);
     overflow-x: clip;
-    clip-path: inset(calc(-1 * var(--hero-bleed)) 0 0 0);
   }
-  @supports (top: round(1.5px, 1px)) {
-    .hero {
-      --hero-bleed: round(50svh, 1px);
+
+  /* The bleed is one full screen, in whole pixels where round() works so the
+     canvas sits on the pixel grid. Without these rules (stale or unsupported
+     CSS, or a value that doesn't parse) the matrix layer stays inset 0 on the
+     hero, and the JS, which measures where the canvas actually is, draws no
+     bleed rows. */
+  @supports (top: 1svh) {
+    .matrix-layer {
+      top: -100svh;
+    }
+    .hero-bleed {
+      height: 100svh;
+    }
+  }
+  @supports (top: round(100svh, 1px)) {
+    .matrix-layer {
+      top: round(-100svh, 1px);
+    }
+    .hero-bleed {
+      height: round(100svh, 1px);
     }
   }
 
-  .matrix-layer {
-    top: calc(-1 * var(--hero-bleed));
+  .hero-backdrop {
+    background:
+      radial-gradient(ellipse 55% 50% at 70% 40%, color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 70%),
+      radial-gradient(ellipse 40% 40% at 85% 70%, color-mix(in srgb, var(--color-accent-2) 14%, transparent), transparent 70%),
+      linear-gradient(var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px,
+      linear-gradient(90deg, var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 50%, black, transparent);
+    transition: opacity 0.8s ease;
   }
 
-  /* Laid out in hero coordinates (B = bleed, H = hero height), so it looks as
-     it did on the hero and continues into the bleed. */
-  .hero-backdrop {
-    --b: var(--hero-bleed);
-    --h: var(--hero-h);
+  /* Above the hero only the grid lines continue, on the hero's lattice
+     (counted up from its top edge) and under the ellipse's profile along that
+     edge: 0.29 at 60% across, 0 by 16%. */
+  .hero-bleed {
     background:
-      radial-gradient(ellipse 55% calc(0.5 * var(--h)) at 70% calc(var(--b) + 0.4 * var(--h)), color-mix(in srgb, var(--color-accent) 18%, transparent), transparent 70%),
-      radial-gradient(ellipse 40% calc(0.4 * var(--h)) at 85% calc(var(--b) + 0.7 * var(--h)), color-mix(in srgb, var(--color-accent-2) 14%, transparent), transparent 70%),
-      linear-gradient(var(--color-line) 1px, transparent 1px) 0 var(--b) / 48px 48px,
-      linear-gradient(90deg, var(--color-line) 1px, transparent 1px) 0 var(--b) / 48px 48px;
-    mask-image: radial-gradient(ellipse 80% calc(0.7 * var(--h)) at 60% calc(var(--b) + 0.5 * var(--h)), black, transparent);
-    transition: opacity 0.8s ease;
+      linear-gradient(var(--color-line) 1px, transparent 1px) 0 100% / 48px 48px,
+      linear-gradient(90deg, var(--color-line) 1px, transparent 1px) 0 0 / 48px 48px;
+    mask-image: linear-gradient(90deg, transparent 16%, rgb(0 0 0 / 0.15) 30%, rgb(0 0 0 / 0.29) 60%, rgb(0 0 0 / 0.21) 82%, rgb(0 0 0 / 0.05) 100%);
   }
 
   /* Once the matrix has drawn, its cells replace the backdrop; the backdrop's
