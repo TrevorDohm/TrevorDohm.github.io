@@ -29,7 +29,8 @@ export interface Layout {
  * Reads the layout from the canvas, the static name (`anchor`, whose width is
  * 23 pitches), the copy elements and the `[data-matrix-nav]` element in
  * `frame`, whose top padding clears the nav: its content edge is the nav's
- * bottom, read without the nav itself so scrolling never changes it. Null while the canvas isn't laid out,
+ * bottom, read without the nav itself so scrolling never changes it. Null
+ * while the canvas isn't laid out,
  * or when it doesn't cover the hero (`frame`; see coversHero).
  */
 export function measure(

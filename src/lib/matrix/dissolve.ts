@@ -47,22 +47,14 @@ export interface FadeRows {
 
 /**
  * The fades' rows on `grid`. The dimming starts on the row holding the
- * buttons' bottom edge (`buttonBottom`, canvas px; an edge exactly on a row
- * line belongs to the row above), so everything up to and beside the buttons
- * is at full brightness, and the removals start on the first row wholly below
- * the buttons. Without a usable button edge, the fallback band: dimming from
- * its top, removals from a fifth of the way down. The idle path's floor keeps
- * one row of margin above the dimming.
- *
- * At the top, the first row wholly below the nav (whose bottom edge is
- * `navBottom`, canvas px) is the first at full strength, at least
- * MIN_TOP_ROWS down and never past the row just above the name (whose top
- * edge is `nameTop`, canvas px, on a row line). Without a nav edge, the row
- * just above the name; without either, the top fade spans as many rows as
- * the bottom one. Either way it stays at least one row deep and clear of
- * the bottom fade. The idle path's ceiling
- * is halfway down the top fade: the light may roam into it, where it dims
- * with the cells; only the bottom fade keeps it out.
+ * buttons' bottom edge (`buttonBottom`, canvas px; an edge on a row line
+ * belongs to the row above), and the removals on the row below; without it,
+ * the fallback band. The top fade reaches full strength on the first row
+ * wholly below the nav (`navBottom`), at least MIN_TOP_ROWS down and never
+ * past the row above the name (`nameTop`, on a row line); without a nav, at
+ * that row; without either, as deep as the bottom fade. It stays at least
+ * one row deep and clear of the bottom fade. The idle path's floor keeps a
+ * row above the dimming; its ceiling is halfway down the top fade.
  */
 export function fadeRows(
   grid: Grid,
@@ -83,7 +75,8 @@ export function fadeRows(
   const named = nameTop !== null && Number.isFinite(nameTop)
   const aboveName = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
   const underNav = navBottom !== null && Number.isFinite(navBottom)
-  const wanted = underNav ? Math.min(aboveName, Math.max(MIN_TOP_ROWS, Math.ceil((navBottom - originY) / pitch))) : aboveName
+  const navRow = underNav ? Math.max(MIN_TOP_ROWS, Math.ceil((navBottom - originY) / pitch)) : Infinity
+  const wanted = Math.min(aboveName, navRow)
   const full = Math.max(1, Math.min(dimStart - 1, wanted))
   return {
     dimStart,
