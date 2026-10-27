@@ -35,8 +35,11 @@ const footerLinks = [
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover lets the nav's glass run under the status bar; the
-         safe-area insets in Nav, Hero, section-container and Footer keep content clear. -->
+    <!-- viewport-fit=cover lets the page run under notches and the status bar
+         where the browser honours it (iOS 26 Safari reportedly doesn't in
+         portrait); the safe-area insets in Nav, Hero, section-container and
+         Footer keep content clear. theme-color tints browser chrome on
+         Android and older Safari. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content={themeColor} />
     <Font cssVariable="--font-geist" preload />

@@ -34,11 +34,10 @@ const facts = [...role.split(' | '), location]
        auto block margins, which centre it in the free space without feature
        detection and never push it above the padding when it overflows. It is
        centred at 45% of the hero below the fixed nav: the top padding clears
-       the nav (73px tall on phones with the menu button, 65px from md up, plus
-       the status bar on notched phones) and
-       the bottom padding, a tenth of what is left, lifts the centre from 50%
-       to 45%. NameMark's
-       height cap uses the same numbers. The matrix keeps its glow off the
+       the nav (73px tall on phones with the menu button, 65px from md up,
+       plus any safe-area inset at the top) and the bottom padding, a tenth
+       of what is left, lifts the centre from 50% to 45%. NameMark's height
+       cap uses the same numbers. The matrix keeps its glow off the
        [data-matrix-copy] boxes. -->
   <div class="hero-copy section-container relative flex w-full flex-col">
     <h1 class="sr-only">{name}</h1>
