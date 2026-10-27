@@ -31,7 +31,7 @@ const ramp = Array.from({ length: 11 }, (_, level) => `--w${level}: ${rampMix(le
   }
 
   /* Over a copy's link, which forwards its click to the real one. */
-  .gallery :global([data-marquee-row][data-link-hover]) {
+  .gallery :global([data-marquee-row][data-link-hover]:not([data-dragging])) {
     cursor: pointer;
   }
 

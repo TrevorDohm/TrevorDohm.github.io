@@ -1,4 +1,5 @@
 import { whileMotionAllowed } from '../motion/while-motion-allowed'
+import { dragRows, rowAnims } from './drag'
 import { focusHold } from './focus'
 import { approach } from './math'
 import { layoutRow, resetRow } from './timing'
@@ -13,8 +14,8 @@ const MAX_STEP_S = 0.1
 const STATIC_ATTRS = ['role', 'tabindex', 'aria-label']
 
 /**
- * Drives every marquee row inside `root`: sizing, hover slowdown, the Pause
- * button and pausing offscreen. Under reduced motion the rows stay static,
+ * Drives every marquee row inside `root`: sizing, hover slowdown, dragging,
+ * the Pause button and pausing offscreen. Under reduced motion the rows stay static,
  * and turning it on later returns them to static.
  */
 export const init = (root: HTMLElement): (() => void) => whileMotionAllowed(() => drive(root))
@@ -26,10 +27,7 @@ function drive(root: HTMLElement): () => void {
   const toggle = root.querySelector<HTMLButtonElement>('button[data-marquee-toggle]')
   // The visible word lives in its own span, beside hidden text naming the section.
   const label = toggle?.querySelector('[data-marquee-label]') ?? toggle
-  const lists = rows.flatMap((row) =>
-    Array.from(row.querySelectorAll<HTMLElement>('ul[data-marquee-track], ul[data-marquee-clone]')),
-  )
-  const anims = () => lists.flatMap((list) => list.getAnimations())
+  const anims = () => rows.flatMap(rowAnims)
   const saved = rows.map((row) => STATIC_ATTRS.map((name) => row.getAttribute(name)))
 
   let alive = true, userPaused = false, focusHeld = false, onScreen = true
@@ -42,11 +40,11 @@ function drive(root: HTMLElement): () => void {
     root.dispatchEvent(new CustomEvent('marquee:layout'))
   }
 
-  // One place decides play or pause. Only the button touches userPaused.
-  const sync = () => {
-    const run = !userPaused && !focusHeld && onScreen && !document.hidden
-    anims().forEach((a) => (run ? a.play() : a.pause()))
-  }
+  // One place decides play or pause. Only the button touches userPaused; a drag holds its own row.
+  const running = () => !userPaused && !focusHeld && onScreen && !document.hidden
+  const sync = () =>
+    rows.forEach((row) => rowAnims(row).forEach((a) => (running() && !drag.held(row) ? a.play() : a.pause())))
+  const drag = dragRows(root, rows, { running, rate: () => rate, onHold: () => sync() })
 
   const applyRate = () => anims().forEach((a) => a.updatePlaybackRate(rate))
   const step = (now: number) => {
@@ -142,6 +140,7 @@ function drive(root: HTMLElement): () => void {
     for (const row of rows) for (const [type, fn] of rowEvents) row.removeEventListener(type, fn as EventListener)
     setHover(null)
     focus.release()
+    drag.release()
     rows.forEach((row, i) => saved[i].forEach((v, j) => v !== null && row.setAttribute(STATIC_ATTRS[j], v)))
     rows.forEach(resetRow)
     if (label) label.textContent = 'Pause'
