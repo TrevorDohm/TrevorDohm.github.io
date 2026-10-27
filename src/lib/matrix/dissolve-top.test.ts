@@ -108,4 +108,16 @@ describe('fadeRows at the top', () => {
     expect(rows.full).toBeGreaterThanOrEqual(1)
     expect(rows.full).toBeLessThan(rows.dimStart)
   })
+
+  it('stops a row above the bottom fade when the name sits at or below the buttons', () => {
+    const rows = fadeRows(grid, 300, 600) // name top far below the buttons' bottom edge
+    expect(Math.round((600 - grid.originY) / grid.pitch) - 1).toBeGreaterThan(rows.dimStart) // unclamped, it would overlap
+    expect(rows.full).toBe(rows.dimStart - 1)
+  })
+
+  it('stays at least one row deep when the buttons end near the top', () => {
+    const rows = fadeRows(grid, 5, 284)
+    expect(rows.dimStart).toBeLessThanOrEqual(1)
+    expect(rows.full).toBe(1)
+  })
 })

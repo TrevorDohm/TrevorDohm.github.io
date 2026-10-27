@@ -20,8 +20,10 @@ const ogImage = new URL('/pfp.jpg', Astro.site).href
 // A meta tag can't read a CSS variable, so read the token from its source.
 const themeColor = cssToken(tokens, '--color-background')
 // Painted before any stylesheet loads, so a reload never flashes white (or
-// drops the status-bar tint) while the CSS arrives.
-const firstPaint = `html,body{background-color:${themeColor}}`
+// drops the status-bar tint) while the CSS arrives. It is unlayered, so it
+// beats the layered rules; reading the token itself, with the token's value
+// as the fallback until the CSS arrives, keeps it in step if the token changes.
+const firstPaint = `html,body{background-color:var(--color-background, ${themeColor})}`
 
 const { links, privacy } = site
 const footerLinks = [

@@ -28,6 +28,14 @@ describe('layoutScene', () => {
     expect(c.weights).not.toBe(b.weights)
   })
 
+  it('starts the top fade just above the name, not at the nameless fallback', () => {
+    const named = layoutScene(layout({ ay: 150 }), null)
+    const { originY, pitch } = named.grid
+    expect(named.at.full).toBe(Math.round((150 - originY) / pitch) - 1)
+    const nameless = layoutScene(layout({ ay: 150, named: false }), null)
+    expect(named.at.full).not.toBe(nameless.at.full) // so the name top is what set it
+  })
+
   it('centres the light without a name', () => {
     const s = layoutScene(layout({ named: false, ax: 0, ay: 0 }), null)
     expect(s.cells.length).toBe(0)
