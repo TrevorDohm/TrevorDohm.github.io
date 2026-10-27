@@ -19,19 +19,9 @@ export interface Frame {
   copy: Uint8Array
 }
 
-/** A grid and its frame. Layers are drawn in order: every layer's cells, then every layer's glow. */
-export interface Layer {
-  grid: Grid
-  frame: Frame
-}
-
 export interface Renderer {
-  /**
-   * `height`: the canvas's measured CSS height; `top`: how much of it sits
-   * above the hero's top edge (the bleed). Layers are in hero coordinates.
-   */
-  resize(width: number, height: number, top: number, pixelRatio: number): void
-  draw(layers: readonly Layer[]): void
+  resize(grid: Grid, width: number, height: number, pixelRatio: number): void
+  draw(frame: Frame): void
 }
 
 /** Cells below this brightness get no glow sprite. */
@@ -65,46 +55,40 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
   // The glow sits between the two accents, like the top of the ramp.
   const sprite = makeGlowSprite(mix(palette.accent, palette.accent2, 0.5))
   const ramp = rampTable(RAMP_STEPS, palette.line, palette.accent, palette.accent2)
+  let grid: Grid | null = null
   let cssWidth = 0
   let cssHeight = 0
-  let cssTop = 0
 
-  function resize(width: number, height: number, top: number, pixelRatio: number): void {
+  function resize(next: Grid, width: number, height: number, pixelRatio: number): void {
+    grid = next
     cssWidth = width
     cssHeight = height
-    cssTop = top
     const dpr = Math.min(pixelRatio, 2)
     canvas.width = Math.round(width * dpr)
     canvas.height = Math.round(height * dpr)
-    ctx.setTransform(dpr, 0, 0, dpr, 0, top * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   }
 
-  function cells({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
+  function draw({ weights, boost, fade, copy }: Frame): void {
+    if (!grid) return
+    const { cols, rows, cell, centers } = grid
     const half = cell / 2
     const radius = cell * CELL_RADIUS
-    // Runs of cells with the same opacity and colour share one fill (resting
-    // cells, mostly); cells never overlap, so it draws the same pixels.
-    let alpha = NaN
-    let style = ''
+    const glowSize = cell * GLOW_SCALE
+    ctx.clearRect(0, 0, cssWidth, cssHeight)
+
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (appear <= 0) continue
       const w = maskedWeight(Math.min(1, weights[i] + boost[i]), copy[i]) * appear
-      const a = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
-      const fill = ramp[Math.round(w * (RAMP_STEPS - 1))]
-      if (a !== alpha || fill !== style) {
-        if (style) ctx.fill()
-        ctx.globalAlpha = alpha = a
-        ctx.fillStyle = style = fill
-        ctx.beginPath()
-      }
+      ctx.globalAlpha = appear * (BASE_ALPHA + (1 - BASE_ALPHA) * w)
+      ctx.fillStyle = ramp[Math.round(w * (RAMP_STEPS - 1))]
+      ctx.beginPath()
       ctx.roundRect(centers[i * 2] - half, centers[i * 2 + 1] - half, cell, cell, radius)
+      ctx.fill()
     }
-    if (style) ctx.fill()
-  }
 
-  function glow({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
-    const glowSize = cell * GLOW_SCALE
+    ctx.globalCompositeOperation = 'lighter'
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (copy[i]) continue
@@ -113,13 +97,6 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
       ctx.globalAlpha = appear * ((w - GLOW_THRESHOLD) / (1 - GLOW_THRESHOLD)) * 0.55
       ctx.drawImage(sprite, centers[i * 2] - glowSize / 2, centers[i * 2 + 1] - glowSize / 2, glowSize, glowSize)
     }
-  }
-
-  function draw(layers: readonly Layer[]): void {
-    ctx.clearRect(0, -cssTop, cssWidth, cssHeight)
-    for (const { grid, frame } of layers) cells(grid, frame)
-    ctx.globalCompositeOperation = 'lighter'
-    for (const { grid, frame } of layers) glow(grid, frame)
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
   }

@@ -5,7 +5,6 @@ import { bindInput } from './input'
 import * as intro from './intro'
 import { createLoop } from './loop'
 import { measure } from './measure'
-import { createBleedLayer } from './overscroll'
 import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
@@ -21,9 +20,7 @@ const EASE_RATE = 12
 /**
  * Mounts the attention matrix on the canvas inside `root`. The grid is laid out
  * from the static name (`[data-name-anchor]`) so the live name lands on it, and
- * the glow is kept off the copy (`[data-matrix-copy]`). The canvas may reach
- * above the hero (the bleed, for the iOS top overscroll); the grid stays in
- * hero coordinates. Returns cleanup.
+ * the glow is kept off the copy (`[data-matrix-copy]`). Returns cleanup.
  */
 export function init(root: HTMLElement): () => void {
   const showCopy = () => root.toggleAttribute('data-copy-shown', true)
@@ -48,28 +45,24 @@ export function init(root: HTMLElement): () => void {
   let scene: Scene | null = null
   let layoutKey = ''
   const light = createLight() // the light's centre (light.q); it glides, never jumps
-  const bleed = createBleedLayer(TEMPERATURE, EASE_RATE) // the rows above the hero
   // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
   let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
   let copyShown = false
 
-  const goal = (s: Scene, now: number) => goalAt(state, now, clock, s.centre, s.width, s.height, s.at.floor)
+  const goal = (s: Scene, now: number) => goalAt(state, now, clock, s.centre, s.width, s.height, s.at.floor, s.at.ceiling)
 
   const updateTarget = (s: Scene, now: number, dt: number) => {
     const { grid, attention } = s
-    const cruise = cruiseSpeed(s.width, s.height, s.at.floor)
+    const cruise = cruiseSpeed(s.width, s.height, s.at.floor, s.at.ceiling)
     const query = stepLight(light, goal(s, now), isFollowing(state, now), dt, cruise, grid.pitch)
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
     if (reduced) attention.fill(0) // still: only the name is lit
     intro.composeTargets(s.target, attention, grid, s.cells, clock)
   }
 
-  const draw = (s: Scene, dt: number) => {
-    const { grid, weights, boost, fade, copy } = s
-    const hero = { grid, frame: { weights, boost, fade, copy } }
-    const above = bleed.layer(light.q, clock, reduced, dt)
-    renderer.draw(above ? [above, hero] : [hero])
+  const draw = ({ weights, boost, fade, copy }: Scene) => {
+    renderer.draw({ weights, boost, fade, copy })
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
     // The copy fades in as the name finishes forming (CSS, under data-js-intro).
@@ -83,11 +76,10 @@ export function init(root: HTMLElement): () => void {
     const prev = scene
     const s = layoutScene(m, prev)
     scene = s
-    bleed.layout(s.grid, m.top)
-    renderer.resize(m.width, m.canvasHeight, m.top, window.devicePixelRatio || 1)
+    renderer.resize(s.grid, m.width, m.height, window.devicePixelRatio || 1)
     updateTarget(s, performance.now(), 0)
     carryName(s, prev, reduced)
-    draw(s, 0)
+    draw(s)
   }
 
   const tick = (dt: number, now: number) => {
@@ -97,7 +89,7 @@ export function init(root: HTMLElement): () => void {
     easeToward(scene.weights, scene.target, EASE_RATE, dt)
     pruneRipples(state, now, DROP.lifetime * 1000)
     applyBoost(scene.boost, scene.grid, state.ripples, now)
-    draw(scene, dt)
+    draw(scene)
   }
 
   const stopWatching = watchLayout(canvas, copyEls, resize)
@@ -115,7 +107,7 @@ export function init(root: HTMLElement): () => void {
     return isSettled(light.q, goal(scene, now), scene.grid.pitch)
   }
   const loop = createLoop(root, tick, settled)
-  const unbind = bindInput(root, state)
+  const unbind = bindInput(root, canvas, state)
   loop.start()
 
   return () => {

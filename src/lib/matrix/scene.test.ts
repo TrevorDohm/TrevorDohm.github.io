@@ -4,7 +4,7 @@ import type { Layout } from './measure'
 import { carryName, layoutScene } from './scene'
 
 const layout = (over: Partial<Layout> = {}): Layout => ({
-  width: 390, height: 844, top: 844, canvasHeight: 1688, pitch: 14, ax: 24, ay: 284, named: true,
+  width: 390, height: 844, pitch: 14, ax: 24, ay: 284, named: true,
   copy: [], buttonBottom: 600, key: '', ...over,
 })
 

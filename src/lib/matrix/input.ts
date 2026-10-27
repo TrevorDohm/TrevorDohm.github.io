@@ -8,10 +8,13 @@ import { addRipple, clearPointer, setPointer, type MatrixState } from './state'
  * focusing a hero link or button pulls the light onto it; like any resting
  * pointer it lets go after 2.5 s. Focus leaving the hero releases it at once.
  */
-export function bindInput(root: HTMLElement, state: MatrixState): () => void {
-  // Hero coordinates, as the grid uses: the canvas reaches above the hero (the bleed).
+export function bindInput(
+  root: HTMLElement,
+  canvas: HTMLCanvasElement,
+  state: MatrixState,
+): () => void {
   const local = (clientX: number, clientY: number): [number, number] => {
-    const rect = root.getBoundingClientRect()
+    const rect = canvas.getBoundingClientRect()
     return [clientX - rect.left, clientY - rect.top]
   }
 

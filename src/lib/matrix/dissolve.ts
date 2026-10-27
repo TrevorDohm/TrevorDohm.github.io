@@ -1,8 +1,11 @@
 /**
- * The hero's bottom fade. Pure. From the buttons' bottom edge down each cell
- * dims toward the bottom (`bottomFade`), and from the first row wholly below
- * the buttons some cells are removed outright, more the lower they are
- * (`dropoutMap`), so the grid tapers into the page with no edge.
+ * The hero's fades. Pure. From the buttons' bottom edge down each cell dims
+ * toward the bottom (`bottomFade`), and from the first row wholly below the
+ * buttons some cells are removed outright, more the lower they are
+ * (`dropoutMap`), so the grid tapers into the page with no edge. The top
+ * mirrors it (`topFade`) from the row just above the name up to the hero's
+ * top edge, so the page a pull-down reveals above the hero meets an
+ * already faded grid.
  */
 import type { Grid } from './geometry'
 import { clamp01, hash2 } from './math'
@@ -22,23 +25,37 @@ const JITTER = 0.1
 const DROP_FIRST = 0.23
 const DROP_LAST = 0.9
 
-/** Where the fade starts: the dimming's first row, the removals' first row, and the idle path's floor (px). */
+/**
+ * Where the fades are: at the bottom, the dimming's first row, the removals'
+ * first row and the idle path's floor (px); at the top, the first row at full
+ * strength (rows above it dim), the end of the removals (rows above
+ * `dropEnd`) and the idle path's ceiling (px).
+ */
 export interface FadeRows {
   dimStart: number
   dropStart: number
   floor: number
+  full: number
+  dropEnd: number
+  ceiling: number
 }
 
 /**
- * The fade's rows on `grid`. The dimming starts on the row holding the
+ * The fades' rows on `grid`. The dimming starts on the row holding the
  * buttons' bottom edge (`buttonBottom`, canvas px; an edge exactly on a row
  * line belongs to the row above), so everything up to and beside the buttons
  * is at full brightness, and the removals start on the first row wholly below
  * the buttons. Without a usable button edge, the fallback band: dimming from
  * its top, removals from a fifth of the way down. The idle path's floor keeps
  * one row of margin above the dimming.
+ *
+ * At the top, the row just above the name (whose top edge is `nameTop`,
+ * canvas px, on a row line) is the first at full strength; without a name,
+ * the top fade spans as many rows as the bottom one. Either way it stays at
+ * least one row deep and clear of the bottom fade. The idle path's ceiling
+ * keeps one row of margin below the full row.
  */
-export function fadeRows(grid: Grid, buttonBottom: number | null): FadeRows {
+export function fadeRows(grid: Grid, buttonBottom: number | null, nameTop: number | null = null): FadeRows {
   const { rows, pitch, originY } = grid
   let dimStart: number
   let dropStart: number
@@ -49,7 +66,17 @@ export function fadeRows(grid: Grid, buttonBottom: number | null): FadeRows {
     dimStart = Math.floor(rows - 1 - DISSOLVE_BAND * rows) + 1
     dropStart = dimStart + Math.ceil((rows - dimStart) / 5)
   }
-  return { dimStart, dropStart, floor: originY + (dimStart - 1) * pitch }
+  const named = nameTop !== null && Number.isFinite(nameTop)
+  const wanted = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
+  const full = Math.max(1, Math.min(dimStart - 1, wanted))
+  return {
+    dimStart,
+    dropStart,
+    floor: originY + (dimStart - 1) * pitch,
+    full,
+    dropEnd: full,
+    ceiling: originY + (full + 2) * pitch,
+  }
 }
 
 /**
@@ -67,6 +94,18 @@ export function bottomFade(row: number, rows: number, col: number, dimStart: num
   return clamp01(eased * (1 + JITTER * depth * (2 * hash2(col, row) - 1)))
 }
 
+/**
+ * Visibility of a grid cell near the top edge, `bottomFade` upside down: 1 on
+ * and below `full`; above it, an eased rise from 0 on the top row to 1 at
+ * `full`, times the same seeded jitter, which shrinks toward the top.
+ */
+export function topFade(row: number, col: number, full: number): number {
+  if (row >= full) return 1
+  const depth = row / Math.max(1, full) // 0 on the top row, 1 at the full row
+  const eased = 0.5 * depth + 0.5 * depth * depth * (3 - 2 * depth)
+  return clamp01(eased * (1 + JITTER * depth * (2 * hash2(col, row) - 1)))
+}
+
 /** Chance that a cell on `row` is removed: 0 above `dropStart`, then DROP_FIRST rising on a smoothstep to DROP_LAST. */
 export function dropChance(row: number, rows: number, dropStart: number): number {
   if (row < dropStart) return 0
@@ -74,17 +113,25 @@ export function dropChance(row: number, rows: number, dropStart: number): number
   return DROP_FIRST + (DROP_LAST - DROP_FIRST) * ramp * ramp * (3 - 2 * ramp)
 }
 
+/** `dropChance` upside down: 0 from `dropEnd` down, DROP_FIRST on the row above it, DROP_LAST on the top row. */
+export function topDropChance(row: number, dropEnd: number): number {
+  if (row >= dropEnd) return 0
+  const ramp = Math.min(1, (dropEnd - 1 - row) / Math.max(1, dropEnd - 1))
+  return DROP_FIRST + (DROP_LAST - DROP_FIRST) * ramp * ramp * (3 - 2 * ramp)
+}
+
 /**
  * Which cells of a cols x rows grid are removed (1). Each cell draws its own
- * seeded random threshold against `dropChance`, so the scatter looks random.
+ * seeded random threshold against `dropChance` (and `topDropChance` above
+ * `dropEnd`, 0 for no top band), so the scatter looks random.
  * Scanning row by row, left to right, a removal that would complete a fully
  * removed 2x2 block with the cells up, left and up-left is skipped, so the
  * removals never clump into black holes. Computed once per layout.
  */
-export function dropoutMap(cols: number, rows: number, dropStart: number): Uint8Array {
+export function dropoutMap(cols: number, rows: number, dropStart: number, dropEnd = 0): Uint8Array {
   const drop = new Uint8Array(cols * rows)
   for (let row = 0; row < rows; row++) {
-    const chance = dropChance(row, rows, dropStart)
+    const chance = Math.max(dropChance(row, rows, dropStart), topDropChance(row, dropEnd))
     if (chance <= 0) continue
     for (let col = 0; col < cols; col++) {
       if (hash2(row + 7, col) >= chance) continue

@@ -19,6 +19,9 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImage = new URL('/pfp.jpg', Astro.site).href
 // A meta tag can't read a CSS variable, so read the token from its source.
 const themeColor = cssToken(tokens, '--color-background')
+// Painted before any stylesheet loads, so a reload never flashes white (or
+// drops the status-bar tint) while the CSS arrives.
+const firstPaint = `html,body{background-color:${themeColor}}`
 
 const { links, privacy } = site
 const footerLinks = [
@@ -35,6 +38,7 @@ const footerLinks = [
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style is:inline set:html={firstPaint} />
     <!-- viewport-fit=cover lets the page run under notches and the status bar
          where the browser honours it (iOS 26 Safari reportedly doesn't in
          portrait); the safe-area insets in Nav, Hero, section-container and

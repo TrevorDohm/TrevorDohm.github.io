@@ -15,7 +15,7 @@ export interface Scene {
   cells: Int32Array
   /** The name's centre, where the intro's light starts. */
   centre: [number, number]
-  /** Where the bottom fade starts; the idle path stays above it. */
+  /** Where the fades are; the idle path stays between them. */
   at: FadeRows
   weights: Float32Array
   attention: Float32Array
@@ -41,7 +41,7 @@ export function layoutScene(m: Layout, prev: Scene | null): Scene {
   const arrays = same
     ? prev
     : { weights: new Float32Array(count), attention: new Float32Array(count), target: new Float32Array(count), boost: new Float32Array(count) }
-  const at = fadeRows(grid, m.buttonBottom)
+  const at = fadeRows(grid, m.buttonBottom, named ? ay : null)
   return {
     grid,
     width,

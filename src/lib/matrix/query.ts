@@ -43,14 +43,14 @@ export function queryTarget(state: MatrixState, now: number, path: Point): Point
   return pointer && isFollowing(state, now) ? [pointer.x, pointer.y] : path
 }
 
-let cruiseFor: [number, number, number] = [NaN, NaN, NaN]
+let cruiseFor: number[] = []
 let cruiseMemo = 0
 /** How fast the light may glide back to the idle path (px/s): CRUISE_FACTOR x its top speed, kept per canvas size. */
-export function cruiseSpeed(width: number, height: number, floor = Infinity): number {
-  const [w, h, f] = cruiseFor
-  if (width !== w || height !== h || floor !== f) {
-    cruiseFor = [width, height, floor]
-    cruiseMemo = CRUISE_FACTOR * idlePeakSpeed(width, height, floor)
+export function cruiseSpeed(width: number, height: number, floor = Infinity, ceiling = -Infinity): number {
+  const key = [width, height, floor, ceiling]
+  if (key.some((v, i) => v !== cruiseFor[i])) {
+    cruiseFor = key
+    cruiseMemo = CRUISE_FACTOR * idlePeakSpeed(width, height, floor, ceiling)
   }
   return cruiseMemo
 }
@@ -134,8 +134,9 @@ export function goalAt(
   width: number,
   height: number,
   floor = Infinity,
+  ceiling = -Infinity,
 ): Point {
-  const idle = idleQuery(Math.max(0, clock - BREAK_AT), width, height, floor)
+  const idle = idleQuery(Math.max(0, clock - BREAK_AT), width, height, floor, ceiling)
   return queryTarget(state, now, introQuery(clock, centre, idle))
 }
 

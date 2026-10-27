@@ -5,15 +5,15 @@
 import { introAlpha } from './effects'
 import type { Grid } from './geometry'
 import { clamp01 } from './math'
-import { bottomFade, dropoutMap, type FadeRows } from './dissolve'
+import { bottomFade, dropoutMap, topFade, type FadeRows } from './dissolve'
 import { LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
 
 export const NAME = nameMask(NAME_LINES, LINE_GAP)
 
 /** Brightest a background cell gets under the query (the mockup's 0.9). */
-export const GLOW_PEAK = 0.9
+const GLOW_PEAK = 0.9
 /** Seconds the background attention takes to sweep in. */
-export const WAVE_SECONDS = 1.2
+const WAVE_SECONDS = 1.2
 /** When the background attention starts sweeping in. */
 export const WAVE_START = TIMELINE.form + 0.6 * TIMELINE.hold
 /** When the name starts to break up and the query leaves its centre. */
@@ -54,15 +54,17 @@ export function nameCells(grid: Grid, anchorX: number, anchorY: number): Int32Ar
 }
 
 /**
- * Bottom fade visibility for every cell of the grid, from the rows in `at`:
- * the dimming, or 0 where a cell is removed. Cells in `exempt` (grid indices;
+ * Fade visibility for every cell of the grid, from the rows in `at`: the
+ * bottom and top dimming, or 0 where a cell is removed. Cells in `exempt` (grid indices;
  * -1 is ignored) stay whole, so the name never fades.
  */
 export function fadeMap(grid: Grid, exempt: Int32Array, at: FadeRows): Float32Array {
   const fade = new Float32Array(grid.cols * grid.rows)
-  const drop = dropoutMap(grid.cols, grid.rows, at.dropStart)
+  const drop = dropoutMap(grid.cols, grid.rows, at.dropStart, at.dropEnd)
   for (let i = 0; i < fade.length; i++) {
-    fade[i] = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols, at.dimStart)
+    const row = Math.floor(i / grid.cols)
+    const col = i % grid.cols
+    fade[i] = drop[i] ? 0 : Math.min(bottomFade(row, grid.rows, col, at.dimStart), topFade(row, col, at.full))
   }
   for (const i of exempt) if (i >= 0) fade[i] = 1
   return fade
