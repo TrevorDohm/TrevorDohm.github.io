@@ -92,8 +92,8 @@ describe('fadeRows at the top', () => {
     const nameRow = Math.round((284 - grid.originY) / grid.pitch)
     expect(rows.full).toBe(nameRow - 1)
     expect(rows.dropEnd).toBe(rows.full)
-    // The idle path's ceiling: one row of margin below the full row (the floor's mirror).
-    expect(rows.ceiling).toBeCloseTo(grid.originY + (rows.full + 2) * grid.pitch)
+    // The idle path's ceiling: halfway down the top fade.
+    expect(rows.ceiling).toBeCloseTo(grid.originY + (rows.full / 2) * grid.pitch)
     expect(rows.ceiling).toBeLessThan(rows.floor)
   })
 

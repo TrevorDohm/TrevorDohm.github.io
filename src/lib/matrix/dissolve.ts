@@ -53,7 +53,8 @@ export interface FadeRows {
  * canvas px, on a row line) is the first at full strength; without a name,
  * the top fade spans as many rows as the bottom one. Either way it stays at
  * least one row deep and clear of the bottom fade. The idle path's ceiling
- * keeps one row of margin below the full row.
+ * is halfway down the top fade: the light may roam into it, where it dims
+ * with the cells; only the bottom fade keeps it out.
  */
 export function fadeRows(grid: Grid, buttonBottom: number | null, nameTop: number | null = null): FadeRows {
   const { rows, pitch, originY } = grid
@@ -75,7 +76,7 @@ export function fadeRows(grid: Grid, buttonBottom: number | null, nameTop: numbe
     floor: originY + (dimStart - 1) * pitch,
     full,
     dropEnd: full,
-    ceiling: originY + (full + 2) * pitch,
+    ceiling: originY + (full / 2) * pitch,
   }
 }
 
