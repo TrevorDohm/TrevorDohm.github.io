@@ -44,3 +44,25 @@ export function revealProgress(itemX: number, itemPx: number, rowPx: number, lis
   // Not % 1: a full loop wraps to the far end of the range, not back to the item.
   return Math.min(reverse ? 1 - progress : progress, LAST_PROGRESS)
 }
+
+/**
+ * Seconds between two frame times in ms, capped at `maxSeconds` so a stalled
+ * frame doesn't jump. Never negative: the first rAF timestamp can be earlier
+ * than the performance.now() taken when it was requested.
+ */
+export function frameStep(now: number, last: number, maxSeconds: number): number {
+  return Math.min(Math.max(0, now - last) / 1000, maxSeconds)
+}
+
+/** A box in viewport px. */
+export interface Box {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
+/** Index of the first box holding (x, y), left and top edges included; -1 if none does. */
+export function indexAt(boxes: readonly Box[], x: number, y: number): number {
+  return boxes.findIndex((b) => x >= b.left && x < b.right && y >= b.top && y < b.bottom)
+}

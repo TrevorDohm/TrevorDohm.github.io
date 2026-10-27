@@ -1,7 +1,8 @@
 import { whileMotionAllowed } from '../motion/while-motion-allowed'
 import { dragRows } from './drag'
 import { focusHold } from './focus'
-import { approach } from './math'
+import { hoverItems } from './hover'
+import { approach, frameStep } from './math'
 import { rowAnims } from './scrub'
 import { layoutRow, resetRow } from './timing'
 
@@ -33,7 +34,6 @@ function drive(root: HTMLElement): () => void {
 
   let alive = true, userPaused = false, focusHeld = false, onScreen = true
   let rate = 1, target = 1, raf = 0, last = 0
-  let hovered: HTMLElement | null = null
 
   const layout = () => {
     if (!alive) return
@@ -49,7 +49,7 @@ function drive(root: HTMLElement): () => void {
 
   const applyRate = () => anims().forEach((a) => a.updatePlaybackRate(rate))
   const step = (now: number) => {
-    rate = approach(rate, target, EASE_RATE, Math.min((now - last) / 1000, MAX_STEP_S))
+    rate = approach(rate, target, EASE_RATE, frameStep(now, last, MAX_STEP_S))
     last = now
     if (Math.abs(rate - target) <= 0.001) {
       rate = target
@@ -66,24 +66,9 @@ function drive(root: HTMLElement): () => void {
     raf = requestAnimationFrame(step)
   }
 
-  // Inert copies get no pointer events, so find the item under the pointer by geometry.
-  const setHover = (li: HTMLElement | null) => {
-    if (li === hovered) return
-    hovered?.removeAttribute('data-hover')
-    li?.setAttribute('data-hover', '')
-    hovered = li
-  }
-  const onMove = (event: PointerEvent) => {
-    const row = event.currentTarget as HTMLElement
-    const items = row.querySelectorAll<HTMLElement>(':scope > ul > li')
-    const hit = Array.from(items).find((li) => {
-      const r = li.getBoundingClientRect()
-      return event.clientX >= r.left && event.clientX < r.right && event.clientY >= r.top && event.clientY < r.bottom
-    })
-    setHover(hit ?? null)
-  }
+  const hover = hoverItems()
   const onEnter = () => setTarget(HOVER_RATE)
-  const onLeave = () => { setHover(null); setTarget(1) }
+  const onLeave = () => { hover.onLeave(); setTarget(1) }
   const focus = focusHold(root, rows, (held) => {
     focusHeld = held
     sync()
@@ -113,7 +98,7 @@ function drive(root: HTMLElement): () => void {
   })
   const resize = new ResizeObserver(layout)
   const rowEvents = [
-    ['pointermove', onMove],
+    ['pointermove', hover.onMove],
     ['pointerenter', onEnter],
     ['pointerleave', onLeave],
     ['focusin', focus.onFocusIn],
@@ -139,7 +124,7 @@ function drive(root: HTMLElement): () => void {
     document.removeEventListener('visibilitychange', sync)
     toggle?.removeEventListener('click', onToggle)
     for (const row of rows) for (const [type, fn] of rowEvents) row.removeEventListener(type, fn as EventListener)
-    setHover(null)
+    hover.onLeave()
     focus.release()
     drag.release()
     rows.forEach((row, i) => saved[i].forEach((v, j) => v !== null && row.setAttribute(STATIC_ATTRS[j], v)))
