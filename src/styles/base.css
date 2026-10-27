@@ -48,5 +48,9 @@ body::before {
   z-index: 40;
   pointer-events: none;
   opacity: 0.04;
+  /* The grain lifts the page about 3 levels above the background colour,
+     which is all a pull-down or bounce past either end shows. Fading it out
+     at both ends of the page lets the two meet with no edge. */
+  mask-image: linear-gradient(transparent, black 50svh, black calc(100% - 25svh), transparent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }

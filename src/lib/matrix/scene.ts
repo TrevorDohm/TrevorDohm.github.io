@@ -41,7 +41,7 @@ export function layoutScene(m: Layout, prev: Scene | null): Scene {
   const arrays = same
     ? prev
     : { weights: new Float32Array(count), attention: new Float32Array(count), target: new Float32Array(count), boost: new Float32Array(count) }
-  const at = fadeRows(grid, m.buttonBottom, named ? ay : null)
+  const at = fadeRows(grid, m.buttonBottom, named ? ay : null, m.navBottom)
   return {
     grid,
     width,

@@ -5,7 +5,7 @@ import { carryName, layoutScene } from './scene'
 
 const layout = (over: Partial<Layout> = {}): Layout => ({
   width: 390, height: 844, pitch: 14, ax: 24, ay: 284, named: true,
-  copy: [], buttonBottom: 600, key: '', ...over,
+  copy: [], buttonBottom: 600, navBottom: null, key: '', ...over,
 })
 
 describe('layoutScene', () => {
@@ -34,6 +34,13 @@ describe('layoutScene', () => {
     expect(named.at.full).toBe(Math.round((150 - originY) / pitch) - 1)
     const nameless = layoutScene(layout({ ay: 150, named: false }), null)
     expect(named.at.full).not.toBe(nameless.at.full) // so the name top is what set it
+  })
+
+  it('ends the top fade at the nav edge when there is one', () => {
+    const s = layoutScene(layout({ ay: 284, navBottom: 135 }), null)
+    const { originY, pitch } = s.grid
+    expect(s.at.full).toBe(Math.ceil((135 - originY) / pitch))
+    expect(s.at.full).not.toBe(layoutScene(layout({ ay: 284 }), null).at.full) // so the nav edge is what set it
   })
 
   it('centres the light without a name', () => {

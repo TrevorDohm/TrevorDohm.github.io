@@ -19,13 +19,17 @@ export interface Layout {
   copy: Rect[]
   /** Bottom edge of the hero buttons, where the bottom fade starts; null without buttons. */
   buttonBottom: number | null
+  /** Bottom edge of the fixed nav over the hero, where the top fade ends; null without a marker. */
+  navBottom: number | null
   /** Changes whenever any of the above does. */
   key: string
 }
 
 /**
  * Reads the layout from the canvas, the static name (`anchor`, whose width is
- * 23 pitches) and the copy elements. Null while the canvas isn't laid out,
+ * 23 pitches), the copy elements and the `[data-matrix-nav]` element in
+ * `frame`, whose top padding clears the nav: its content edge is the nav's
+ * bottom, read without the nav itself so scrolling never changes it. Null while the canvas isn't laid out,
  * or when it doesn't cover the hero (`frame`; see coversHero).
  */
 export function measure(
@@ -56,7 +60,9 @@ export function measure(
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
   })
-  const values = [rect.width, rect.height, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
+  const pad = frame.querySelector('[data-matrix-nav]')
+  const navBottom = pad ? pad.getBoundingClientRect().top - rect.top + parseFloat(getComputedStyle(pad).paddingTop) : null
+  const values = [rect.width, rect.height, pitch, ax, ay, navBottom ?? -1, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,
     height: rect.height,
@@ -66,6 +72,7 @@ export function measure(
     named,
     copy: boxes,
     buttonBottom,
+    navBottom,
     key: values.map((v) => v.toFixed(2)).join(),
   }
 }

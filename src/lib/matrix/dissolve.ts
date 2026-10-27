@@ -3,9 +3,9 @@
  * toward the bottom (`bottomFade`), and from the first row wholly below the
  * buttons some cells are removed outright, more the lower they are
  * (`dropoutMap`), so the grid tapers into the page with no edge. The top
- * mirrors it (`topFade`) from the row just above the name up to the hero's
- * top edge, so the page a pull-down reveals above the hero meets an
- * already faded grid.
+ * mirrors it (`topFade`) under the nav, up to the hero's top edge, so a
+ * pull-down reveals an already faded grid; below the nav every row is at
+ * full strength.
  */
 import type { Grid } from './geometry'
 import { clamp01, hash2 } from './math'
@@ -24,6 +24,11 @@ const JITTER = 0.1
  */
 const DROP_FIRST = 0.23
 const DROP_LAST = 0.9
+/** The top band's removal chances, lighter than the bottom's: it is short and mostly hidden by the nav. */
+const TOP_DROP_FIRST = 0.12
+const TOP_DROP_LAST = 0.5
+/** Fewest rows the top fade spans under a short nav (a wide screen's), so a pull-down still meets a taper. */
+const MIN_TOP_ROWS = 3
 
 /**
  * Where the fades are: at the bottom, the dimming's first row, the removals'
@@ -49,14 +54,22 @@ export interface FadeRows {
  * its top, removals from a fifth of the way down. The idle path's floor keeps
  * one row of margin above the dimming.
  *
- * At the top, the row just above the name (whose top edge is `nameTop`,
- * canvas px, on a row line) is the first at full strength; without a name,
- * the top fade spans as many rows as the bottom one. Either way it stays at
- * least one row deep and clear of the bottom fade. The idle path's ceiling
+ * At the top, the first row wholly below the nav (whose bottom edge is
+ * `navBottom`, canvas px) is the first at full strength, at least
+ * MIN_TOP_ROWS down and never past the row just above the name (whose top
+ * edge is `nameTop`, canvas px, on a row line). Without a nav edge, the row
+ * just above the name; without either, the top fade spans as many rows as
+ * the bottom one. Either way it stays at least one row deep and clear of
+ * the bottom fade. The idle path's ceiling
  * is halfway down the top fade: the light may roam into it, where it dims
  * with the cells; only the bottom fade keeps it out.
  */
-export function fadeRows(grid: Grid, buttonBottom: number | null, nameTop: number | null = null): FadeRows {
+export function fadeRows(
+  grid: Grid,
+  buttonBottom: number | null,
+  nameTop: number | null = null,
+  navBottom: number | null = null,
+): FadeRows {
   const { rows, pitch, originY } = grid
   let dimStart: number
   let dropStart: number
@@ -68,7 +81,9 @@ export function fadeRows(grid: Grid, buttonBottom: number | null, nameTop: numbe
     dropStart = dimStart + Math.ceil((rows - dimStart) / 5)
   }
   const named = nameTop !== null && Number.isFinite(nameTop)
-  const wanted = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
+  const aboveName = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
+  const underNav = navBottom !== null && Number.isFinite(navBottom)
+  const wanted = underNav ? Math.min(aboveName, Math.max(MIN_TOP_ROWS, Math.ceil((navBottom - originY) / pitch))) : aboveName
   const full = Math.max(1, Math.min(dimStart - 1, wanted))
   return {
     dimStart,
@@ -114,11 +129,11 @@ export function dropChance(row: number, rows: number, dropStart: number): number
   return DROP_FIRST + (DROP_LAST - DROP_FIRST) * ramp * ramp * (3 - 2 * ramp)
 }
 
-/** `dropChance` upside down: 0 from `dropEnd` down, DROP_FIRST on the row above it, DROP_LAST on the top row. */
+/** `dropChance` upside down and lighter: 0 from `dropEnd` down, TOP_DROP_FIRST on the row above it, TOP_DROP_LAST on the top row. */
 export function topDropChance(row: number, dropEnd: number): number {
   if (row >= dropEnd) return 0
   const ramp = Math.min(1, (dropEnd - 1 - row) / Math.max(1, dropEnd - 1))
-  return DROP_FIRST + (DROP_LAST - DROP_FIRST) * ramp * ramp * (3 - 2 * ramp)
+  return TOP_DROP_FIRST + (TOP_DROP_LAST - TOP_DROP_FIRST) * ramp * ramp * (3 - 2 * ramp)
 }
 
 /**

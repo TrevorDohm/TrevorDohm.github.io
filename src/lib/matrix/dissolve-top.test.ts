@@ -58,14 +58,12 @@ describe('dropoutMap with a top band', () => {
     for (let i = (FULL + 1) * COLS; i < drop.length; i++) expect(drop[i]).toBe(bottomOnly[i])
   })
 
-  it('starts with about a fifth of the row next to the full row and rises to about two thirds at the top', () => {
-    expect(share(FULL - 1)).toBeGreaterThanOrEqual(0.15)
-    expect(share(FULL - 1)).toBeLessThanOrEqual(0.3)
+  it('is lighter than the bottom: about an eighth of the row next to the full row, under half at the top', () => {
+    expect(share(FULL - 1)).toBeGreaterThanOrEqual(0.06)
+    expect(share(FULL - 1)).toBeLessThanOrEqual(0.18)
     const top3 = mean([0, 1, 2].map(share))
-    expect(top3).toBeGreaterThanOrEqual(0.6)
-    // A little denser than the bottom's last rows: the top row has no row above it to complete a
-    // 2x2 block, so the no-clump rule turns fewer removals down there.
-    expect(top3).toBeLessThanOrEqual(0.8)
+    expect(top3).toBeGreaterThanOrEqual(0.35)
+    expect(top3).toBeLessThanOrEqual(0.55)
     const blocks = Array.from({ length: Math.floor(FULL / 5) }, (_, b) => mean([0, 1, 2, 3, 4].map((k) => share(b * 5 + k))))
     for (let b = 1; b < blocks.length; b++) expect(blocks[b]).toBeLessThanOrEqual(blocks[b - 1] + 0.03)
   })
@@ -113,6 +111,22 @@ describe('fadeRows at the top', () => {
     const rows = fadeRows(grid, 300, 600) // name top far below the buttons' bottom edge
     expect(Math.round((600 - grid.originY) / grid.pitch) - 1).toBeGreaterThan(rows.dimStart) // unclamped, it would overlap
     expect(rows.full).toBe(rows.dimStart - 1)
+  })
+
+  it('with the nav edge, reaches full strength on the first row wholly below the nav', () => {
+    const navBottom = 135 // phone nav plus status bar
+    const rows = fadeRows(grid, 559, 284, navBottom)
+    const navRow = Math.ceil((navBottom - grid.originY) / grid.pitch)
+    expect(grid.originY + navRow * grid.pitch).toBeGreaterThanOrEqual(navBottom) // wholly below
+    expect(grid.originY + (navRow - 1) * grid.pitch).toBeLessThan(navBottom) // the row above is not
+    expect(rows.full).toBe(navRow)
+    expect(rows.full).toBeLessThan(Math.round((284 - grid.originY) / grid.pitch) - 1) // well above the name
+  })
+
+  it('keeps at least 3 rows under a short nav, and never reaches the name', () => {
+    expect(fadeRows(grid, 559, 284, 5).full).toBe(3)
+    const nameRow = Math.round((284 - grid.originY) / grid.pitch)
+    expect(fadeRows(grid, 559, 284, 400).full).toBe(nameRow - 1)
   })
 
   it('stays at least one row deep when the buttons end near the top', () => {
