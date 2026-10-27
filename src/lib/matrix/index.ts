@@ -1,4 +1,5 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
+import { whileMotionAllowed } from '../motion/while-motion-allowed'
 import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
 import { bindInput } from './input'
@@ -42,7 +43,7 @@ export function init(root: HTMLElement): () => void {
     return () => {}
   }
 
-  const reduced = prefersReducedMotion()
+  let still = prefersReducedMotion() // reduced motion: the still frame, the name lit
   const state = createState()
   let scene: Scene | null = null
   let layoutKey = ''
@@ -50,8 +51,8 @@ export function init(root: HTMLElement): () => void {
   // Intro clock (s): dark, or lit in the hold if the intro played earlier this
   // session or the CSS safety net showed the static name.
   const seen = readSeen()
-  const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
-  const plan = introPlan({ still: reduced, shown, seen })
+  const shown = !still && !!anchor && getComputedStyle(anchor).opacity !== '0'
+  const plan = introPlan({ still, shown, seen })
   let clock = plan.clock
   let copyShown = plan.copyNow && showCopy()
   let marked = seen
@@ -63,7 +64,7 @@ export function init(root: HTMLElement): () => void {
     const cruise = cruiseSpeed(s.width, s.height, s.at.floor, s.at.ceiling)
     const query = stepLight(light, goal(s, now), isFollowing(state, now), dt, cruise, grid.pitch)
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
-    if (reduced) attention.fill(0) // still: only the name is lit
+    if (still) attention.fill(0) // only the name is lit
     intro.composeTargets(s.target, attention, grid, s.cells, clock)
   }
 
@@ -84,7 +85,7 @@ export function init(root: HTMLElement): () => void {
     scene = s
     renderer.resize(s.grid, m.width, m.height, window.devicePixelRatio || 1)
     updateTarget(s, performance.now(), 0)
-    carryName(s, prev, reduced)
+    carryName(s, prev, still)
     draw(s)
   }
 
@@ -106,8 +107,15 @@ export function init(root: HTMLElement): () => void {
   resize()
   if (!scene) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
 
-  if (reduced) {
-    return stopWatching
+  // Reduced motion turned on mid-visit: a moment in the hold, held still.
+  const freeze = () => {
+    still = true
+    clock = intro.STILL_AT
+    if (!scene) return
+    scene.boost.fill(0)
+    updateTarget(scene, performance.now(), 0)
+    scene.weights.set(scene.target)
+    draw(scene)
   }
 
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
@@ -116,13 +124,21 @@ export function init(root: HTMLElement): () => void {
     if (!scene || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
     return isSettled(light.q, goal(scene, now), scene.grid.pitch)
   }
-  const loop = createLoop(root, tick, settled)
-  const unbind = bindInput(root, canvas, state)
-  loop.start()
+  // Turning reduced motion off resumes from the still frame's moment in the hold.
+  const stopMotion = whileMotionAllowed(() => {
+    still = false
+    const loop = createLoop(root, tick, settled)
+    const unbind = bindInput(root, canvas, state)
+    loop.start()
+    return () => {
+      loop.stop()
+      unbind()
+      freeze()
+    }
+  })
 
   return () => {
-    loop.stop()
-    unbind()
+    stopMotion()
     stopWatching()
   }
 }
