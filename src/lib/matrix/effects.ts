@@ -2,67 +2,65 @@ import type { Grid } from './geometry'
 import { clamp01 } from './math'
 import type { Ripple } from './state'
 
-/** Ripple shape: speed in cells per second, ring width in cells, lifetime in seconds. */
-export const RIPPLE = { speed: 14, width: 0.9, lifetime: 1.4 } as const
-
 /**
- * Brightness a ripple adds at `distance` from its origin, `age` seconds after
- * it started: a Gaussian ring expanding at `speed` that fades out linearly.
+ * The click or tap "drop", in cells and seconds: the clicked cell flashes to
+ * `peak`, a soft ring of `width` travels out and slows to a stop at `spread`,
+ * and everything is gone after `lifetime`. Nothing reaches `reach` cells.
  */
-export function rippleAt(
-  distance: number,
-  age: number,
-  speed: number,
-  width: number,
-  lifetime: number,
-): number {
-  if (age < 0 || age >= lifetime) return 0
-  const offset = distance - age * speed
-  return Math.exp(-(offset * offset) / (2 * width * width)) * (1 - age / lifetime)
-}
+export const DROP = { peak: 0.7, reach: 4, spread: 3, width: 0.6, lifetime: 0.7 } as const
 
-/** A slow looping path inside the square at (x, y) with side `size`. `t` is in seconds. */
-export function idlePoint(t: number, x: number, y: number, size: number): [number, number] {
-  const r = size * 0.38
-  return [
-    x + size / 2 + r * Math.sin(t * 0.31),
-    y + size / 2 + r * Math.sin(t * 0.23 + Math.PI / 2),
-  ]
+/** Brightness a drop adds `distance` cells from the click, `age` seconds after it. */
+export function dropAt(distance: number, age: number): number {
+  const { peak, reach, spread, width, lifetime } = DROP
+  if (age < 0 || age >= lifetime || distance >= reach) return 0
+  const life = 1 - age / lifetime // 1 at the click, 0 at the end
+  const radius = spread * (1 - life * life) // fast at first, easing to a stop
+  const ring = Math.exp(-(((distance - radius) / width) ** 2) / 2)
+  const flash = Math.exp(-((distance / width) ** 2) / 2) * life ** 3
+  const falloff = 1 - (distance / reach) ** 2
+  return peak * falloff * life * Math.max(ring, flash)
 }
 
 /** Visibility of a cell during the load-in wave, which sweeps from the top-left corner. */
-export function introAlpha(progress: number, row: number, col: number, n: number): number {
-  const start = n > 1 ? ((row + col) / (2 * (n - 1))) * 0.7 : 0
+export function introAlpha(
+  progress: number,
+  row: number,
+  col: number,
+  rows: number,
+  cols: number,
+): number {
+  const span = rows + cols - 2
+  const start = span > 0 ? ((row + col) / span) * 0.7 : 0
   return clamp01((progress - start) / 0.3)
 }
 
-/** Fills `boost` with extra brightness from the hovered row and column and active ripples. */
+/**
+ * Fills `boost` with the extra brightness of the active drops, capped at the
+ * drop's peak so rapid clicks on one spot don't add up. Only cells within
+ * `DROP.reach` of a click are visited.
+ */
 export function applyBoost(
   boost: Float32Array,
   grid: Grid,
-  hover: number,
   ripples: readonly Ripple[],
   now: number,
-  axisBoost: number,
 ): Float32Array {
-  const { n, pitch, centers } = grid
+  const { cols, rows, pitch, originX, originY, centers } = grid
   boost.fill(0)
-
-  if (hover >= 0) {
-    const row = Math.floor(hover / n)
-    const col = hover % n
-    for (let k = 0; k < n; k++) {
-      boost[row * n + k] += axisBoost
-      boost[k * n + col] += axisBoost
-    }
-    boost[hover] -= axisBoost // counted by both the row and the column
-  }
-
   for (const ripple of ripples) {
     const age = (now - ripple.start) / 1000
-    for (let i = 0; i < n * n; i++) {
-      const d = Math.hypot(centers[i * 2] - ripple.x, centers[i * 2 + 1] - ripple.y) / pitch
-      boost[i] += rippleAt(d, age, RIPPLE.speed, RIPPLE.width, RIPPLE.lifetime)
+    const col = (ripple.x - originX) / pitch
+    const row = (ripple.y - originY) / pitch
+    const c0 = Math.max(0, Math.floor(col - DROP.reach))
+    const c1 = Math.min(cols - 1, Math.ceil(col + DROP.reach))
+    const r0 = Math.max(0, Math.floor(row - DROP.reach))
+    const r1 = Math.min(rows - 1, Math.ceil(row + DROP.reach))
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        const i = r * cols + c
+        const d = Math.hypot(centers[i * 2] - ripple.x, centers[i * 2 + 1] - ripple.y) / pitch
+        boost[i] = Math.min(DROP.peak, boost[i] + dropAt(d, age))
+      }
     }
   }
   return boost

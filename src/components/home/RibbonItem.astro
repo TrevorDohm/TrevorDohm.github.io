@@ -1,0 +1,74 @@
+---
+import type { Interest } from '../../data/interests'
+
+interface Props {
+  item: Interest
+  outlined: boolean
+}
+
+const { item, outlined } = Astro.props
+---
+
+<li class="item" data-category={item.category} data-outlined={outlined || undefined}>
+  <span class="mark" aria-hidden="true">
+    <span class="cell"></span>
+    <span class="label">{item.category}</span>
+  </span>
+  <span class="word">{item.label}</span>
+</li>
+
+<style>
+  .item {
+    --cat: var(--color-accent);
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 0 0.35em;
+    font-size: clamp(32px, 5vw, 64px);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    white-space: nowrap;
+  }
+
+  .item[data-category='mba'] { --cat: var(--color-accent-2); }
+  .item[data-category='bake'] { --cat: var(--color-bake); }
+  .item[data-category='hike'] { --cat: var(--color-hike); }
+
+  .mark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Dimmer than the hero matrix, so the words stay the loudest thing. */
+  .cell {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    background: var(--cat);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--cat) 40%, transparent);
+  }
+
+  .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--cat);
+  }
+
+  .item[data-outlined] .word {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--color-muted);
+  }
+
+  .item[data-outlined]:hover .word,
+  .item[data-outlined][data-hover] .word {
+    -webkit-text-stroke-color: var(--cat);
+  }
+</style>

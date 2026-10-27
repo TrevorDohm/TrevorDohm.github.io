@@ -1,9 +1,10 @@
 /**
  * Attention weights for the matrix. Pure.
  *
- * A softmax over negative distance to the query, divided by its largest value:
- * exp(-(d_i - d_min) / temperature). Ratios match the softmax, the nearest cell
- * is exactly 1, and nothing overflows. Distances are in cells, not pixels.
+ * exp(-d_i / temperature), with d_i the distance in cells from the query to
+ * cell i: the softmax numerator over negative distance, unnormalised as in the
+ * mockup, so a cell right under the query is 1 and the peak dims a little when
+ * the query sits between cells. Nothing overflows since d_i >= 0.
  */
 export function attentionWeights(
   centers: Float32Array,
@@ -14,14 +15,9 @@ export function attentionWeights(
   out: Float32Array,
 ): Float32Array {
   const count = centers.length / 2
-  let nearest = Infinity
   for (let i = 0; i < count; i++) {
     const d = Math.hypot(centers[i * 2] - qx, centers[i * 2 + 1] - qy) / pitch
-    out[i] = d
-    if (d < nearest) nearest = d
-  }
-  for (let i = 0; i < count; i++) {
-    out[i] = Math.exp(-(out[i] - nearest) / temperature)
+    out[i] = Math.exp(-d / temperature)
   }
   return out
 }

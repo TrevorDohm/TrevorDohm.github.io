@@ -1,0 +1,110 @@
+---
+// The name as cells, drawn at build time. One SVG unit is one grid pitch. It
+// shows without JavaScript; with it, the matrix reads this box to lay out its
+// grid (pitch = width / 23) and the live name replaces it in place.
+import { CELL_FILL, CELL_RADIUS } from '../../lib/matrix/geometry'
+import { NAME } from '../../lib/matrix/intro'
+import { levelPaths, num } from '../../lib/patterns/frame'
+
+// levelPaths takes a square n x n grid; the name only uses its top rows.
+const n = NAME.cols
+const lit = new Float32Array(n * n)
+for (const [row, col] of NAME.cells) lit[row * n + col] = 1
+
+// A square stroked with round joins is a rounded square: the stroke is twice the
+// corner radius, and the outer size matches the canvas cell.
+const radius = CELL_FILL * CELL_RADIUS
+const stroke = 2 * radius
+const offset = (1 - CELL_FILL) / 2 + radius
+const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
+---
+
+<svg
+  data-name-anchor
+  viewBox={`0 0 ${NAME.cols} ${NAME.rows}`}
+  aria-hidden="true"
+  focusable="false"
+  class="name-mark"
+>
+  <!-- The canvas adds a glow sprite over each lit cell ('lighter'); this adds
+       a blurred copy of the cells the same way, so the handoff doesn't jump. -->
+  <filter id="name-glow" x="-0.1" y="-0.2" width="1.2" height="1.4" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" result="blur" />
+    <feFlood flood-opacity="0.95" />
+    <feComposite in2="blur" operator="in" result="glow" />
+    <feComposite in="SourceGraphic" in2="glow" operator="arithmetic" k2="1" k3="1" />
+  </filter>
+  <path
+    filter="url(#name-glow)"
+    transform={`translate(${num(offset)} ${num(offset)})`}
+    d={d}
+    stroke-width={num(stroke)}
+    stroke-linejoin="round"
+  />
+</svg>
+
+<style>
+  /* Width: 86% of a phone, 62% of a tablet, 52% of a wide screen (the
+     mockup's shares), never wider than the text column, and capped by height
+     so the name ends at or above 0.65 of the hero. The bottom fade starts
+     under the buttons (dissolve.ts), so it never reaches the name, and name
+     cells are exempt from it anyway. Hero.astro centres the block (name, one-row gap,
+     copy) at 45% of the hero below the nav, so with hero height H, nav
+     clearance N, copy below the gap C and pitch p the name's bottom sits at
+     N + 0.45(H - N) - C/2 + 5p; keeping that at or above 0.65H gives
+     23p <= 4.6 (0.2H - 0.55N + 0.5C). C is the role line and the buttons with
+     their margins, measured in Chrome: 107.2px on phones (a 2-line role line),
+     87.2px from 40rem (1 line). N is --hero-nav, inherited from Hero.astro
+     (4.75rem, 4.25rem from 48rem). The cap never goes below 253px (11px pitch),
+     which bounds the canvas's cell count on short screens; a 320px phone's
+     text column is 272px. */
+  .name-mark {
+    --copy-below: 107.2px;
+    --name-cap: max(253px, 4.6 * (0.2 * max(100svh, 32.5rem) - 0.55 * var(--hero-nav) + 0.5 * var(--copy-below)));
+    --name-w: min(100%, 86vw, var(--name-cap));
+    display: block;
+    flex: none; /* a flex item in the hero block; never squeezed */
+    width: var(--name-w);
+    height: auto;
+    aspect-ratio: 23 / 11;
+    margin-bottom: calc(var(--name-w) / 23);
+    overflow: visible; /* the glow spills past the outer cells */
+  }
+  @media (min-width: 40rem) {
+    .name-mark {
+      --copy-below: 87.2px;
+      --name-w: min(100%, 62vw, var(--name-cap));
+    }
+  }
+  @media (min-width: 68.75rem) {
+    .name-mark {
+      --name-w: min(100%, 52vw, var(--name-cap));
+    }
+  }
+  /* Whole-pixel pitch keeps the cells crisp. */
+  @supports (width: round(down, 10px, 1px)) {
+    .name-mark {
+      width: round(down, var(--name-w), 23px);
+      margin-bottom: calc(round(down, var(--name-w), 23px) / 23);
+    }
+  }
+
+  /* The held state of the live name: weight 0.95 on the ramp, which is
+     accent-2 mixed 12.5% toward accent, at the canvas's opacity for it. */
+  path {
+    --name-fill: color-mix(in srgb, var(--color-accent-2) 87.5%, var(--color-accent));
+    fill: var(--name-fill);
+    stroke: var(--name-fill);
+    opacity: 0.98;
+  }
+
+  /* The canvas glow colour: halfway between the accents. */
+  feFlood {
+    flood-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-accent-2));
+  }
+
+  /* Hidden, still in flow, once the canvas has drawn the name. */
+  :global([data-matrix-ready]) .name-mark {
+    visibility: hidden;
+  }
+</style>

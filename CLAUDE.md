@@ -11,7 +11,9 @@ startup. `PLAN.md` is the source of truth for design decisions. If this file and
 
 - `PLAN.md`: goals, design decisions, code structure rules, phase status
 - `docs/superpowers/plans/`: step-by-step implementation plans, one per phase
-- `src/data/`: all site content (`site.ts`, `projects.ts`, `experience.ts`)
+- `docs/superpowers/specs/`: design specs, such as the ribbon and gallery spec
+- `src/data/`: all site content (`site.ts`, `projects.ts`, `experience.ts`,
+  `interests.ts` for the ribbon words, `patterns.ts` for the gallery cards)
 - `src/data/site.ts` `privacy`: toggles for what appears in the contact section.
   The phone number stays hidden unless Trevor says otherwise.
 
@@ -57,7 +59,13 @@ A change is done when `npm test` and `npm run build` both pass with 0 errors.
 - Fonts are Geist and Geist Mono, self-hosted through `astro.config.mjs`. Don't
   add Google Fonts `@import`s.
 - Every animation respects `prefers-reduced-motion`.
-- The hero `<h1>` is the LCP element and must never start at `opacity: 0`.
+- The hero `<h1>` is visually hidden (`sr-only`). Since 2026-10-26 the hero copy
+  (role line, buttons) fades in at about 1.1 s, as the mockup, so the LCP
+  element is the role line and LCP lands when its fade finishes: about 2.0 s
+  observed and 2.1 s in Lighthouse's simulated mobile run (was 1.5 s with the
+  tagline painted at once). The copy is hidden only under `data-js-intro` (JS
+  on, motion allowed), and a CSS safety net shows it after 3 s if the matrix
+  never runs. Without JS or under reduced motion it shows from first paint.
 - Content must stay visible if JavaScript fails to load.
 
 ## Writing

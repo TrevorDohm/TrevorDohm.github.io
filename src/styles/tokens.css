@@ -8,10 +8,10 @@
   --color-muted: #9494a8;
   --color-accent: #7c9cff;
   --color-accent-2: #b18cff;
-
-  /* Position and blur only, never opacity: hero text must count as painted
-     from the first frame for LCP. */
-  --animate-rise: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Ribbon category colors. Like the accents, both sit at about 7.7:1 on
+     background. */
+  --color-bake: #e28d23;
+  --color-hike: #2ab580;
 }
 
 /* `inline` so utilities reference the variables Astro's <Font /> defines. */

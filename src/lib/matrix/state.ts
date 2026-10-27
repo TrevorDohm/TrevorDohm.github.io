@@ -6,32 +6,32 @@ export interface Ripple {
 }
 
 export interface MatrixState {
-  /** Where attention is centered, in canvas CSS pixels. */
-  query: { x: number; y: number }
-  /** True once the visitor has moved the query at least once. */
-  hasQuery: boolean
+  /** Where the visitor last pointed, in canvas CSS pixels, or null once they leave. */
+  pointer: { x: number; y: number } | null
   lastInput: number
-  /** Cell under the cursor, or -1. */
-  hover: number
   ripples: Ripple[]
 }
 
-export const IDLE_AFTER_MS = 2000
+/** Input this old stops steering the light (the mockup's threshold). */
+export const IDLE_AFTER_MS = 2500
 export const MAX_RIPPLES = 6
 
 export function createState(): MatrixState {
-  return { query: { x: 0, y: 0 }, hasQuery: false, lastInput: -Infinity, hover: -1, ripples: [] }
+  return { pointer: null, lastInput: -Infinity, ripples: [] }
 }
 
+/** True when nothing steers the light: no pointer, or no input for IDLE_AFTER_MS. */
 export function isIdle(state: MatrixState, now: number): boolean {
-  return now - state.lastInput > IDLE_AFTER_MS
+  return !state.pointer || now - state.lastInput > IDLE_AFTER_MS
 }
 
-export function setQuery(state: MatrixState, x: number, y: number, now: number): void {
-  state.query.x = x
-  state.query.y = y
-  state.hasQuery = true
+export function setPointer(state: MatrixState, x: number, y: number, now: number): void {
+  state.pointer = { x, y }
   state.lastInput = now
+}
+
+export function clearPointer(state: MatrixState): void {
+  state.pointer = null
 }
 
 export function addRipple(state: MatrixState, x: number, y: number, now: number): void {

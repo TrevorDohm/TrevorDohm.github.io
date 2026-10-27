@@ -1,52 +1,52 @@
-import { cellAt, type Grid } from './geometry'
-import { addRipple, setQuery, type MatrixState } from './state'
+import { addRipple, clearPointer, setPointer, type MatrixState } from './state'
 
 /**
- * Pointer and focus events on the hero → matrix state. Mouse moves the query
- * freely. Touch and pen move it only while pressed; with touch-action: pan-y
- * that means horizontal drags, and vertical drags still scroll the page. A
- * press anywhere starts a ripple. Hovering or focusing a hero link or button
- * pulls the query onto it.
+ * Pointer and focus events on the hero → matrix state. Mouse steers the light
+ * freely and lets go when it leaves the hero. Touch and pen steer it only while
+ * pressed; with touch-action: pan-y that means horizontal drags, and vertical
+ * drags still scroll the page. A press anywhere starts a drop. Hovering or
+ * focusing a hero link or button pulls the light onto it; like any resting
+ * pointer it lets go after 2.5 s. Focus leaving the hero releases it at once.
  */
 export function bindInput(
   root: HTMLElement,
   canvas: HTMLCanvasElement,
   state: MatrixState,
-  getGrid: () => Grid | null,
 ): () => void {
   const local = (clientX: number, clientY: number): [number, number] => {
     const rect = canvas.getBoundingClientRect()
     return [clientX - rect.left, clientY - rect.top]
   }
 
-  const point = (x: number, y: number) => {
-    setQuery(state, x, y, performance.now())
-    const grid = getGrid()
-    state.hover = grid ? cellAt(grid, x, y) : -1
-  }
-
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse' && (e.buttons & 1) === 0) return
-    // While over a link or button, stay snapped to it (set by onTarget).
-    if ((e.target as Element | null)?.closest('a, button')) return
-    point(...local(e.clientX, e.clientY))
+    // While over a link or button, stay on it (set by onTarget); moving keeps it active.
+    if ((e.target as Element | null)?.closest('a, button')) {
+      state.lastInput = performance.now()
+      return
+    }
+    setPointer(state, ...local(e.clientX, e.clientY), performance.now())
   }
 
   const onDown = (e: PointerEvent) => {
     const [x, y] = local(e.clientX, e.clientY)
-    point(x, y)
+    setPointer(state, x, y, performance.now())
     addRipple(state, x, y, performance.now())
   }
 
   const onLeave = (e: PointerEvent) => {
-    if (e.pointerType === 'mouse') state.hover = -1
+    if (e.pointerType === 'mouse') clearPointer(state)
+  }
+
+  const onFocusOut = (e: FocusEvent) => {
+    if (!root.contains(e.relatedTarget as Node | null)) clearPointer(state)
   }
 
   const onTarget = (e: Event) => {
     const target = (e.target as Element | null)?.closest('a, button')
     if (!target || !root.contains(target)) return
     const rect = target.getBoundingClientRect()
-    point(...local(rect.left + rect.width / 2, rect.top + rect.height / 2))
+    setPointer(state, ...local(rect.left + rect.width / 2, rect.top + rect.height / 2), performance.now())
   }
 
   root.addEventListener('pointermove', onMove)
@@ -54,6 +54,7 @@ export function bindInput(
   root.addEventListener('pointerleave', onLeave)
   root.addEventListener('pointerover', onTarget)
   root.addEventListener('focusin', onTarget)
+  root.addEventListener('focusout', onFocusOut)
 
   return () => {
     root.removeEventListener('pointermove', onMove)
@@ -61,5 +62,6 @@ export function bindInput(
     root.removeEventListener('pointerleave', onLeave)
     root.removeEventListener('pointerover', onTarget)
     root.removeEventListener('focusin', onTarget)
+    root.removeEventListener('focusout', onFocusOut)
   }
 }

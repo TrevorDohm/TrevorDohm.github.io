@@ -5,9 +5,14 @@ import { attentionWeights, easeToward } from './attention'
 const centers = new Float32Array([0, 0, 10, 0, 20, 0])
 
 describe('attentionWeights', () => {
-  it('gives the nearest cell a weight of exactly 1', () => {
-    const w = attentionWeights(centers, 10, 0, 0, 1, new Float32Array(3))
-    expect(w[0]).toBe(1)
+  it('weights each cell exp(-d / temperature), d in cells, unnormalised as the mockup', () => {
+    const w = attentionWeights(centers, 10, 3, 4, 2.2, new Float32Array(3))
+    for (let i = 0; i < 3; i++) {
+      const d = Math.hypot(centers[i * 2] - 3, centers[i * 2 + 1] - 4) / 10
+      expect(w[i]).toBeCloseTo(Math.exp(-d / 2.2), 6)
+    }
+    expect(w[0]).toBeLessThan(1) // the query sits half a cell from the nearest centre
+    expect(attentionWeights(centers, 10, 0, 0, 2.2, new Float32Array(3))[0]).toBe(1)
   })
 
   it('keeps every weight in (0, 1] and decreasing with distance', () => {

@@ -1,10 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro'
 import Hero from '../components/home/Hero.astro'
+import Ribbon from '../components/home/Ribbon.astro'
 import SelectedWork from '../components/home/SelectedWork.astro'
+import Gallery from '../components/home/Gallery.astro'
 import Contact from '../components/home/Contact.astro'
 import { site } from '../data/site'
+import { interests } from '../data/interests'
 import { projects } from '../data/projects'
+import { patterns } from '../data/patterns'
 
 const { links, privacy } = site
 ---
@@ -12,12 +16,13 @@ const { links, privacy } = site
 <BaseLayout>
   <Hero
     name={site.name}
-    tagline={site.tagline}
     role={site.role}
     location={site.location}
     linkedin={links.linkedin}
   />
+  <Ribbon items={interests} />
   <SelectedWork projects={projects.filter((p) => p.featured)} />
+  <Gallery cards={patterns} />
   <Contact
     name={site.name}
     linkedin={links.linkedin}

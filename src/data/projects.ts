@@ -21,6 +21,24 @@ export interface Project {
 
 export const projects: Project[] = [
   {
+    slug: 'atlas',
+    title: 'ATLAS: Enterprise Agentic AI Assistant',
+    blurb:
+      'An internal agentic AI platform built from scratch in under two months, deployed into a fully air-gapped environment with no external API access.',
+    points: [
+      'Deployed a 12B-parameter open-weight LLM with q8-quantized ONNX embeddings inside an air-gapped Kubernetes environment.',
+      'Implemented 100+ agent tools spanning Jira, Confluence, PostgreSQL, Loki, and Prometheus.',
+      'Directed a 4-person tiger team as technical lead, head designer, and scrum master.',
+      'Drove adoption across development and test through 8 live demos and gated beta access, winning and renewing customer funding each release cycle.',
+    ],
+    tags: ['LLM Agents', 'Kubernetes', 'ONNX', 'Quantization', 'RAG'],
+    period: '2026 – Present',
+    context: 'RTX',
+    links: [],
+    featured: true,
+    closedSource: true,
+  },
+  {
     slug: 'cottention',
     title: 'Cottention: Linear Transformers with Cosine Attention',
     blurb:
@@ -46,24 +64,6 @@ export const projects: Project[] = [
       { label: 'Datasets', href: 'https://huggingface.co/TrevorDohm' },
     ],
     featured: true,
-  },
-  {
-    slug: 'atlas',
-    title: 'ATLAS — Enterprise Agentic AI Assistant',
-    blurb:
-      'An internal agentic AI platform built from scratch in under two months, deployed into a fully air-gapped environment with no external API access.',
-    points: [
-      'Deployed a 12B-parameter open-weight LLM with q8-quantized ONNX embeddings inside an air-gapped Kubernetes environment.',
-      'Implemented 100+ agent tools spanning Jira, Confluence, PostgreSQL, Loki, and Prometheus.',
-      'Directed a 4-person tiger team as technical lead, head designer, and scrum master.',
-      'Drove adoption across development and test through 8 live demos and gated beta access, winning and renewing customer funding each release cycle.',
-    ],
-    tags: ['LLM Agents', 'Kubernetes', 'ONNX', 'Quantization', 'RAG'],
-    period: '2026 – Present',
-    context: 'RTX',
-    links: [],
-    featured: true,
-    closedSource: true,
   },
   {
     slug: 'document-intelligence',
