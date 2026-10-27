@@ -11,9 +11,9 @@ import { LINE_GAP, NAME_LINES, nameMask, nameWeight, TIMELINE } from './name'
 export const NAME = nameMask(NAME_LINES, LINE_GAP)
 
 /** Brightest a background cell gets under the query (the mockup's 0.9). */
-const GLOW_PEAK = 0.9
+export const GLOW_PEAK = 0.9
 /** Seconds the background attention takes to sweep in. */
-const WAVE_SECONDS = 1.2
+export const WAVE_SECONDS = 1.2
 /** When the background attention starts sweeping in. */
 export const WAVE_START = TIMELINE.form + 0.6 * TIMELINE.hold
 /** When the name starts to break up and the query leaves its centre. */

@@ -19,9 +19,16 @@ export interface Frame {
   copy: Uint8Array
 }
 
+/** A grid and its frame. Layers are drawn in order: every layer's cells, then every layer's glow. */
+export interface Layer {
+  grid: Grid
+  frame: Frame
+}
+
 export interface Renderer {
-  resize(grid: Grid, width: number, height: number, pixelRatio: number): void
-  draw(frame: Frame): void
+  /** `top`: CSS px of canvas above the hero's top edge (the bleed); layers are in hero coordinates. */
+  resize(width: number, height: number, top: number, pixelRatio: number): void
+  draw(layers: readonly Layer[]): void
 }
 
 /** Cells below this brightness get no glow sprite. */
@@ -55,28 +62,23 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
   // The glow sits between the two accents, like the top of the ramp.
   const sprite = makeGlowSprite(mix(palette.accent, palette.accent2, 0.5))
   const ramp = rampTable(RAMP_STEPS, palette.line, palette.accent, palette.accent2)
-  let grid: Grid | null = null
   let cssWidth = 0
   let cssHeight = 0
+  let cssTop = 0
 
-  function resize(next: Grid, width: number, height: number, pixelRatio: number): void {
-    grid = next
+  function resize(width: number, height: number, top: number, pixelRatio: number): void {
     cssWidth = width
     cssHeight = height
+    cssTop = top
     const dpr = Math.min(pixelRatio, 2)
     canvas.width = Math.round(width * dpr)
-    canvas.height = Math.round(height * dpr)
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    canvas.height = Math.round((height + top) * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, top * dpr)
   }
 
-  function draw({ weights, boost, fade, copy }: Frame): void {
-    if (!grid) return
-    const { cols, rows, cell, centers } = grid
+  function cells({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
     const half = cell / 2
     const radius = cell * CELL_RADIUS
-    const glowSize = cell * GLOW_SCALE
-    ctx.clearRect(0, 0, cssWidth, cssHeight)
-
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (appear <= 0) continue
@@ -87,8 +89,10 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
       ctx.roundRect(centers[i * 2] - half, centers[i * 2 + 1] - half, cell, cell, radius)
       ctx.fill()
     }
+  }
 
-    ctx.globalCompositeOperation = 'lighter'
+  function glow({ cols, rows, cell, centers }: Grid, { weights, boost, fade, copy }: Frame): void {
+    const glowSize = cell * GLOW_SCALE
     for (let i = 0; i < cols * rows; i++) {
       const appear = fade[i]
       if (copy[i]) continue
@@ -97,6 +101,13 @@ export function createRenderer(canvas: HTMLCanvasElement, palette: Palette): Ren
       ctx.globalAlpha = appear * ((w - GLOW_THRESHOLD) / (1 - GLOW_THRESHOLD)) * 0.55
       ctx.drawImage(sprite, centers[i * 2] - glowSize / 2, centers[i * 2 + 1] - glowSize / 2, glowSize, glowSize)
     }
+  }
+
+  function draw(layers: readonly Layer[]): void {
+    ctx.clearRect(0, -cssTop, cssWidth, cssHeight + cssTop)
+    for (const { grid, frame } of layers) cells(grid, frame)
+    ctx.globalCompositeOperation = 'lighter'
+    for (const { grid, frame } of layers) glow(grid, frame)
     ctx.globalCompositeOperation = 'source-over'
     ctx.globalAlpha = 1
   }

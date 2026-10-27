@@ -8,6 +8,7 @@ import { fadeRows, type FadeRows } from './dissolve'
 import { createLoop } from './loop'
 import { copyMask } from './mask'
 import { measure } from './measure'
+import { createBleedLayer } from './overscroll'
 import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
@@ -32,9 +33,7 @@ export function init(root: HTMLElement): () => void {
   const copyEls = [...root.querySelectorAll('[data-matrix-copy]')]
 
   let renderer: Renderer
-  try {
-    renderer = createRenderer(canvas, readPalette(root))
-  } catch {
+  try { renderer = createRenderer(canvas, readPalette(root)) } catch {
     showCopy() // no canvas support or unreadable tokens: the static name stays
     return () => {}
   }
@@ -50,11 +49,10 @@ export function init(root: HTMLElement): () => void {
   let boost = new Float32Array(0)
   let fade: Float32Array = new Float32Array(0)
   let copy: Uint8Array = new Uint8Array(0)
-  let layoutKey = ''
-  let width = 0
-  let height = 0
+  let [layoutKey, width, height] = ['', 0, 0]
   let at: FadeRows | null = null // where the bottom fade starts; the idle path stays above it
   const light = createLight() // the light's centre (light.q); it glides, never jumps
+  const bleed = createBleedLayer(TEMPERATURE, EASE_RATE) // rows above the hero, for the iOS top overscroll
   // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
   const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
   let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
@@ -70,8 +68,10 @@ export function init(root: HTMLElement): () => void {
     intro.composeTargets(target, attention, grid, cells, clock)
   }
 
-  const draw = () => {
-    renderer.draw({ weights, boost, fade, copy })
+  const draw = (dt = 0) => {
+    if (!grid) return
+    const above = bleed.layer(light.q, clock, reduced, dt)
+    renderer.draw([...(above ? [above] : []), { grid, frame: { weights, boost, fade, copy } }])
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
     // The copy fades in as the name finishes forming (CSS, under data-js-intro).
@@ -79,11 +79,9 @@ export function init(root: HTMLElement): () => void {
   }
 
   const resize = () => {
-    const m = measure(canvas, anchor, copyEls)
+    const m = measure(root, canvas, anchor, copyEls)
     if (!m || m.key === layoutKey) return
-    layoutKey = m.key
-    width = m.width
-    height = m.height
+    ;[layoutKey, width, height] = [m.key, m.width, m.height]
     const { pitch, ax, ay, named } = m
 
     const saved = Float32Array.from(cells, (i) => (i >= 0 ? weights[i] : NaN))
@@ -106,7 +104,8 @@ export function init(root: HTMLElement): () => void {
     at = fadeRows(grid, m.buttonBottom)
     fade = intro.fadeMap(grid, cells, at)
     copy = copyMask(grid, m.copy, cells)
-    renderer.resize(grid, width, height, window.devicePixelRatio || 1)
+    bleed.layout(grid, m.top)
+    renderer.resize(width, height, m.top, window.devicePixelRatio || 1)
     updateTarget(performance.now(), 0)
     // New arrays start from the targets; either way the name keeps its eased state.
     if (fresh || reduced) weights.set(target)
@@ -121,7 +120,7 @@ export function init(root: HTMLElement): () => void {
     easeToward(weights, target, EASE_RATE, dt)
     pruneRipples(state, now, DROP.lifetime * 1000)
     applyBoost(boost, grid, state.ripples, now)
-    draw()
+    draw(dt)
   }
 
   const stopWatching = watchLayout(canvas, copyEls, resize)
@@ -135,11 +134,11 @@ export function init(root: HTMLElement): () => void {
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
   const settled = () => {
     const now = performance.now()
-    if (!grid || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
+    if (!grid || !light.q || clock < intro.INTRO_END || !isIdle(state, now) || bleed.overscrolled()) return false
     return isSettled(light.q, goal(now), grid.pitch)
   }
   const loop = createLoop(root, tick, settled)
-  const unbind = bindInput(root, canvas, state)
+  const unbind = bindInput(root, state)
   loop.start()
 
   return () => {

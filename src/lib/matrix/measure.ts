@@ -1,3 +1,4 @@
+import { bleedOffset } from './bleed'
 import { NAME } from './intro'
 import { lineRects, type Rect } from './mask'
 
@@ -5,10 +6,15 @@ import { lineRects, type Rect } from './mask'
 const FALLBACK_PITCH = [22, 40] as const
 const MOBILE_BREAKPOINT = 768
 
-/** Where the grid goes, read from the page. Every value is in the canvas's CSS pixels. */
+/**
+ * Where the grid goes, read from the page. Every value is in the hero's CSS
+ * pixels (y = 0 at its top edge); the canvas starts `top` px above it.
+ */
 export interface Layout {
   width: number
   height: number
+  /** The bleed: how far the canvas reaches above the hero. */
+  top: number
   pitch: number
   /** Top-left corner of the name block (0, 0 without an anchor). */
   ax: number
@@ -23,16 +29,20 @@ export interface Layout {
 }
 
 /**
- * Reads the layout from the canvas, the static name (`anchor`, whose width is
- * 23 pitches) and the copy elements. Null while the canvas isn't laid out.
+ * Reads the layout from the hero (`frame`), the canvas, the static name
+ * (`anchor`, whose width is 23 pitches) and the copy elements. Null while the
+ * canvas isn't laid out.
  */
 export function measure(
+  frame: Element,
   canvas: HTMLCanvasElement,
   anchor: Element | null,
   copy: readonly Element[],
 ): Layout | null {
-  const rect = canvas.getBoundingClientRect()
-  if (rect.width === 0 || rect.height === 0) return null // not laid out yet, or hidden
+  const rect = frame.getBoundingClientRect()
+  const area = canvas.getBoundingClientRect()
+  if (rect.width === 0 || rect.height === 0 || area.width === 0) return null // not laid out yet, or hidden
+  const top = bleedOffset(rect.top, area.top)
   const box = anchor?.getBoundingClientRect()
   const named = !!box && box.width > 0 && box.height > 0
   const pitch = named ? box.width / NAME.cols : FALLBACK_PITCH[rect.width < MOBILE_BREAKPOINT ? 0 : 1]
@@ -52,10 +62,11 @@ export function measure(
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
   })
-  const values = [rect.width, rect.height, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
+  const values = [rect.width, rect.height, top, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,
     height: rect.height,
+    top,
     pitch,
     ax,
     ay,
