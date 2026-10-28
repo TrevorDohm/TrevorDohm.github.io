@@ -71,20 +71,29 @@ const facts = [...role.split(' | '), location]
     opacity: 0;
   }
 
-  .hero-copy {
-    /* The nav grows by the status bar on notched phones. */
+  section {
+    /* The nav's height, which grows by the status bar on notched phones. */
     --hero-nav: calc(4.75rem + env(safe-area-inset-top));
+  }
+  @media (min-width: 48rem) {
+    section {
+      --hero-nav: calc(4.25rem + env(safe-area-inset-top));
+    }
+  }
+
+  /* Leaving the page (see watchLeave): only the rows below the nav, so a
+     reload's last frame never flashes the faded rows under it. */
+  [data-matrix-leaving] .matrix-layer {
+    clip-path: inset(var(--hero-nav) 0 0 0);
+  }
+
+  .hero-copy {
     padding-top: var(--hero-nav);
     padding-bottom: calc((max(100svh, 32.5rem) - var(--hero-nav)) / 10);
     /* A halo in the page color keeps the text readable over bright cells. */
     text-shadow:
       0 0 18px var(--color-background),
       0 0 36px var(--color-background);
-  }
-  @media (min-width: 48rem) {
-    .hero-copy {
-      --hero-nav: calc(4.25rem + env(safe-area-inset-top));
-    }
   }
 
   /* Pull the first line's leading up so the text starts one row below DOHM. */

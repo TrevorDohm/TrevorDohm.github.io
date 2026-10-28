@@ -4,6 +4,7 @@ import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
 import { bindInput } from './input'
 import * as intro from './intro'
+import { watchLeave } from './leave'
 import { createLoop } from './loop'
 import { measure } from './measure'
 import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
@@ -104,6 +105,7 @@ export function init(root: HTMLElement): () => void {
   }
 
   const stopWatching = watchLayout(canvas, copyEls, resize)
+  const stopLeave = watchLeave(root)
   resize()
   if (!scene) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
 
@@ -140,5 +142,6 @@ export function init(root: HTMLElement): () => void {
   return () => {
     stopMotion()
     stopWatching()
+    stopLeave()
   }
 }
