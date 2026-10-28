@@ -64,7 +64,7 @@ export function fadeMap(grid: Grid, exempt: Int32Array, at: FadeRows): Float32Ar
   for (let i = 0; i < fade.length; i++) {
     const row = Math.floor(i / grid.cols)
     const col = i % grid.cols
-    fade[i] = drop[i] ? 0 : Math.min(bottomFade(row, grid.rows, col, at.dimStart), topFade(row, col, at.full))
+    fade[i] = drop[i] || (row >= at.hideFrom && row < at.full) ? 0 : Math.min(bottomFade(row, grid.rows, col, at.dimStart), topFade(row, col, at.full))
   }
   for (const i of exempt) if (i >= 0) fade[i] = 1
   return fade

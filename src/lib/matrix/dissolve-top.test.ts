@@ -113,22 +113,30 @@ describe('fadeRows at the top', () => {
     expect(rows.full).toBe(rows.dimStart - 1)
   })
 
-  it('with the nav edge, reaches full strength on the row holding it, so every faded row is under the nav', () => {
-    const navBottom = 135 // phone nav plus status bar
-    const rows = fadeRows(grid, 559, 284, navBottom)
-    const navRow = Math.floor((navBottom - grid.originY) / grid.pitch)
-    expect(grid.originY + navRow * grid.pitch).toBeLessThanOrEqual(navBottom) // starts under the nav
-    expect(grid.originY + (navRow + 1) * grid.pitch).toBeGreaterThan(navBottom) // and ends below it
-    expect(rows.full).toBe(navRow)
-    // The last faded row ends above the nav's edge.
-    expect(grid.originY + rows.full * grid.pitch).toBeLessThanOrEqual(navBottom)
-    expect(rows.full).toBeLessThan(Math.round((284 - grid.originY) / grid.pitch) - 1) // well above the name
+  // A row's drawn cell spans its pitch less half a gap at each end.
+  const cellTop = (g: typeof grid, r: number) => g.originY + r * g.pitch + (g.pitch - g.cell) / 2
+  const cellBottom = (g: typeof grid, r: number) => cellTop(g, r) + g.cell
+
+  it('with the nav edge, reaches full strength on the first row a gap clear of the nav and hides the rows it cuts', () => {
+    for (const [g, navBottom] of [[grid, 135], [layoutGrid(1440, 900, 33, 240, 300), 65]] as const) {
+      const rows = fadeRows(g, g === grid ? 559 : 700, g === grid ? 284 : 300, navBottom)
+      const gap = g.pitch - g.cell
+      expect(cellTop(g, rows.full)).toBeGreaterThanOrEqual(navBottom + gap / 2) // a gap below the nav
+      expect(cellTop(g, rows.full - 1)).toBeLessThan(navBottom + gap / 2) // and no row fits above it
+      for (let r = 0; r < rows.full; r++) {
+        // Rows the nav cuts (or sits too close to) are hidden; rows wholly under it keep the taper.
+        expect(r >= rows.hideFrom).toBe(cellBottom(g, r) > navBottom)
+      }
+    }
+    expect(fadeRows(grid, 559, 284, 135).full).toBeLessThan(Math.round((284 - grid.originY) / grid.pitch) - 1) // well above the name
   })
 
-  it('keeps at least 3 rows under a short nav, and never reaches the name', () => {
-    expect(fadeRows(grid, 559, 284, 5).full).toBe(3)
+  it('hides nothing without a nav edge, and never reaches the name', () => {
+    const rows = fadeRows(grid, 559, 284)
+    expect(rows.hideFrom).toBe(rows.full)
     const nameRow = Math.round((284 - grid.originY) / grid.pitch)
     expect(fadeRows(grid, 559, 284, 400).full).toBe(nameRow - 1)
+    expect(fadeRows(grid, 559, 284, 5).full).toBe(2) // row 1's cell starts under half a gap below y=5
   })
 
   it('stays at least one row deep when the buttons end near the top', () => {

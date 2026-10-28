@@ -1,5 +1,6 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
 import { whileMotionAllowed } from '../motion/while-motion-allowed'
+import { gridNudge } from './align'
 import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
 import { bindInput } from './input'
@@ -77,8 +78,17 @@ export function init(root: HTMLElement): () => void {
     if (!copyShown && clock >= intro.COPY_AT) copyShown = showCopy()
   }
 
+  let nudge = 0
   const resize = () => {
-    const m = measure(root, canvas, anchor, copyEls)
+    let m = measure(root, canvas, anchor, copyEls)
+    // Move the name block so the grid starts a cell gap below the nav (m.ay includes the current
+    // nudge), then measure once more: never a loop, even if the style doesn't apply.
+    const want = m?.named && m.navBottom !== null ? gridNudge(m.ay - nudge, m.navBottom, m.pitch) : 0
+    if (m && Math.abs(want - nudge) > 0.25) {
+      nudge = want
+      root.style.setProperty('--grid-nudge', `${nudge}px`)
+      m = measure(root, canvas, anchor, copyEls)
+    }
     if (!m || m.key === layoutKey) return
     layoutKey = m.key
     const prev = scene

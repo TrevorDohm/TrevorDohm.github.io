@@ -27,20 +27,20 @@ const DROP_LAST = 0.9
 /** The top band's removal chances, lighter than the bottom's: it is short and mostly hidden by the nav. */
 const TOP_DROP_FIRST = 0.12
 const TOP_DROP_LAST = 0.5
-/** Fewest rows the top fade spans under a short nav (a wide screen's), so a pull-down still meets a taper. */
-const MIN_TOP_ROWS = 3
 
 /**
  * Where the fades are: at the bottom, the dimming's first row, the removals'
  * first row and the idle path's floor (px); at the top, the first row at full
- * strength (rows above it dim), the end of the removals (rows above
- * `dropEnd`) and the idle path's ceiling (px).
+ * strength (rows above it dim), the first of the rows hidden outright
+ * because the nav's edge cuts them (`hideFrom` up to `full`), the end of the
+ * removals (rows above `dropEnd`) and the idle path's ceiling (px).
  */
 export interface FadeRows {
   dimStart: number
   dropStart: number
   floor: number
   full: number
+  hideFrom: number
   dropEnd: number
   ceiling: number
 }
@@ -49,13 +49,13 @@ export interface FadeRows {
  * The fades' rows on `grid`. The dimming starts on the row holding the
  * buttons' bottom edge (`buttonBottom`, canvas px; an edge on a row line
  * belongs to the row above), and the removals on the row below; without it,
- * the fallback band. The top fade reaches full strength on the row holding
- * the nav's bottom edge (`navBottom`), so every faded row is under the nav,
- * at least MIN_TOP_ROWS down and never past the row above the name
- * (`nameTop`, on a row line); without a nav, at that row; without either,
- * as deep as the bottom fade. It stays at least one row deep and clear of
- * the bottom fade. The idle path's floor keeps a
- * row above the dimming; its ceiling is halfway down the top fade.
+ * the fallback band. The top fade reaches full strength on the first row
+ * whose cell clears the nav's bottom edge (`navBottom`) by half a gap, so
+ * the grid starts a cell gap below the nav; rows the edge cuts are hidden,
+ * and the faded rows above them sit under the nav. It never goes past the row above the name (`nameTop`, on a row line); without
+ * a nav, at that row; without either, as deep as the bottom fade. It stays
+ * at least one row deep and clear of the bottom fade. The idle path's floor
+ * keeps a row above the dimming; its ceiling is halfway down the top fade.
  */
 export function fadeRows(
   grid: Grid,
@@ -76,14 +76,17 @@ export function fadeRows(
   const named = nameTop !== null && Number.isFinite(nameTop)
   const aboveName = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
   const underNav = navBottom !== null && Number.isFinite(navBottom)
-  const navRow = underNav ? Math.max(MIN_TOP_ROWS, Math.floor((navBottom - originY) / pitch)) : Infinity
-  const wanted = Math.min(aboveName, navRow)
-  const full = Math.max(1, Math.min(dimStart - 1, wanted))
+  const navRow = underNav ? Math.ceil((navBottom - originY) / pitch) : Infinity
+  const full = Math.max(1, Math.min(dimStart - 1, aboveName, navRow))
+  // The first row whose cell reaches below the nav's edge.
+  const cut = underNav ? Math.floor((navBottom - originY - (pitch + grid.cell) / 2) / pitch) + 1 : full
+  const hideFrom = Math.max(0, Math.min(full, cut))
   return {
     dimStart,
     dropStart,
     floor: originY + (dimStart - 1) * pitch,
     full,
+    hideFrom,
     dropEnd: full,
     ceiling: originY + (full / 2) * pitch,
   }

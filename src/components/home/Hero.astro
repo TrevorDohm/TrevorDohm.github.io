@@ -39,9 +39,9 @@ const facts = [...role.split(' | '), location]
        of what is left, lifts the centre from 50% to 45%. NameMark's height
        cap uses the same numbers. The matrix keeps its glow off the
        [data-matrix-copy] boxes. -->
-  <div data-matrix-nav class="hero-copy section-container relative flex w-full flex-col">
+  <div class="hero-copy section-container relative flex w-full flex-col">
     <h1 class="sr-only">{name}</h1>
-    <div class="my-auto">
+    <div class="name-block my-auto">
       <NameMark />
       <p data-matrix-copy data-intro-copy class="role font-mono text-sm text-balance text-muted">
         {facts.map((fact, i) => <>{i > 0 && ' | '}<span class="whitespace-nowrap">{fact}</span></>)}
@@ -85,6 +85,12 @@ const facts = [...role.split(' | '), location]
      reload's last frame never flashes the faded rows under it. */
   [data-matrix-leaving] .matrix-layer {
     clip-path: inset(var(--hero-nav) 0 0 0);
+  }
+
+  /* Set by the matrix script (gridNudge): at most half a row either way, so
+     the grid's first row below the nav starts one cell gap under it. */
+  .name-block {
+    translate: 0 var(--grid-nudge, 0px);
   }
 
   .hero-copy {

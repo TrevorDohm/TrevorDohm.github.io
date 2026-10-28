@@ -27,11 +27,10 @@ export interface Layout {
 
 /**
  * Reads the layout from the canvas, the static name (`anchor`, whose width is
- * 23 pitches), the copy elements and the `[data-matrix-nav]` element in
- * `frame`, whose top padding clears the nav: its content edge is the nav's
- * bottom, read without the nav itself so scrolling never changes it. Null
- * while the canvas isn't laid out,
- * or when it doesn't cover the hero (`frame`; see coversHero).
+ * 23 pitches), the copy elements and the fixed `[data-nav]` bar at the top,
+ * whose bottom edge is its height less the canvas's offset in the document,
+ * so scrolling never changes it. Null while the canvas isn't laid out, or
+ * when it doesn't cover the hero (`frame`; see coversHero).
  */
 export function measure(
   frame: Element,
@@ -61,8 +60,8 @@ export function measure(
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
   })
-  const pad = frame.querySelector('[data-matrix-nav]')
-  const navBottom = pad ? pad.getBoundingClientRect().top - rect.top + parseFloat(getComputedStyle(pad).paddingTop) : null
+  const nav = document.querySelector<HTMLElement>('[data-nav]')
+  const navBottom = nav ? nav.offsetHeight - (rect.top + window.scrollY) : null
   const values = [rect.width, rect.height, pitch, ax, ay, navBottom ?? -1, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,

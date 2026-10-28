@@ -60,6 +60,16 @@ describe('fadeMap', () => {
       expect(f).toBeCloseTo(expected)
     })
   })
+
+  it('is 0 on the rows the nav edge cuts, and the top fade above them', () => {
+    const grid = layoutGrid(1440, 900, 33, 240, 300)
+    const rows = fadeRows(grid, 700, 300, 65)
+    expect(rows.hideFrom).toBeLessThan(rows.full)
+    const fade = fadeMap(grid, new Int32Array(0), rows)
+    const at = (r: number) => Array.from({ length: grid.cols }, (_, c) => fade[r * grid.cols + c])
+    for (let r = rows.hideFrom; r < rows.full; r++) expect(Math.max(...at(r))).toBe(0)
+    expect(Math.min(...at(rows.full))).toBe(1)
+  })
 })
 
 describe('introQuery', () => {
