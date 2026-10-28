@@ -91,6 +91,9 @@ const facts = [...role.split(' | '), location]
      the grid's first row below the nav starts one cell gap under it. */
   .name-block {
     translate: 0 var(--grid-nudge, 0px);
+    /* Never animated (reduced motion gives everything a tiny transition): the
+       script measures the block straight after moving it. */
+    transition-property: none;
   }
 
   .hero-copy {

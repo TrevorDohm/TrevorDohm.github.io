@@ -61,7 +61,7 @@ export function measure(
     return lineRects([...range.getClientRects()].map(local))
   })
   const nav = document.querySelector<HTMLElement>('[data-nav]')
-  const navBottom = nav ? nav.offsetHeight - (rect.top + window.scrollY) : null
+  const navBottom = nav ? nav.getBoundingClientRect().height - (rect.top + window.scrollY) : null
   const values = [rect.width, rect.height, pitch, ax, ay, navBottom ?? -1, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,

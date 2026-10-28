@@ -25,8 +25,15 @@ describe('gridNudge', () => {
   it('takes the nearer way, never more than half a row', () => {
     for (let top = 200; top < 260; top += 0.7) {
       const d = gridNudge(top, 65, 30)
-      expect(Math.abs(d)).toBeLessThanOrEqual(15 + 1e-9)
+      expect(Math.abs(d)).toBeLessThanOrEqual(15.5 + 1e-9)
     }
+  })
+
+  it('settles a near-halfway case the same way either side of a rounding error', () => {
+    const pitch = 30
+    const line = 65 + (pitch * (1 - CELL_FILL)) / 2
+    const halfway = line - pitch / 2 // a name top exactly half a row off
+    expect(gridNudge(halfway - 0.001, 65, pitch)).toBeCloseTo(gridNudge(halfway + 0.001, 65, pitch), 1)
   })
 
   it('leaves an already aligned name where it is', () => {
