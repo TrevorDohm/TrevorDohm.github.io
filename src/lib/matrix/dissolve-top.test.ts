@@ -113,13 +113,15 @@ describe('fadeRows at the top', () => {
     expect(rows.full).toBe(rows.dimStart - 1)
   })
 
-  it('with the nav edge, reaches full strength on the first row wholly below the nav', () => {
+  it('with the nav edge, reaches full strength on the row holding it, so every faded row is under the nav', () => {
     const navBottom = 135 // phone nav plus status bar
     const rows = fadeRows(grid, 559, 284, navBottom)
-    const navRow = Math.ceil((navBottom - grid.originY) / grid.pitch)
-    expect(grid.originY + navRow * grid.pitch).toBeGreaterThanOrEqual(navBottom) // wholly below
-    expect(grid.originY + (navRow - 1) * grid.pitch).toBeLessThan(navBottom) // the row above is not
+    const navRow = Math.floor((navBottom - grid.originY) / grid.pitch)
+    expect(grid.originY + navRow * grid.pitch).toBeLessThanOrEqual(navBottom) // starts under the nav
+    expect(grid.originY + (navRow + 1) * grid.pitch).toBeGreaterThan(navBottom) // and ends below it
     expect(rows.full).toBe(navRow)
+    // The last faded row ends above the nav's edge.
+    expect(grid.originY + rows.full * grid.pitch).toBeLessThanOrEqual(navBottom)
     expect(rows.full).toBeLessThan(Math.round((284 - grid.originY) / grid.pitch) - 1) // well above the name
   })
 

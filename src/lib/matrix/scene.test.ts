@@ -39,7 +39,7 @@ describe('layoutScene', () => {
   it('ends the top fade at the nav edge when there is one', () => {
     const s = layoutScene(layout({ ay: 284, navBottom: 135 }), null)
     const { originY, pitch } = s.grid
-    expect(s.at.full).toBe(Math.ceil((135 - originY) / pitch))
+    expect(s.at.full).toBe(Math.floor((135 - originY) / pitch))
     expect(s.at.full).not.toBe(layoutScene(layout({ ay: 284 }), null).at.full) // so the nav edge is what set it
   })
 

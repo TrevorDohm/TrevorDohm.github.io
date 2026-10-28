@@ -49,11 +49,12 @@ export interface FadeRows {
  * The fades' rows on `grid`. The dimming starts on the row holding the
  * buttons' bottom edge (`buttonBottom`, canvas px; an edge on a row line
  * belongs to the row above), and the removals on the row below; without it,
- * the fallback band. The top fade reaches full strength on the first row
- * wholly below the nav (`navBottom`), at least MIN_TOP_ROWS down and never
- * past the row above the name (`nameTop`, on a row line); without a nav, at
- * that row; without either, as deep as the bottom fade. It stays at least
- * one row deep and clear of the bottom fade. The idle path's floor keeps a
+ * the fallback band. The top fade reaches full strength on the row holding
+ * the nav's bottom edge (`navBottom`), so every faded row is under the nav,
+ * at least MIN_TOP_ROWS down and never past the row above the name
+ * (`nameTop`, on a row line); without a nav, at that row; without either,
+ * as deep as the bottom fade. It stays at least one row deep and clear of
+ * the bottom fade. The idle path's floor keeps a
  * row above the dimming; its ceiling is halfway down the top fade.
  */
 export function fadeRows(
@@ -75,7 +76,7 @@ export function fadeRows(
   const named = nameTop !== null && Number.isFinite(nameTop)
   const aboveName = named ? Math.round((nameTop - originY) / pitch) - 1 : rows - 1 - dimStart
   const underNav = navBottom !== null && Number.isFinite(navBottom)
-  const navRow = underNav ? Math.max(MIN_TOP_ROWS, Math.ceil((navBottom - originY) / pitch)) : Infinity
+  const navRow = underNav ? Math.max(MIN_TOP_ROWS, Math.floor((navBottom - originY) / pitch)) : Infinity
   const wanted = Math.min(aboveName, navRow)
   const full = Math.max(1, Math.min(dimStart - 1, wanted))
   return {
