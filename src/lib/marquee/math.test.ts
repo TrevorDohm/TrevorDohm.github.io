@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { approach, durationSeconds, repeatsNeeded, rescaleCurrentTime, revealProgress } from './math'
+import { approach, durationSeconds, frameStep, indexAt, repeatsNeeded, rescaleCurrentTime, revealProgress } from './math'
 
 describe('durationSeconds', () => {
   it('is width over speed', () => expect(durationSeconds(6600, 22)).toBe(300))
@@ -52,4 +52,25 @@ describe('revealProgress', () => {
     expect(p).toBeLessThan(1)
   })
   it('is 0 for an unusable list width', () => expect(revealProgress(10, 10, 100, 0, false)).toBe(0))
+})
+
+describe('frameStep', () => {
+  it('is the gap in seconds', () => expect(frameStep(1100, 1000, 0.1)).toBeCloseTo(0.1))
+  it('caps a stalled frame', () => expect(frameStep(5000, 1000, 0.1)).toBe(0.1))
+  // The first rAF timestamp can be earlier than the performance.now() taken when it was requested.
+  it('is 0, not negative, for a frame stamped before the start', () => expect(frameStep(990, 1000, 0.1)).toBe(0))
+})
+
+describe('indexAt', () => {
+  const boxes = [
+    { left: 0, top: 0, right: 100, bottom: 50 },
+    { left: 120, top: 0, right: 220, bottom: 50 },
+  ]
+  it('finds the box under the point', () => expect(indexAt(boxes, 150, 10)).toBe(1))
+  it('includes the left and top edges, not the right and bottom', () => {
+    expect(indexAt(boxes, 120, 0)).toBe(1)
+    expect(indexAt(boxes, 100, 10)).toBe(-1)
+    expect(indexAt(boxes, 10, 50)).toBe(-1)
+  })
+  it('is -1 in a gap', () => expect(indexAt(boxes, 110, 10)).toBe(-1))
 })

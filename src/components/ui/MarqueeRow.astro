@@ -2,9 +2,10 @@
 // One drifting row of <li> items. The parent element must carry
 // data-marquee-root and may hold a button[data-marquee-toggle] (rendered
 // hidden). Without the script, or under reduced motion, the row is a static
-// list that scrolls sideways. Items need fixed font-size and line-height (or
-// fixed card sizes) so a font swap cannot change the row height. Slot content
-// is cloned, so it must not contain id attributes.
+// list that scrolls sideways; with it, a horizontal drag or swipe scrubs it.
+// Items need fixed font-size and line-height (or fixed card sizes) so a font
+// swap cannot change the row height. Slot content is cloned, so it must not
+// contain id attributes.
 interface Props {
   /** Drift speed in px/s. */
   speed: number
@@ -71,6 +72,21 @@ const items = await Astro.slots.render('default')
     );
     -webkit-mask-image: var(--marquee-mask);
     mask-image: var(--marquee-mask);
+  }
+
+  /* The script scrubs a row on a horizontal drag or swipe; vertical swipes
+     still scroll the page. Moving text isn't worth selecting. */
+  :global([data-marquee-ready]) .row {
+    touch-action: pan-y pinch-zoom;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none; /* no iOS link preview on a long press mid-swipe */
+  }
+
+  :global([data-marquee-ready]) .row[data-dragging],
+  :global([data-marquee-ready]) .row[data-dragging] :global(*) {
+    cursor: grabbing;
   }
 
   /* A focused item can only be seeked as far as the row's edge, under the fade.

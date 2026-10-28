@@ -27,7 +27,8 @@ export function createLoop(
     raf = requestAnimationFrame(frame)
     const elapsed = now - last
     if (shouldThrottle() && elapsed < IDLE_FRAME_MS) return
-    tick(Math.min(elapsed, MAX_STEP_MS) / 1000, now)
+    // The first frame's timestamp can predate the performance.now() in sync().
+    tick(Math.min(Math.max(0, elapsed), MAX_STEP_MS) / 1000, now)
     last = now
   }
 

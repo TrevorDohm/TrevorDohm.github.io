@@ -55,7 +55,7 @@ const d = levelPaths(lit, n, 2, CELL_FILL - stroke)[1]
      23p <= 4.6 (0.2H - 0.55N + 0.5C). C is the role line and the buttons with
      their margins, measured in Chrome: 107.2px on phones (a 2-line role line),
      87.2px from 40rem (1 line). N is --hero-nav, inherited from Hero.astro
-     (4.75rem, 4.25rem from 48rem). The cap never goes below 253px (11px pitch),
+     (4.75rem, 4.25rem from 48rem, plus env(safe-area-inset-top)). The cap never goes below 253px (11px pitch),
      which bounds the canvas's cell count on short screens; a 320px phone's
      text column is 272px. */
   .name-mark {

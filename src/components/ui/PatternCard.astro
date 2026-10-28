@@ -106,7 +106,9 @@ const frame = `<g transform="translate(${num(g.offset)} ${num(g.offset)}) scale(
     color: var(--color-foreground);
   }
 
-  a.name:hover {
+  /* An inert copy's link gets no :hover; the marquee marks it data-hover. */
+  a.name:hover,
+  a.name[data-hover] {
     color: var(--color-accent);
   }
 

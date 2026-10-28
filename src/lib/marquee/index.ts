@@ -1,6 +1,9 @@
 import { whileMotionAllowed } from '../motion/while-motion-allowed'
+import { dragRows } from './drag'
 import { focusHold } from './focus'
-import { approach } from './math'
+import { hoverItems } from './hover'
+import { approach, frameStep } from './math'
+import { rowAnims } from './scrub'
 import { layoutRow, resetRow } from './timing'
 
 /** Playback rate while the pointer is over a row. */
@@ -13,8 +16,8 @@ const MAX_STEP_S = 0.1
 const STATIC_ATTRS = ['role', 'tabindex', 'aria-label']
 
 /**
- * Drives every marquee row inside `root`: sizing, hover slowdown, the Pause
- * button and pausing offscreen. Under reduced motion the rows stay static,
+ * Drives every marquee row inside `root`: sizing, hover slowdown, dragging,
+ * the Pause button and pausing offscreen. Under reduced motion the rows stay static,
  * and turning it on later returns them to static.
  */
 export const init = (root: HTMLElement): (() => void) => whileMotionAllowed(() => drive(root))
@@ -26,15 +29,11 @@ function drive(root: HTMLElement): () => void {
   const toggle = root.querySelector<HTMLButtonElement>('button[data-marquee-toggle]')
   // The visible word lives in its own span, beside hidden text naming the section.
   const label = toggle?.querySelector('[data-marquee-label]') ?? toggle
-  const lists = rows.flatMap((row) =>
-    Array.from(row.querySelectorAll<HTMLElement>('ul[data-marquee-track], ul[data-marquee-clone]')),
-  )
-  const anims = () => lists.flatMap((list) => list.getAnimations())
+  const anims = () => rows.flatMap(rowAnims)
   const saved = rows.map((row) => STATIC_ATTRS.map((name) => row.getAttribute(name)))
 
   let alive = true, userPaused = false, focusHeld = false, onScreen = true
   let rate = 1, target = 1, raf = 0, last = 0
-  let hovered: HTMLElement | null = null
 
   const layout = () => {
     if (!alive) return
@@ -42,15 +41,15 @@ function drive(root: HTMLElement): () => void {
     root.dispatchEvent(new CustomEvent('marquee:layout'))
   }
 
-  // One place decides play or pause. Only the button touches userPaused.
-  const sync = () => {
-    const run = !userPaused && !focusHeld && onScreen && !document.hidden
-    anims().forEach((a) => (run ? a.play() : a.pause()))
-  }
+  // One place decides play or pause. Only the button touches userPaused; a drag holds its own row.
+  const running = () => !userPaused && !focusHeld && onScreen && !document.hidden
+  const sync = () =>
+    rows.forEach((row) => rowAnims(row).forEach((a) => (running() && !drag.held(row) ? a.play() : a.pause())))
+  const drag = dragRows(root, rows, { running, rate: () => rate, onHold: () => sync() })
 
   const applyRate = () => anims().forEach((a) => a.updatePlaybackRate(rate))
   const step = (now: number) => {
-    rate = approach(rate, target, EASE_RATE, Math.min((now - last) / 1000, MAX_STEP_S))
+    rate = approach(rate, target, EASE_RATE, frameStep(now, last, MAX_STEP_S))
     last = now
     if (Math.abs(rate - target) <= 0.001) {
       rate = target
@@ -67,24 +66,9 @@ function drive(root: HTMLElement): () => void {
     raf = requestAnimationFrame(step)
   }
 
-  // Inert copies get no pointer events, so find the item under the pointer by geometry.
-  const setHover = (li: HTMLElement | null) => {
-    if (li === hovered) return
-    hovered?.removeAttribute('data-hover')
-    li?.setAttribute('data-hover', '')
-    hovered = li
-  }
-  const onMove = (event: PointerEvent) => {
-    const row = event.currentTarget as HTMLElement
-    const items = row.querySelectorAll<HTMLElement>(':scope > ul > li')
-    const hit = Array.from(items).find((li) => {
-      const r = li.getBoundingClientRect()
-      return event.clientX >= r.left && event.clientX < r.right && event.clientY >= r.top && event.clientY < r.bottom
-    })
-    setHover(hit ?? null)
-  }
+  const hover = hoverItems()
   const onEnter = () => setTarget(HOVER_RATE)
-  const onLeave = () => { setHover(null); setTarget(1) }
+  const onLeave = () => { hover.onLeave(); setTarget(1) }
   const focus = focusHold(root, rows, (held) => {
     focusHeld = held
     sync()
@@ -114,7 +98,7 @@ function drive(root: HTMLElement): () => void {
   })
   const resize = new ResizeObserver(layout)
   const rowEvents = [
-    ['pointermove', onMove],
+    ['pointermove', hover.onMove],
     ['pointerenter', onEnter],
     ['pointerleave', onLeave],
     ['focusin', focus.onFocusIn],
@@ -140,8 +124,9 @@ function drive(root: HTMLElement): () => void {
     document.removeEventListener('visibilitychange', sync)
     toggle?.removeEventListener('click', onToggle)
     for (const row of rows) for (const [type, fn] of rowEvents) row.removeEventListener(type, fn as EventListener)
-    setHover(null)
+    hover.onLeave()
     focus.release()
+    drag.release()
     rows.forEach((row, i) => saved[i].forEach((v, j) => v !== null && row.setAttribute(STATIC_ATTRS[j], v)))
     rows.forEach(resetRow)
     if (label) label.textContent = 'Pause'

@@ -1,17 +1,20 @@
 import { prefersReducedMotion } from '../motion/prefers-reduced-motion'
+import { whileMotionAllowed } from '../motion/while-motion-allowed'
+import { gridNudge } from './align'
 import { attentionWeights, easeToward } from './attention'
 import { applyBoost, DROP } from './effects'
-import { layoutGrid, type Grid } from './geometry'
 import { bindInput } from './input'
 import * as intro from './intro'
-import { fadeRows, type FadeRows } from './dissolve'
+import { watchLeave } from './leave'
 import { createLoop } from './loop'
-import { copyMask } from './mask'
 import { measure } from './measure'
 import { createLight, cruiseSpeed, goalAt, isFollowing, isSettled, stepLight } from './query'
 import { readPalette } from './palette'
 import { createRenderer, type Renderer } from './renderer'
+import { carryName, layoutScene, type Scene } from './scene'
+import { markSeen, readSeen } from './seen'
 import { createState, isIdle, pruneRipples } from './state'
+import { introPlan, seenBy } from './visit'
 import { watchLayout } from './watch'
 
 /** Softmax temperature in cells. Higher spreads the glow wider (the mockup's 2.2). */
@@ -27,7 +30,10 @@ const EASE_RATE = 12
 export function init(root: HTMLElement): () => void {
   const showCopy = () => root.toggleAttribute('data-copy-shown', true)
   const canvas = root.querySelector<HTMLCanvasElement>('canvas[data-matrix-canvas]')
-  if (!canvas) { showCopy(); return () => {} }
+  if (!canvas) {
+    showCopy()
+    return () => {}
+  }
   const anchor = root.querySelector<SVGElement>('[data-name-anchor]')
   const copyEls = [...root.querySelectorAll('[data-matrix-copy]')]
 
@@ -39,38 +45,32 @@ export function init(root: HTMLElement): () => void {
     return () => {}
   }
 
-  const reduced = prefersReducedMotion()
+  let still = prefersReducedMotion() // reduced motion: the still frame, the name lit
   const state = createState()
-  let grid: Grid | null = null
-  let cells: Int32Array = new Int32Array(0)
-  let centre: [number, number] = [0, 0]
-  let weights = new Float32Array(0)
-  let attention = new Float32Array(0)
-  let target = new Float32Array(0)
-  let boost = new Float32Array(0)
-  let fade: Float32Array = new Float32Array(0)
-  let copy: Uint8Array = new Uint8Array(0)
+  let scene: Scene | null = null
   let layoutKey = ''
-  let width = 0
-  let height = 0
-  let at: FadeRows | null = null // where the bottom fade starts; the idle path stays above it
   const light = createLight() // the light's centre (light.q); it glides, never jumps
-  // Intro clock (s): dark, or lit in the hold if the CSS safety net showed the static name.
-  const shown = !reduced && !!anchor && getComputedStyle(anchor).opacity !== '0'
-  let clock = reduced ? intro.STILL_AT : intro.introStart(shown)
-  let copyShown = false
+  // Intro clock (s): dark, or lit in the hold if the intro played earlier this
+  // session or the CSS safety net showed the static name.
+  const seen = readSeen()
+  const shown = !still && !!anchor && getComputedStyle(anchor).opacity !== '0'
+  const plan = introPlan({ still, shown, seen })
+  let clock = plan.clock
+  let copyShown = plan.copyNow && showCopy()
+  let marked = seen
 
-  const goal = (now: number) => goalAt(state, now, clock, centre, width, height, at?.floor)
+  const goal = (s: Scene, now: number) => goalAt(state, now, clock, s.centre, s.width, s.height, s.at.floor, s.at.ceiling)
 
-  const updateTarget = (now: number, dt: number) => {
-    if (!grid) return
-    const query = stepLight(light, goal(now), isFollowing(state, now), dt, cruiseSpeed(width, height, at?.floor), grid.pitch)
+  const updateTarget = (s: Scene, now: number, dt: number) => {
+    const { grid, attention } = s
+    const cruise = cruiseSpeed(s.width, s.height, s.at.floor, s.at.ceiling)
+    const query = stepLight(light, goal(s, now), isFollowing(state, now), dt, cruise, grid.pitch)
     attentionWeights(grid.centers, grid.pitch, query[0], query[1], TEMPERATURE, attention)
-    if (reduced) attention.fill(0) // still: only the name is lit
-    intro.composeTargets(target, attention, grid, cells, clock)
+    if (still) attention.fill(0) // only the name is lit
+    intro.composeTargets(s.target, attention, grid, s.cells, clock)
   }
 
-  const draw = () => {
+  const draw = ({ weights, boost, fade, copy }: Scene) => {
     renderer.draw({ weights, boost, fade, copy })
     // The canvas now shows the name, so the static one can hide (it stays in flow).
     root.dataset.matrixReady = ''
@@ -78,73 +78,80 @@ export function init(root: HTMLElement): () => void {
     if (!copyShown && clock >= intro.COPY_AT) copyShown = showCopy()
   }
 
+  let nudge = 0
   const resize = () => {
-    const m = measure(canvas, anchor, copyEls)
+    let m = measure(root, canvas, anchor, copyEls)
+    // Move the name block so the grid starts a cell gap below the nav (m.ay includes the current
+    // nudge), then measure once more: never a loop, even if the style doesn't apply.
+    const want = m?.named && m.navBottom !== null ? gridNudge(m.ay - nudge, m.navBottom, m.pitch) : 0
+    if (m && Math.abs(want - nudge) > 0.25) {
+      nudge = want
+      root.style.setProperty('--grid-nudge', `${nudge}px`)
+      m = measure(root, canvas, anchor, copyEls)
+    }
     if (!m || m.key === layoutKey) return
     layoutKey = m.key
-    width = m.width
-    height = m.height
-    const { pitch, ax, ay, named } = m
-
-    const saved = Float32Array.from(cells, (i) => (i >= 0 ? weights[i] : NaN))
-    const oldCells = cells
-    const old = grid
-    grid = layoutGrid(width, height, pitch, ax, ay)
-    cells = named ? intro.nameCells(grid, ax, ay) : new Int32Array(0)
-    centre = named
-      ? [ax + (pitch * intro.NAME.cols) / 2, ay + (pitch * intro.NAME.rows) / 2]
-      : [width / 2, height / 2]
-    // Same shape keeps the arrays (and every cell's index); any change starts fresh.
-    const fresh = !old || old.cols !== grid.cols || old.rows !== grid.rows
-    if (fresh) {
-      const count = grid.cols * grid.rows
-      weights = new Float32Array(count)
-      attention = new Float32Array(count)
-      target = new Float32Array(count)
-      boost = new Float32Array(count)
-    }
-    at = fadeRows(grid, m.buttonBottom)
-    fade = intro.fadeMap(grid, cells, at)
-    copy = copyMask(grid, m.copy, cells)
-    renderer.resize(grid, width, height, window.devicePixelRatio || 1)
-    updateTarget(performance.now(), 0)
-    // New arrays start from the targets; either way the name keeps its eased state.
-    if (fresh || reduced) weights.set(target)
-    intro.moveName(weights, fresh ? new Int32Array(0) : oldCells, cells, saved, target)
-    draw()
+    const prev = scene
+    const s = layoutScene(m, prev)
+    scene = s
+    renderer.resize(s.grid, m.width, m.height, window.devicePixelRatio || 1)
+    updateTarget(s, performance.now(), 0)
+    carryName(s, prev, still)
+    draw(s)
   }
 
   const tick = (dt: number, now: number) => {
-    if (!grid) return
+    if (!scene) return
     clock += dt
-    updateTarget(now, dt)
-    easeToward(weights, target, EASE_RATE, dt)
+    if (!marked && seenBy(clock)) {
+      marked = true
+      markSeen()
+    }
+    updateTarget(scene, now, dt)
+    easeToward(scene.weights, scene.target, EASE_RATE, dt)
     pruneRipples(state, now, DROP.lifetime * 1000)
-    applyBoost(boost, grid, state.ripples, now)
-    draw()
+    applyBoost(scene.boost, scene.grid, state.ripples, now)
+    draw(scene)
   }
 
   const stopWatching = watchLayout(canvas, copyEls, resize)
+  const stopLeave = watchLeave(root)
   resize()
-  if (!grid) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
+  if (!scene) copyShown = showCopy() // unmeasurable: show the copy now, not at the 3 s net
 
-  if (reduced) {
-    return stopWatching
+  // Reduced motion turned on mid-visit: a moment in the hold, held still.
+  const freeze = () => {
+    still = true
+    clock = intro.STILL_AT
+    if (!scene) return
+    scene.boost.fill(0)
+    updateTarget(scene, performance.now(), 0)
+    scene.weights.set(scene.target)
+    draw(scene)
   }
 
   // The intro starts now, not at `load`. Idle frames drop to ~30fps once the light settles.
   const settled = () => {
     const now = performance.now()
-    if (!grid || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
-    return isSettled(light.q, goal(now), grid.pitch)
+    if (!scene || !light.q || clock < intro.INTRO_END || !isIdle(state, now)) return false
+    return isSettled(light.q, goal(scene, now), scene.grid.pitch)
   }
-  const loop = createLoop(root, tick, settled)
-  const unbind = bindInput(root, canvas, state)
-  loop.start()
+  // Turning reduced motion off resumes from the still frame's moment in the hold.
+  const stopMotion = whileMotionAllowed(() => {
+    still = false
+    const loop = createLoop(root, tick, settled)
+    const unbind = bindInput(root, canvas, state)
+    loop.start()
+    return () => {
+      loop.stop()
+      unbind()
+      freeze()
+    }
+  })
 
   return () => {
-    loop.stop()
-    unbind()
+    stopMotion()
     stopWatching()
+    stopLeave()
   }
 }

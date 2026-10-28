@@ -9,7 +9,7 @@ import {
   NAME,
   nameCells,
 } from './intro'
-import { bottomFade, dropoutMap, fadeRows } from './dissolve'
+import { bottomFade, dropoutMap, fadeRows, topFade } from './dissolve'
 import { TIMELINE } from './name'
 
 describe('nameCells', () => {
@@ -42,19 +42,33 @@ describe('fadeMap', () => {
     const fade = fadeMap(grid, Int32Array.from([-1, last, 3]), fadeRows(grid, null))
     expect(fade[last]).toBe(1)
     expect(fade[last - 1]).toBeLessThan(1)
+    expect(fade[3]).toBe(1) // top row: inside the top fade too
+    expect(fade[2]).toBe(0)
   })
 
-  it('is bottomFade per cell, or 0 where dropoutMap removes the cell', () => {
+  it('is the lesser of bottomFade and topFade per cell, or 0 where dropoutMap removes the cell', () => {
     const grid = layoutGrid(300, 400, 10, 0, 0)
-    const rows = fadeRows(grid, 280)
+    const rows = fadeRows(grid, 280, 120)
     const fade = fadeMap(grid, new Int32Array(0), rows)
-    const drop = dropoutMap(grid.cols, grid.rows, rows.dropStart)
-    expect(fade[0]).toBe(1)
-    expect(drop.some((d) => d === 1)).toBe(true)
+    const drop = dropoutMap(grid.cols, grid.rows, rows.dropStart, rows.dropEnd)
+    expect(fade[rows.full * grid.cols]).toBe(1)
+    expect(drop.slice(0, rows.dropEnd * grid.cols).some((d) => d === 1)).toBe(true)
+    expect(drop.slice(rows.dropStart * grid.cols).some((d) => d === 1)).toBe(true)
     fade.forEach((f, i) => {
-      const expected = drop[i] ? 0 : bottomFade(Math.floor(i / grid.cols), grid.rows, i % grid.cols, rows.dimStart)
+      const [row, col] = [Math.floor(i / grid.cols), i % grid.cols]
+      const expected = drop[i] ? 0 : Math.min(bottomFade(row, grid.rows, col, rows.dimStart), topFade(row, col, rows.full))
       expect(f).toBeCloseTo(expected)
     })
+  })
+
+  it('is 0 on the rows the nav edge cuts, and the top fade above them', () => {
+    const grid = layoutGrid(1440, 900, 33, 240, 300)
+    const rows = fadeRows(grid, 700, 300, 65)
+    expect(rows.hideFrom).toBeLessThan(rows.full)
+    const fade = fadeMap(grid, new Int32Array(0), rows)
+    const at = (r: number) => Array.from({ length: grid.cols }, (_, c) => fade[r * grid.cols + c])
+    for (let r = rows.hideFrom; r < rows.full; r++) expect(Math.max(...at(r))).toBe(0)
+    expect(Math.min(...at(rows.full))).toBe(1)
   })
 })
 

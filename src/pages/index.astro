@@ -11,6 +11,14 @@ import { projects } from '../data/projects'
 import { patterns } from '../data/patterns'
 
 const { links, privacy } = site
+
+// A card's paper link comes from its project, the one place the URL lives.
+const paperOf = (slug: string) => {
+  const link = projects.find((p) => p.slug === slug)?.links.find((l) => l.label.startsWith('Paper'))
+  if (!link) throw new Error(`No paper link for project "${slug}"`)
+  return link.href
+}
+const cards = patterns.map((card) => (card.paper ? { ...card, href: paperOf(card.paper) } : card))
 ---
 
 <BaseLayout>
@@ -22,7 +30,7 @@ const { links, privacy } = site
   />
   <Ribbon items={interests} />
   <SelectedWork projects={projects.filter((p) => p.featured)} />
-  <Gallery cards={patterns} />
+  <Gallery cards={cards} />
   <Contact
     name={site.name}
     linkedin={links.linkedin}

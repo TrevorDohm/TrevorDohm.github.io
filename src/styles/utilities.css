@@ -1,5 +1,12 @@
+/* The side padding grows to clear a landscape phone's notch (viewport-fit=cover). */
 @utility section-container {
-  @apply mx-auto max-w-5xl px-6 sm:px-8;
+  @apply mx-auto max-w-5xl;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+  @media (width >= 40rem) {
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
 }
 
 @utility heading-xl {

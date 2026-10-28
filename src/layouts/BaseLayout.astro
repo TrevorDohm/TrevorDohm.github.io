@@ -4,6 +4,8 @@ import { site, nav } from '../data/site'
 import Nav from '../components/layout/Nav.astro'
 import Footer from '../components/layout/Footer.astro'
 import '../styles/global.css'
+import tokens from '../styles/tokens.css?raw'
+import { cssToken } from '../lib/css-token'
 
 interface Props {
   title?: string
@@ -15,6 +17,13 @@ const { title, description = site.description } = Astro.props
 const pageTitle = title ? `${title} — ${site.name}` : site.name
 const canonical = new URL(Astro.url.pathname, Astro.site).href
 const ogImage = new URL('/pfp.jpg', Astro.site).href
+// A meta tag can't read a CSS variable, so read the token from its source.
+const themeColor = cssToken(tokens, '--color-background')
+// Painted before any stylesheet loads, so a reload never flashes white (or
+// drops the status-bar tint) while the CSS arrives. It is unlayered, so it
+// beats the layered rules; reading the token itself, with the token's value
+// as the fallback until the CSS arrives, keeps it in step if the token changes.
+const firstPaint = `html,body{background-color:var(--color-background, ${themeColor})}`
 
 const { links, privacy } = site
 const footerLinks = [
@@ -31,7 +40,14 @@ const footerLinks = [
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style is:inline set:html={firstPaint} />
+    <!-- viewport-fit=cover lets the page run under notches and the status bar
+         where the browser honours it (iOS 26 Safari reportedly doesn't in
+         portrait); the safe-area insets in Nav, Hero, section-container and
+         Footer keep content clear. theme-color tints browser chrome on
+         Android and older Safari. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content={themeColor} />
     <Font cssVariable="--font-geist" preload />
     <Font cssVariable="--font-geist-mono" />
     <title>{pageTitle}</title>

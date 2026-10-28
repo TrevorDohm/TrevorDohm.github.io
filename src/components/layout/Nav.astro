@@ -11,9 +11,15 @@ const { siteName, items, pathname } = Astro.props
 const links = items.map((item) => ({ ...item, active: isActivePath(pathname, item.href) }))
 ---
 
+<!-- Opaque, because Safari 26 tints the status bar from the background of a
+     fixed element at the top and may not sample a translucent one. The top
+     padding extends the bar under the status bar where the browser reports a
+     safe-area inset (viewport-fit=cover: landscape, Android, older Safari;
+     iOS 26 Safari reportedly ignores it in portrait). section-container keeps
+     the content clear of side notches in landscape. -->
 <header
   data-nav
-  class="fixed inset-x-0 top-0 z-50 border-b border-line/80 bg-background/70 backdrop-blur-md"
+  class="fixed inset-x-0 top-0 z-50 border-b border-line/80 bg-background pt-[env(safe-area-inset-top)]"
 >
   <nav class="section-container py-4" aria-label="Main">
     <div class="flex items-center justify-between">

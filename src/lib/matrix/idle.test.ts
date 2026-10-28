@@ -20,7 +20,7 @@ describe('idleQuery', () => {
     }
   })
 
-  it('stays over fully visible cells, with the fade at the buttons or the fallback band', () => {
+  it('stays between the middle of the top fade and the bottom fade (at the buttons or the fallback band), never in the bottom fade', () => {
     // [width, height, pitch, anchor x, anchor y, the buttons' bottom edge (null: none)]
     const views: Array<[number, number, number, number, number, number | null]> = [
       [390, 844, 14, 24, 284, 559], [1366, 657, 27, 203, 127, 539], [1440, 900, 32, 240, 207, 678],
@@ -28,11 +28,32 @@ describe('idleQuery', () => {
     ]
     for (const [w, h, pitch, ax, ay, top] of views) {
       const grid = layoutGrid(w, h, pitch, ax, ay)
-      const rows = fadeRows(grid, top)
+      const rows = fadeRows(grid, top, ay)
       const fade = fadeMap(grid, new Int32Array(0), rows)
-      const pts = Array.from({ length: 18000 }, (_, i) => idleQuery(i / 30, w, h, rows.floor))
-      for (const [x, y] of pts) expect(fade[cellAt(grid, x, y)]).toBe(1)
+      const pts = Array.from({ length: 18000 }, (_, i) => idleQuery(i / 30, w, h, rows.floor, rows.ceiling))
+      const yTop = Math.max(0.14 * h, rows.ceiling)
+      for (const [x, y] of pts) {
+        expect(y).toBeGreaterThanOrEqual(yTop - 1e-9)
+        expect(y).toBeLessThanOrEqual(Math.max(yTop, rows.floor) + 1e-9)
+        const i = cellAt(grid, x, y)
+        if (Math.floor(i / grid.cols) >= rows.full) expect(fade[i]).toBe(1) // below the top fade: fully visible
+      }
+      // It roams most of the space between the fades: its y extent fills the range.
+      const ys = pts.map(([, y]) => y)
+      expect(extent(ys)).toBeGreaterThan(0.95 * (Math.max(yTop, Math.min(0.48 * h, rows.floor)) - yTop))
     }
+  })
+
+  it('starts its y range at a ceiling below 0.14H, keeping its shape', () => {
+    const ceiling = 0.3 * 844
+    const floor = 0.45 * 844
+    for (const t of [0, 1.7, 12.3, 95]) {
+      const [x, y] = idleQuery(t, 390, 844, floor, ceiling)
+      expect(x).toBe(idleQuery(t, 390, 844)[0])
+      expect(y).toBeCloseTo(ceiling + (floor - ceiling) * (0.5 + 0.5 * Math.sin(t * 0.23 + 1)), 9)
+    }
+    // A ceiling above 0.14H changes nothing.
+    for (const t of [0, 5, 40]) expect(idleQuery(t, 390, 844, Infinity, 0.1 * 844)).toEqual(idleQuery(t, 390, 844))
   })
 
   it('squeezes its y range under a floor, keeping its shape', () => {

@@ -1,3 +1,4 @@
+import { coversHero } from './coverage'
 import { NAME } from './intro'
 import { lineRects, type Rect } from './mask'
 
@@ -18,21 +19,28 @@ export interface Layout {
   copy: Rect[]
   /** Bottom edge of the hero buttons, where the bottom fade starts; null without buttons. */
   buttonBottom: number | null
+  /** Bottom edge of the fixed nav over the hero, where the top fade ends; null without a marker. */
+  navBottom: number | null
   /** Changes whenever any of the above does. */
   key: string
 }
 
 /**
  * Reads the layout from the canvas, the static name (`anchor`, whose width is
- * 23 pitches) and the copy elements. Null while the canvas isn't laid out.
+ * 23 pitches), the copy elements and the fixed `[data-nav]` bar at the top,
+ * whose bottom edge is its height less the canvas's offset in the document,
+ * so scrolling never changes it. Null while the canvas isn't laid out, or
+ * when it doesn't cover the hero (`frame`; see coversHero).
  */
 export function measure(
+  frame: Element,
   canvas: HTMLCanvasElement,
   anchor: Element | null,
   copy: readonly Element[],
 ): Layout | null {
   const rect = canvas.getBoundingClientRect()
   if (rect.width === 0 || rect.height === 0) return null // not laid out yet, or hidden
+  if (!coversHero(frame.getBoundingClientRect(), rect)) return null
   const box = anchor?.getBoundingClientRect()
   const named = !!box && box.width > 0 && box.height > 0
   const pitch = named ? box.width / NAME.cols : FALLBACK_PITCH[rect.width < MOBILE_BREAKPOINT ? 0 : 1]
@@ -52,7 +60,9 @@ export function measure(
     range.selectNodeContents(el)
     return lineRects([...range.getClientRects()].map(local))
   })
-  const values = [rect.width, rect.height, pitch, ax, ay, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
+  const nav = document.querySelector<HTMLElement>('[data-nav]')
+  const navBottom = nav ? nav.getBoundingClientRect().height - (rect.top + window.scrollY) : null
+  const values = [rect.width, rect.height, pitch, ax, ay, navBottom ?? -1, ...boxes.flatMap((b) => [b.left, b.top, b.right, b.bottom])]
   return {
     width: rect.width,
     height: rect.height,
@@ -62,6 +72,7 @@ export function measure(
     named,
     copy: boxes,
     buttonBottom,
+    navBottom,
     key: values.map((v) => v.toFixed(2)).join(),
   }
 }

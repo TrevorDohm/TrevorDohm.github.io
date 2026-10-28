@@ -7,6 +7,9 @@ export interface PatternCardData {
   kind: string
   /** One plain line. Only the Cottention card describes Trevor's own work. */
   caption: string
+  /** Slug of the project in projects.ts whose paper the card links to; the page looks the link up there. */
+  paper?: string
+  /** The paper link, filled in by the page from `paper`. */
   href?: string
 }
 
@@ -41,7 +44,7 @@ export const patterns: PatternCardData[] = [
     name: 'Cottention',
     kind: 'cosine',
     caption: 'Cosine similarity instead of softmax. Linear memory in sequence length.',
-    href: 'https://arxiv.org/abs/2409.18747',
+    paper: 'cottention',
   },
   {
     id: 'induction',

@@ -63,7 +63,9 @@ A change is done when `npm test` and `npm run build` both pass with 0 errors.
   (role line, buttons) fades in at about 1.1 s, as the mockup, so the LCP
   element is the role line and LCP lands when its fade finishes: about 2.0 s
   observed and 2.1 s in Lighthouse's simulated mobile run (was 1.5 s with the
-  tagline painted at once). The copy is hidden only under `data-js-intro` (JS
+  tagline painted at once). The full intro plays once per tab session; later
+  loads in the same tab paint the name and copy lit at first paint, so their LCP
+  is earlier. The copy is hidden only under `data-js-intro` (JS
   on, motion allowed), and a CSS safety net shows it after 3 s if the matrix
   never runs. Without JS or under reduced motion it shows from first paint.
 - Content must stay visible if JavaScript fails to load.
