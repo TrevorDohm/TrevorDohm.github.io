@@ -52,8 +52,7 @@ export const projects: Project[] = [
     ],
     tags: ['PyTorch', 'CUDA', 'Triton', 'Transformers', 'HPC', 'Research'],
     period: 'Sep 2023 – May 2024',
-    context:
-      'Undergraduate research with Dr. Eric Larson, SMU. Coauthored with Gabriel Mongaras and Eric C. Larson.',
+    context: 'Undergraduate research under Dr. Eric Larson, SMU.',
     links: [
       { label: 'Paper (arXiv)', href: 'https://arxiv.org/abs/2409.18747' },
       {
