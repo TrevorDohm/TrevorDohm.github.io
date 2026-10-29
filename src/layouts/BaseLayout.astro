@@ -16,7 +16,7 @@ const { title, description = site.description } = Astro.props
 
 const pageTitle = title ? `${title} — ${site.name}` : site.name
 const canonical = new URL(Astro.url.pathname, Astro.site).href
-// A 1200x630 card (photo, name, role) made for link previews: LinkedIn and
+// A 2400x1260 (1.91:1) card with the photo, name and role, for link previews: LinkedIn and
 // others crop a portrait photo to 1.91:1 and cut off the head.
 const ogImage = new URL('/og.jpg', Astro.site).href
 // A meta tag can't read a CSS variable, so read the token from its source.
@@ -63,8 +63,8 @@ const footerLinks = [
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={ogImage} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
     <meta property="og:image:alt" content={`${site.name}: ${site.role}`} />
 
     <meta name="twitter:card" content="summary_large_image" />
